@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Nata+Sans:wght@100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Readex+Pro:wght@160..700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body::-webkit-scrollbar {
+    display: none;
+}
+
+.login-container {
+    max-width: 900px;
+    margin: 50px auto;
+    background-color: #2c2645;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.login-left {
+    flex: 1;
+    background: url("https://picsum.photos/500/600?random=2") center/cover no-repeat;
+    color: white;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.login-left h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.login-left p {
+    font-size: 14px;
+    margin: 0;
+}
+
+.login-right {
+    flex: 1;
+    padding: 40px;
+    color: white;
+}
+
+.login-right h2 {
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.form-control {
+    background-color: #1f1a33;
+    border: 1px solid #666; /* brighter border for contrast */
+    color: #ffffff; /* text color */
+    padding: 10px 12px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.25);
+    outline: none;
+}
+
+/* Placeholder color */
+.form-control::placeholder {
+    color: #ccc;
+    opacity: 1;
+}
+
+/* Firefox */
+.form-control:-moz-placeholder {
+    color: #ccc;
+    opacity: 1;
+}
+
+/* IE */
+.form-control:-ms-input-placeholder {
+    color: #ccc;
+}
+
+/* Edge */
+.form-control::-ms-input-placeholder {
+    color: #ccc;
+}
+
+.btn-primary {
+    background-color: #8b5cf6;
+    border: none;
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #7c3aed;
+}
+
+.social-btn {
+    width: 48%;
+    border: 1px solid #555;
+    background: transparent;
+    color: white;
+    padding: 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.social-btn img {
+    width: 20px;
+    margin-right: 8px;
+}

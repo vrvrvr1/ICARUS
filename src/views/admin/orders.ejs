@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orders</title>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+</head>
+<body>
+    
+  <!-- Header -->
+  <header class="header">
+    <h1>Admin Dashboard</h1>
+    <a href="/logout" class="btn-logout">Logout</a>
+  </header>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>ADMIN</h2>
+    <a href="/admin">Dashboard</a>
+    <a href="/adminproducts">Products</a>
+    <a href="/orders" class="active">Orders</a>
+    <a href="/customers">Customers</a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    
+    <!-- Topbar -->
+    <div class="topbar">
+      <h2>Orders</h2>
+      <div>
+        <select class="filter">
+          <option>This Month</option>
+          <option>Last Month</option>
+          <option>All Time</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="table-container">
+      <h3>All Orders</h3>
+      <table>
+        <tr>
+          <th>Order ID</th>
+          <th>Customer</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Total Amount</th>
+          <th>Date</th>
+          <th>Action</th>
+        </tr>
+
+        <% if (orders.length === 0) { %>
+          <tr>
+            <td colspan="7">No orders found.</td>
+          </tr>
+        <% } else { %>
+          <% orders.forEach(order => { %>
+            <tr>
+              <td>#<%= order.id %></td>
+              <td><%= order.customer_name %></td>
+              <td><%= order.customer_email %></td>
+              <td>
+                <% if (order.status === 'Pending') { %>
+                  <span class="status pending">Pending</span>
+                <% } else if (order.status === 'Shipped') { %>
+                  <span class="status shipped">Shipped</span>
+                <% } else if (order.status === 'Delivered') { %>
+                  <span class="status delivered">Delivered</span>
+                <% } else { %>
+                  <span class="status cancelled">Cancelled</span>
+                <% } %>
+              </td>
+              <td>₱<%= order.total_amount.toFixed(2) %></td>
+              <td><%= order.order_date.toDateString() %></td>
+              <td>
+                <button class="btn-action"><i class="bi bi-eye-fill"></i></button>
+                <button class="btn-action"><i class="bi bi-pencil-fill"></i></button>
+                <button class="btn-action"><i class="bi bi-trash3-fill"></i></button>
+              </td>
+            </tr>
+          <% }) %>
+        <% } %>
+
+      </table>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping Cart</title>
+  <link rel="stylesheet" href="/css/cart.css">
+</head>
+<body>
+
+<div class="cart-container">
+
+  <!-- Cart Products -->
+  <div class="cart-products">
+    <div class="cart-header">
+      <span>Select</span>
+      <span>Product</span>
+      <span>Price</span>
+      <span>Quantity</span>
+      <span>Total</span>
+    </div>
+
+    <div class="cart-items">
+      <% if (cartItems.length > 0) { %>
+        <% cartItems.forEach(item => { %>
+          <div class="cart-item" data-price="<%= item.price %>">
+            
+            <!-- Checkbox for selection -->
+            <div class="select-item">
+              <input type="checkbox" name="checkoutItems" value="<%= item.product_id %>|<%= item.color %>|<%= item.size %>" checked>
+            </div>
+
+            <!-- Product Info -->
+            <div class="product-info">
+              <div class="product-image-container">
+                <img src="<%= item.image_url || '/images/default.png' %>" alt="<%= item.product_name %>">
+              </div>
+              <div class="product-details">
+                <p class="product-name"><%= item.product_name %></p>
+                <div class="product-attributes">
+                  <% if (item.color) { %>
+                    <span class="attribute">Color: <%= item.color %></span>
+                  <% } %>
+                  <% if (item.size) { %>
+                    <span class="attribute">Size: <%= item.size %></span>
+                  <% } %>
+                </div>
+
+                <!-- Remove Form -->
+                <form action="/cart/remove" method="POST" class="remove-form">
+                  <input type="hidden" name="product_id" value="<%= item.product_id %>">
+                  <input type="hidden" name="color" value="<%= item.color %>">
+                  <input type="hidden" name="size" value="<%= item.size %>">
+                  <button class="remove-btn" type="submit">Remove</button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Price -->
+            <div class="price">$<%= Number(item.price).toFixed(2) %></div>
+
+            <!-- Quantity Controls -->
+            <div class="quantity">
+              <form action="/cart/update" method="POST" class="quantity-form">
+                <input type="hidden" name="product_id" value="<%= item.product_id %>">
+                <input type="hidden" name="color" value="<%= item.color %>">
+                <input type="hidden" name="size" value="<%= item.size %>">
+                <input type="hidden" name="quantity" value="<%= item.quantity %>">
+
+                <button class="qty-btn minus" type="submit" name="action" value="minus">-</button>
+                <span><%= item.quantity %></span>
+                <button class="qty-btn plus" type="submit" name="action" value="plus">+</button>
+              </form>
+            </div>
+
+            <!-- Total -->
+            <div class="total">$<%= (item.price * item.quantity).toFixed(2) %></div>
+          </div>
+        <% }) %>
+      <% } else { %>
+        <p class="empty-cart">Your cart is empty.</p>
+      <% } %>
+    </div>
+
+    <!-- Cart Actions -->
+    <% if (cartItems.length > 0) { %>
+      <div class="cart-actions">
+        <form action="/cart/clear" method="POST">
+          <button class="btn clear" type="submit">Clear Cart</button>
+        </form>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Order Summary / Checkout Form -->
+  <% if (cartItems.length > 0) { %>
+    <form id="checkout-form" action="/checkout" method="GET" class="order-summary">
+      <h3>Order Summary</h3>
+
+      <div class="summary-row">
+        <span>Subtotal</span>
+        <span id="subtotal">
+          $<%= cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2) %>
+        </span>
+      </div>
+
+      <div class="shipping">
+        <p>Shipping</p>
+        <label>
+          <input type="radio" name="shipping" value="4.99" checked> Standard - $4.99
+        </label>
+        <label>
+          <input type="radio" name="shipping" value="12.99"> Express - $12.99
+        </label>
+        <label>
+          <input type="radio" name="shipping" value="0"> Free Shipping - $0.00
+        </label>
+      </div>
+
+      <div class="summary-row">
+        <span>Discount</span>
+        <span id="discount">$0.00</span>
+      </div>
+
+      <div class="summary-total">
+        <span>Total</span>
+        <span id="grand-total">
+          $<%= cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2) %>
+        </span>
+      </div>
+
+      <div class="checkout-actions">
+        <button class="checkout-btn primary" type="submit">Proceed to Checkout</button>
+        <a href="/products" class="checkout-btn secondary">Continue Shopping</a>
+      </div>
+    </form>
+  <% } %>
+
+</div>
+
+<script>
+  // Update totals with shipping
+  const shippingOptions = document.querySelectorAll("input[name='shipping']");
+  const subtotalEl = document.getElementById("subtotal");
+  const grandTotalEl = document.getElementById("grand-total");
+
+  shippingOptions.forEach(opt => {
+    opt.addEventListener("change", () => {
+      const subtotal = parseFloat(subtotalEl.textContent.replace("$", ""));
+      const shipping = parseFloat(opt.value);
+      grandTotalEl.textContent = "$" + (subtotal + shipping).toFixed(2);
+    });
+  });
+</script>
+
+</body>
+</html>

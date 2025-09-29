@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>View Product</title>
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    .product-container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .product-container h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    .product-detail {
+      margin: 10px 0;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .btn-back {
+      display: inline-block;
+      margin-top: 20px;
+      background: #007bff;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+    .btn-back:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>View Product</h1>
+  </header>
+
+  <div class="product-container">
+    <h2><%= product.name %></h2>
+
+    <div class="product-detail"><strong>Price:</strong> $<%= product.price %></div>
+    <div class="product-detail"><strong>Stock:</strong> <%= product.stock %> items</div>
+    <div class="product-detail"><strong>Category:</strong> <%= product.category %></div>
+
+    <a href="/adminproducts" class="btn-back">← Back to Products</a>
+  </div>
+</body>
+</html>

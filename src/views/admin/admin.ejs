@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  
+  <!-- Header -->
+  <header class="header">
+    <h1>Admin Dashboard</h1>
+            <a href="/logout" class="btn-logout">Logout</a>
+  </header>
+  
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>ADMIN</h2>
+    <a href="/admin" class="active">Dashboard</a>
+    <a href="/adminproducts">Products</a>
+    <a href="/orders">Orders</a>
+    <a href="/customers">Customers</a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <h2>Dashboard</h2>
+      <div>
+        <input type="text" placeholder="Search...">
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <div class="cards">
+  <div class="card">
+    <h3>Total Revenue</h3>
+    <p>$<%= revenue %></p>
+  </div>
+  <div class="card">
+    <h3>Total Orders</h3>
+    <p><%= totalOrders %></p>
+  </div>
+  <div class="card">
+    <h3>Top Products</h3>
+    <% topProducts.forEach(product => { %>
+      <p><%= product.name %> (<%= product.total_sold %>)</p>
+    <% }) %>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="table-container">
+  <h3>Recent Orders</h3>
+  <table>
+    <tr>
+      <th>Order ID</th>
+      <th>Customer</th>
+      <th>Date</th>
+      <th>Status</th>
+    </tr>
+    <% recentOrders.forEach(order => { %>
+      <tr>
+        <td>#<%= order.id %></td>
+        <td><%= order.username %></td>
+        <td><%= order.order_date.toISOString().split("T")[0] %></td>
+        <td class="status-<%= order.status.toLowerCase() %>">
+          <%= order.status %>
+        </td>
+      </tr>
+    <% }) %>
+  </table>
+</div>
+
+</body>
+</html>

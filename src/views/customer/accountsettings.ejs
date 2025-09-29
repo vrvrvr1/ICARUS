@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Settings</title>
+  <link rel="stylesheet" href="/css/accountsettings.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <div class="settings-box">
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <h3>Settings</h3>
+        <ul>
+          <li class="active" data-section="account">Account</li>
+          <li data-section="wishlist">Wishlist</li>
+          <li data-section="privacy">Privacy</li>
+          <li data-section="languages">Languages</li>
+          <li data-section="help">Help</li>
+          <li>
+            <form action="/logout" method="GET" style="margin:0; padding:0;">
+              <button type="submit" class="logout-btn">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+              </button>
+            </form>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Main Content -->
+      <div class="content">
+
+        <!-- Account Section -->
+        <div class="section active" id="account">
+          <h3>Account Settings</h3>
+          <div class="profile-pic">
+            <img src="<%= user.profile_image || '/image/default-profile.png' %>" alt="Profile Picture">
+            <div>
+              <form action="/accountsettings/upload" method="POST" enctype="multipart/form-data">
+                <input type="file" name="profile_pic" required>
+                <button type="submit">Upload</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Basic Info -->
+          <div class="info-section">
+            <h4>Basic Info</h4>
+            <form action="/accountsettings/update-email" method="POST" class="info-row">
+              <span>Email:</span>
+              <input type="email" name="email" value="<%= user.email %>" readonly>
+              <button type="submit" class="save-btn" style="display:none;">Save</button>
+              <i class="fa-solid fa-angle-right edit-icon"></i>
+            </form>
+
+            <form action="/accountsettings/update-username" method="POST" class="info-row">
+              <span>Username:</span>
+              <input type="text" name="username" value="<%= user.username %>" readonly>
+              <button type="submit" class="save-btn" style="display:none;">Save</button>
+              <i class="fa-solid fa-angle-right edit-icon"></i>
+            </form>
+          </div>
+
+          <!-- Account Info -->
+          <div class="info-section">
+            <h4>Account Info</h4>
+            <div class="info-row">
+              <span>Role: <%= user.role %></span>
+            </div>
+
+            <form action="/accountsettings/change-password" method="POST" class="info-row">
+              <span>Password</span>
+              <input type="password" name="password" placeholder="••••••" readonly>
+              <button type="submit" class="save-btn" style="display:none;">Save</button>
+              <i class="fa-solid fa-angle-right edit-icon"></i>
+            </form>
+          </div>
+        </div>
+
+        <!-- Wishlist Section -->
+<!-- Wishlist Section -->
+<div class="section" id="wishlist">
+  <h3>My Wishlist</h3>
+  <div class="info-section">
+    <% if (wishlistItems && wishlistItems.length > 0) { %>
+      <% wishlistItems.forEach(item => { %>
+        <div class="info-row wishlist-item" data-id="<%= item.wishlist_id %>">
+          <img src="<%= item.image_url %>" alt="<%= item.product_name %>" class="wishlist-img" />
+          <div class="wishlist-details">
+            <h4><%= item.product_name %></h4>
+            <p>$<%= item.price %></p>
+          </div>
+          <button type="button" class="remove-btn" data-id="<%= item.wishlist_id %>">Remove</button>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <p class="empty">Your wishlist is empty.</p>
+    <% } %>
+  </div>
+</div>
+
+
+        <!-- Privacy Section -->
+        <div class="section" id="privacy">
+          <h3>Privacy Settings</h3>
+          <div class="info-section">
+            <div class="info-row"><span>Profile Visibility</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Two-Factor Authentication</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Blocked Accounts</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
+          </div>
+        </div>
+
+        <!-- Languages Section -->
+        <div class="section" id="languages">
+          <h3>Language Settings</h3>
+          <div class="info-section">
+            <div class="info-row"><span>Preferred Language</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Translation Options</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
+          </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="section" id="help">
+          <h3>Help & Support</h3>
+          <div class="info-section">
+            <div class="info-row"><span>FAQs</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Contact Support</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Report a Problem</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Sidebar navigation
+      const menuItems = document.querySelectorAll(".sidebar ul li");
+      const sections = document.querySelectorAll(".section");
+
+      menuItems.forEach(item => {
+        item.addEventListener("click", () => {
+          menuItems.forEach(i => i.classList.remove("active"));
+          item.classList.add("active");
+          sections.forEach(sec => sec.classList.remove("active"));
+          const sectionId = item.getAttribute("data-section");
+          if (sectionId) document.getElementById(sectionId).classList.add("active");
+        });
+      });
+
+      // Edit rows
+      document.querySelectorAll(".edit-icon").forEach(icon => {
+        icon.addEventListener("click", () => {
+          const row = icon.closest(".info-row");
+          const input = row.querySelector("input");
+          const saveBtn = row.querySelector(".save-btn");
+          input.removeAttribute("readonly");
+          input.focus();
+          saveBtn.style.display = "inline-block";
+          icon.style.display = "none";
+        });
+      });
+    });
+
+     document.addEventListener("DOMContentLoaded", () => {
+    const removeButtons = document.querySelectorAll(".remove-btn");
+
+    removeButtons.forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const wishlistId = btn.getAttribute("data-id");
+
+        try {
+          const res = await fetch(`/accountsettings/wishlist/remove/${wishlistId}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" }
+          });
+
+          if (res.ok) {
+            // remove the element from DOM
+            const itemRow = btn.closest(".wishlist-item");
+            itemRow.remove();
+
+            // if no items left, show "empty" message
+            const remaining = document.querySelectorAll(".wishlist-item");
+            if (remaining.length === 0) {
+              document.querySelector("#wishlist .info-section").innerHTML =
+                '<p class="empty">Your wishlist is empty.</p>';
+            }
+          } else {
+            alert("Failed to remove item.");
+          }
+        } catch (err) {
+          console.error("Error:", err);
+          alert("Error removing item.");
+        }
+      });
+    });
+  });
+  </script>
+</body>
+</html>

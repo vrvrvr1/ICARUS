@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Product</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>ADMIN</h2>
+    <a href="/admin">Dashboard</a>
+    <a href="/adminproducts" class="active">Products</a>
+    <a href="/orders">Orders</a>
+    <a href="/customers">Customers</a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <form action="/addproduct" method="POST" enctype="multipart/form-data" class="form-sections">
+      <div class="topbar">
+        <h2>Add Product</h2>
+        <div>
+          <a href="/adminproducts" class="btn-discard">Discard</a>
+          <button type="submit" class="btn">Add Product</button>
+        </div>
+      </div>
+
+      <div class="form-sections">
+        <!-- Product Details -->
+        <div class="card">
+          <h3>Product Details</h3>
+          <label>Product Name</label>
+          <input type="text" name="name" placeholder="Enter product name" required>
+          
+          <label>Category</label>
+          <input type="text" name="category" placeholder="Enter category" required>
+        </div>
+
+        <!-- Product Image -->
+        <div class="card">
+          <h3>Product Image</h3>
+          <div class="upload-box">
+            <p>Drop your image here, or select <label for="image-upload" style="cursor:pointer;color:#0d6efd;">Click to browse</label></p>
+            <input type="file" id="image-upload" name="image" accept="image/*" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory and Pricing -->
+      <div class="card">
+        <h3>Inventory and Pricing</h3>
+        <label>Selling Price</label>
+        <input type="number" step="0.01" name="price" placeholder="Enter selling price" required>
+        
+        <label>Quantity</label>
+        <input type="number" name="stock" placeholder="Enter quantity" required>
+        
+        <label>Sizes</label>
+        <input type="text" name="sizes" placeholder="Enter sizes (e.g., S, M, L, XL)">
+
+        <div class="color-options">
+          <label><input type="radio" name="color" value="black" required> <span class="circle black"></span> BLACK</label>
+          <label><input type="radio" name="color" value="red"> <span class="circle red"></span> RED</label>
+          <label><input type="radio" name="color" value="green"> <span class="circle green"></span> GREEN</label>
+          <label><input type="radio" name="color" value="blue"> <span class="circle blue"></span> BLUE</label>
+        </div>
+      </div>
+    </form>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Icarus Wear - Apparel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="css/products.css">
+</head>
+<body>
+
+    <!-- Header -->
+    <nav>
+    <%- include ("../partials/header.ejs") %>
+    </nav>
+
+     <!-- Notification container (add this right after header) -->
+  <div id="cart-notification" style="
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #28a745;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      display: none;
+      z-index: 9999;
+      font-weight: bold;
+  ">
+    Added to cart!
+  </div>
+    
+     <nav class="navbar">
+    <ul>
+      <li><a href="#" class="tab-link active" data-tab="mens">Mens Apparel</a></li>
+      <li><a href="#" class="tab-link" data-tab="womens">Womens Apparel</a></li>
+      <li><a href="#" class="tab-link" data-tab="unisex">Unisex Apparel</a></li>
+      <li><a href="#" class="tab-link" data-tab="accessories">Gym Accessories</a></li>
+      <li><a href="#" class="tab-link" data-tab="bags">Bags</a></li>
+      <li><a href="#" class="tab-link" data-tab="outdoor">Outdoor & Athleisure</a></li>
+      <li><a href="#" class="tab-link" data-tab="everyday">Everyday Athleisure</a></li>
+      <li><a href="#" class="tab-link" data-tab="seasonal">Seasonal Performance Wear</a></li>
+    </ul>
+  </nav>
+
+  <div class="page-container">
+    <div class="container">
+      <!-- Sidebar -->
+<aside class="filter">
+  <h3>Filter</h3>
+  <!-- Ratings Slider -->
+<div class="rating-slider">
+  <label>Rating</label>
+  <div class="slider-track" id="ratingTrack"></div>
+  <input type="range" id="minRating" min="1" max="5" step="0.1" value="1">
+  <input type="range" id="maxRating" min="1" max="5" step="0.1" value="5">
+  <span class="slider-value" id="minRatingVal">1</span>
+  <span class="slider-value" id="maxRatingVal">5</span>
+</div>
+
+
+<!-- Price Slider -->
+<div class="price-slider">
+  <label>Price</label>
+  <div class="slider-container">
+    <div class="slider-track" id="priceTrack"></div>
+    <input type="range" id="minPrice" min="1" max="50" value="1">
+    <input type="range" id="maxPrice" min="1" max="50" value="50">
+  </div>
+  <div class="price-values">
+    <span id="minPriceVal">$1</span> - <span id="maxPriceVal">$50</span>
+  </div>
+</div>
+
+  <!-- Colors -->
+  <label>Color</label>
+  <div class="colors">
+    <span data-color="red" title="Red"></span>
+    <span data-color="blue" title="Blue"></span>
+    <span data-color="black" title="Black"></span>
+    <span data-color="green" title="Green"></span>
+  </div>
+
+  <!-- Sizes -->
+  <label>Sizes</label>
+  <div class="sizes">
+    <button type="button" data-size="S">S</button>
+    <button type="button" data-size="M">M</button>
+    <button type="button" data-size="L">L</button>
+    <button type="button" data-size="XL">XL</button>
+  </div>
+
+  <button id="applyFilter">Apply Filter</button>
+</aside>
+
+      <!-- Products -->
+      <main class="content">
+        
+<!-- Mens Apparel Tab -->
+<!-- Mens Apparel Tab -->
+<section id="mens" class="tab-content active">
+  <h2>Mens Apparel</h2>
+  <div class="product-grid">
+    <% if (products && products.length > 0) { %>
+      <% products.filter(p => p.category === "Mens").forEach(p => { %>
+        <div class="product-card">
+          <a href="/products/<%= p.id %>" class="card-link">
+            <!-- Product Image -->
+            <img src="<%= p.image_url %>" alt="<%= p.name %>">
+
+            <!-- Price & Name -->
+            <div class="product-price">$<%= p.price %></div>
+            <div class="product-name"><%= p.name %></div>
+
+            <!-- Colors -->
+            <div class="colors">
+              <% if (p.colors) { 
+                   const colorArray = p.colors.split(',').map(c => c.trim()).filter(c => c);
+                   let colorSpans = '';
+                   colorArray.forEach(color => {
+                     colorSpans += '<span style="background-color:' + color + ';"></span>';
+                   });
+              %>
+                <%- colorSpans %>
+              <% } %>
+            </div>
+
+            <!-- Bottom row (rating + wishlist) -->
+<div class="bottom-row">
+  <div class="rating">
+    <i class="bi bi-star-fill" style="color: black;"></i>
+    <span class="rating-value"><%= p.rating %></span>
+    <span class="review-count">(<%= p.reviews %>)</span>
+  </div>
+            </a>
+<button class="wishlist-btn" data-id="<%= p.id %>">
+  <% if (p.wishlisted) { %>
+    <i class="bi bi-heart-fill"></i>
+  <% } else { %>
+    <i class="bi bi-heart"></i>
+  <% } %>
+</button>
+
+</div>
+
+        </div>
+      <% }) %>
+    <% } else { %>
+      <p>No products available.</p>
+    <% } %>
+  </div>
+</section>
+
+    <script src="js/filter.js"></script>
+    <script src="js/wishlist.js"></script>
+  <!-- JS for tab switching -->
+<script>
+const tabs = document.querySelectorAll('.tab-link');
+const contents = document.querySelectorAll('.tab-content');
+
+// ------------------
+// Tab switching
+// ------------------
+function activateTab(tabId) {
+  tabs.forEach(t => t.classList.remove('active'));
+  contents.forEach(c => c.classList.remove('active'));
+  const tab = document.querySelector(`.tab-link[data-tab="${tabId}"]`);
+  if (tab) {
+    tab.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+  }
+}
+
+const params = new URLSearchParams(window.location.search);
+const category = params.get('category');
+const categoryToSection = {
+  men: 'mens',
+  women: 'womens',
+  unisex: 'unisex',
+  accessories: 'accessories',
+  bags: 'bags',
+  outdoor: 'outdoor',
+  everyday: 'everyday',
+  seasonal: 'seasonal'
+};
+
+if (category && categoryToSection[category]) {
+  activateTab(categoryToSection[category]);
+} else {
+  activateTab('mens');
+}
+
+tabs.forEach(tab => {
+  tab.addEventListener('click', (e) => {
+    const targetId = tab.dataset.tab;
+    if (targetId) {
+      e.preventDefault();
+      activateTab(targetId);
+    }
+  });
+});
+
+// ------------------
+// Cart Badge Update
+// ------------------
+async function updateCartCount() {
+  try {
+    const res = await fetch('/cart/count');
+    const data = await res.json();
+    const badge = document.getElementById('cart-count');
+
+    if (data.count > 0) {
+      badge.innerText = data.count;
+      badge.style.display = 'inline-block';
+      badge.classList.add('animate');
+      setTimeout(() => badge.classList.remove('animate'), 300);
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// ------------------
+// Add-to-cart forms
+// ------------------
+document.querySelectorAll('.add-to-cart-form').forEach(form => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(form).entries());
+    try {
+      await fetch('/cart/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+      updateCartCount();
+      const notif = document.getElementById('cart-notification');
+      notif.innerText = `${data.product_name} added to cart!`;
+      notif.style.display = 'block';
+      setTimeout(() => notif.style.display = 'none', 2000);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+});
+
+// ------------------
+// Wishlist toggle
+// ------------------
+
+</script>
+
+</body>
+</html>

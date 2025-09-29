@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/checkout.css">
+</head>
+<body>
+  <div class="container my-5">
+    <div class="text-center mb-4">
+      <h1>✅ Order Completed!</h1>
+      <p class="lead">Thank you, <%= user.first_name %>! Your order has been placed successfully.</p>
+      <p>Order ID: <strong>#<%= order.id %></strong></p>
+      <p>Status: <strong><%= order.status %></strong></p>
+    </div>
+
+    <div class="row">
+      <!-- Shipping Info -->
+      <div class="col-md-6 mb-4">
+        <h3>Shipping Information</h3>
+        <p>
+          <strong>Name:</strong> <%= order.first_name %> <%= order.last_name %><br>
+          <strong>Address:</strong> <%= order.address %>, <%= order.city %>, <%= order.province %>, <%= order.zipcode %><br>
+          <strong>Phone:</strong> <%= order.phone %><br>
+          <strong>Email:</strong> <%= order.email %>
+        </p>
+      </div>
+
+      <!-- Payment Info -->
+      <div class="col-md-6 mb-4">
+        <h3>Payment Information</h3>
+        <p>
+          <strong>Method:</strong> <%= order.payment_method %><br>
+          <strong>Subtotal:</strong> ₱<%= order.subtotal %><br>
+          <strong>Tax:</strong> ₱<%= order.tax %><br>
+          <strong>Total:</strong> ₱<%= order.total %>
+        </p>
+      </div>
+    </div>
+
+    <!-- Order Items -->
+    <div class="mb-4">
+      <h3>Order Items</h3>
+      <% if (items && items.length > 0) { %>
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% items.forEach(item => { %>
+              <tr>
+                <td>
+                  <img src="<%= item.image_url %>" alt="<%= item.product_name %>" width="50" class="me-2">
+                  <%= item.product_name %>
+                </td>
+                <td><%= item.quantity %></td>
+                <td>₱<%= item.price %></td>
+                <td>₱<%= item.price * item.quantity %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <p>No items found for this order.</p>
+      <% } %>
+    </div>
+
+    <div class="text-center">
+      <a href="/" class="btn btn-primary btn-lg">Back to Home</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

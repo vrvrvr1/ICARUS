@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+     <link rel="stylesheet" href="css/aboutus.css">
+</head>
+<body>
+    <!-- Header -->
+    <nav>
+    <%- include ("../partials/header.ejs") %>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container text-center">
+            <h1 class="hero-title">ABOUT US</h1>        </div>
+    </section>
+
+    <!-- About Content -->
+    <section class="about-content py-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="content-card">
+                        <p>Icarus Wear, a leading athletic wear brand brings superior, high-performance fitness apparel designed to support those who work hard, both amateurs and professionals, alike. In 2023, a group of students and tech entrepreneurs: Mark David Hernandez, John Paul Penola, Joshua Libag, Lance Cedrick Fernandez, and Vincent Redd Ambong founded Icarus Wear, all sharing the same frustration when it came to shopping for the right gym clothes.</p>
+                        
+                        <p>They were similar to many other fitness apparel companies, but were focused on clothing unlike many others that come with boring, generic designs. Their aim was to develop an online shopping platform that combines aspects of style, performance, and smart technology to support athletes with their performance, and of course, facilitating a superior experience when shopping.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Founders Section -->
+    <section class="founders py-5">
+        <div class="container">
+            <h2 class="section-title">Our Founders</h2>
+            
+            <!-- Auto Carousel for Founders -->
+            <div id="foundersCarousel" class="carousel slide founder-carousel" data-bs-ride="carousel" data-bs-interval="3000">
+                <div class="carousel-inner">
+                    <!-- First slide with 3 founders -->
+                    <div class="carousel-item active">
+                        <div class="row g-4 justify-content-center">
+                            <div class="col-md-4 col-lg-3">
+                                <div class="founder-card card">
+                                    <div class="founder-img">
+                                        <i class="fas fa-user fa-3x" style="color: var(--secondary);"></i>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <h5 class="founder-name">Mark David Hernandez</h5>
+                                        <p class="founder-role">Co-Founder</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-lg-3">
+                                <div class="founder-card card">
+                                    <div class="founder-img">
+                                        <i class="fas fa-user fa-3x" style="color: var(--secondary);"></i>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <h5 class="founder-name">John Paul Penola</h5>
+                                        <p class="founder-role">Co-Founder</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-lg-3">
+                                <div class="founder-card card">
+                                    <div class="founder-img">
+                                        <i class="fas fa-user fa-3x" style="color: var(--secondary);"></i>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <h5 class="founder-name">Joshua Libag</h5>
+                                        <p class="founder-role">Co-Founder</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Second slide with 2 founders -->
+                    <div class="carousel-item">
+                        <div class="row g-4 justify-content-center">
+                            <div class="col-md-4 col-lg-3">
+                                <div class="founder-card card">
+                                    <div class="founder-img">
+                                        <i class="fas fa-user fa-3x" style="color: var(--secondary);"></i>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <h5 class="founder-name">Lance Cedrick Fernandez</h5>
+                                        <p class="founder-role">Co-Founder</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-lg-3">
+                                <div class="founder-card card">
+                                    <div class="founder-img">
+                                        <i class="fas fa-user fa-3x" style="color: var(--secondary);"></i>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <h5 class="founder-name">Vincent Redd Ambong</h5>
+                                        <p class="founder-role">Co-Founder</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Play/Pause Button -->
+               
+            </div>
+        </div>
+    </section>
+
+    <!-- Mission & Vision Section -->
+    <section class="mission-section py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="mission-vision">
+                        <h2 class="section-title">Our Mission</h2>
+                        <p>We aim to deliver an experimental customer-focused shopping experience that fosters continence, supports personal goals, and makes a community of improvement individuals, while prioritizing ethical practices and environmental responsibility for our customers and stakeholders.</p>
+                    </div>
+                </div>
+                <div class="col-lg-6 mb-4">
+                    <div class="mission-vision">
+                        <h2 class="section-title">Our Vision</h2>
+                        <p>To become the world's most innovative athletic wear brand, seamlessly blending cutting-edge technology with exceptional design to elevate human performance and inspire personal achievement.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Values Section -->
+    <section class="values py-5">
+        <div class="container">
+            <h2 class="section-title">Our Values</h2>
+            <p class="text-center mb-5">At Icarus Wear, our values define who we are and guide everything we do—from product design to customer experience.</p>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="value-card">
+                        <div class="icon-container">
+                            <i class="fas fa-rocket fa-2x text-white"></i>
+                        </div>
+                        <h4>Performance</h4>
+                        <p>We design apparel that enhances athletic performance with cutting-edge materials and technology.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="value-card">
+                        <div class="icon-container">
+                            <i class="fas fa-paint-brush fa-2x text-white"></i>
+                        </div>
+                        <h4>Innovation</h4>
+                        <p>We continuously push boundaries by integrating smart technology into our apparel for a better workout experience.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="value-card">
+                        <div class="icon-container">
+                            <i class="fas fa-leaf fa-2x text-white"></i>
+                        </div>
+                        <h4>Sustainability</h4>
+                        <p>We prioritize ethical practices and environmental responsibility in all aspects of our business.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="value-card">
+                        <div class="icon-container">
+                            <i class="fas fa-tshirt fa-2x text-white"></i>
+                        </div>
+                        <h4>Style & Individuality</h4>
+                        <p>We believe performance wear should reflect personal style, offering distinctive designs.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="value-card">
+                        <div class="icon-container">
+                            <i class="fas fa-users fa-2x text-white"></i>
+                        </div>
+                        <h4>Community</h4>
+                        <p>We foster a community of improvement-focused individuals who support and inspire each other.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="value-card">
+                        <div class="icon-container">
+                            <i class="fas fa-heart fa-2x text-white"></i>
+                        </div>
+                        <h4>Customer Focus</h4>
+                        <p>We create exceptional shopping experiences that prioritize convenience and personalization.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+<!-- Footer -->
+<footer>
+<%- include ("../partials/footer.ejs") %>
+</footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the carousel with auto-play
+            const myCarousel = document.getElementById('foundersCarousel');
+            const carousel = new bootstrap.Carousel(myCarousel, {
+                interval: 2000,
+                wrap: true
+            });
+            
+            // Play/Pause button functionality
+            const playPauseButton = document.getElementById('carouselPlayPause');
+            let isPlaying = true;
+            
+            if (playPauseButton) {
+                playPauseButton.addEventListener('click', function() {
+                    if (isPlaying) {
+                        carousel.pause();
+                        playPauseButton.innerHTML = '<i class="fas fa-play"></i>';
+                    } else {
+                        carousel.cycle();
+                        playPauseButton.innerHTML = '<i class="fas fa-pause"></i>';
+                    }
+                    isPlaying = !isPlaying;
+                });
+                
+                // Pause carousel when user hovers over it
+                myCarousel.addEventListener('mouseenter', function() {
+                    carousel.pause();
+                    if (isPlaying) {
+                        playPauseButton.innerHTML = '<i class="fas fa-play"></i>';
+                    }
+                });
+                
+                // Resume carousel when user stops hovering (if it was playing)
+                myCarousel.addEventListener('mouseleave', function() {
+                    if (isPlaying) {
+                        carousel.cycle();
+                        playPauseButton.innerHTML = '<i class="fas fa-pause"></i>';
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

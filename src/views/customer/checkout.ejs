@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout</title>
+  <link rel="stylesheet" href="/css/checkout.css">
+ <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+</head>
+<body>
+  <div class="checkout-container">
+
+    <!-- LEFT SIDE: Steps -->
+    <div class="checkout-left">
+      <!-- Progress Bar -->
+      <div class="checkout-steps">
+        <div class="step active" id="step-1-indicator"><span>1</span><p>Shipping</p></div>
+        <div class="step" id="step-2-indicator"><span>2</span><p>Payment</p></div>
+        <div class="step" id="step-3-indicator"><span>3</span><p>Review</p></div>
+        <div class="step" id="step-4-indicator"><span>4</span><p>Confirmation</p></div>
+      </div>
+
+      <!-- Step 1: Shipping -->
+      <div class="checkout-section active" id="step-1">
+        <h2>Shipping Information</h2>
+        <form id="checkoutForm" method="POST" action="/checkout/place-order">
+<input type="text" id="firstName" name="firstName" value="<%= user.first_name %>" required>
+<input type="text" id="lastName" name="lastName" value="<%= user.last_name %>" required>
+          <input type="text" id="address" name="address" placeholder="Address" required>
+          <input type="text" id="city" name="city" placeholder="City" required>
+          <input type="text" id="province" name="province" placeholder="Province" required>
+          <input type="text" id="zip" name="zip" placeholder="ZIP Code" required>
+          <input type="text" id="phone" name="phone" placeholder="Phone" required>
+<input type="email" id="email" name="email" value="<%= user.email %>" required>
+          <button type="button" onclick="nextStep(2)">Continue to Payment</button>
+        </form>
+      </div>
+
+      <!-- Step 2: Payment -->
+      <div class="checkout-section" id="step-2">
+        <h2>Payment Information</h2>
+        <form id="checkoutForm" method="POST" action="/checkout/place-order">
+          <label><input type="radio" name="payment" value="COD" required> Cash on Delivery</label><br>
+          <label><input type="radio" name="payment" value="Card"> Credit/Debit Card</label><br>
+          <label><input type="radio" name="payment" value="PayPal"> PayPal</label><br>
+
+          <div id="cardDetails" style="display:none;">
+            <input type="text" id="cardNumber" placeholder="Card Number">
+            <input type="text" id="expiry" placeholder="Expiry Date">
+            <input type="text" id="cvv" placeholder="CVV">
+          </div>
+            <button type="button" onclick="handleContinue()">Continue to Review</button>
+        </form>
+      </div>
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center p-4" style="border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);">
+      <div class="modal-body">
+        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="green" class="bi bi-check-circle mb-3" viewBox="0 0 16 16">
+          <path d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm3.97-9.03a.75.75 0 0 1 0 1.06l-4.243 4.243a.75.75 0 0 1-1.06 0L4.03 8.525a.75.75 0 1 1 1.06-1.06L7.25 9.626l3.72-3.72a.75.75 0 0 1 1.06 0z"/>
+        </svg>
+        <h3 class="fw-bold mb-2">Payment Successful!</h3>
+        <p class="text-muted mb-4">Your payment has been successfully completed. Thank you for your order.</p>
+        <button type="button" class="btn btn-success btn-lg px-4" id="continueBtn">Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+      <!-- Step 3: Review -->
+      <div class="checkout-section" id="step-3">
+        <h2>Review Order</h2>
+        <p>Please review your details before placing your order:</p>
+
+        <div id="reviewDetails">
+          <!-- Shipping preview -->
+          <h3>Shipping</h3>
+          <p id="reviewShipping"></p>
+
+          <!-- Payment preview -->
+          <h3>Payment</h3>
+          <p id="reviewPayment"></p>
+        </div>
+
+        <p class="note">Check the order summary on the right for your items.</p>
+
+        <button type="button" onclick="nextStep(4)">Continue</button>
+      </div>
+
+    <!-- Step 4: Place Order -->
+    <div class="checkout-section" id="step-4" style="display: none;">
+      <h2>Place Order</h2>
+      <p>Everything looks good! Click below to confirm your order.</p>
+
+      <form id="placeOrderForm" method="POST" action="/checkout/place-order">
+        <!-- Hidden inputs to carry over user data -->
+        <input type="hidden" name="firstName" id="hiddenFirstName">
+        <input type="hidden" name="lastName" id="hiddenLastName">
+        <input type="hidden" name="address" id="hiddenAddress">
+        <input type="hidden" name="city" id="hiddenCity">
+        <input type="hidden" name="province" id="hiddenProvince">
+        <input type="hidden" name="zip" id="hiddenZip">
+        <input type="hidden" name="phone" id="hiddenPhone">
+        <input type="hidden" name="email" id="hiddenEmail">
+        <input type="hidden" name="payment_method" id="hiddenPayment">
+        <button type="submit">Place Order</button>
+      </form>
+    </div>
+
+
+    <!-- RIGHT SIDE: Order Summary -->
+    <div class="checkout-right">
+      <h2>Order Summary</h2>
+      <% if (cartItems && cartItems.length > 0) { %>
+        <% cartItems.forEach(item => { %>
+          <div class="order-item">
+            <img src="<%= item.image_url %>" alt="<%= item.name %>">
+            <div>
+              <p><strong><%= item.name %></strong></p>
+              <p>Qty: <%= item.quantity %></p>
+            </div>
+            <p class="item-price">₱<%= item.price %></p>
+          </div>
+        <% }) %>
+        <hr>
+        <p><strong>Total: ₱<%= total %></strong></p>
+      <% } else { %>
+        <p>Your cart is empty.</p>
+      <% } %>
+    </div>
+  </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/checkout.js"></script>
+</body>
+</html>

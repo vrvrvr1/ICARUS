@@ -1,0 +1,441 @@
+@import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Nata+Sans:wght@100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Readex+Pro:wght@160..700&display=swap');
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  font-family: poppins;
+}
+
+body {
+  background-color: #4F94B5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ================= Product Container ================= */
+.product-container {
+  display: flex;
+  background-color: #4F94B5;
+  width: 100vw;
+  height: 100vh;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+/* ================= Product Image ================= */
+.product-image {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+#product-image {
+  width: 350px;
+  height: 350px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.arrow-btn {
+  background-color: white;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+}
+
+.arrow-left { left: 10px; }
+.arrow-right { right: 10px; }
+
+.product-carousel {
+  display: flex;
+  margin-top: 15px;
+}
+
+.carousel-dot {
+  width: 10px;
+  height: 10px;
+  margin: 0 5px;
+  background-color: #999;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.carousel-dot.active {
+  background-color: #f39c12;
+}
+
+/* ================= Product Details ================= */
+.product-details {
+  flex: 1;
+  padding: 20px;
+  background-color: #A0C8D7;
+  border-radius: 8px;
+  margin-left: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+.product-price {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: black; /* accent color for visibility */
+  margin: 0.25rem 0 0.5rem 0;
+}
+
+h1 {
+  text-transform: uppercase;  
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.product-rating {
+  margin-bottom: 20px;
+}
+
+.stars { color: #f39c12; }
+
+.review-count {
+  font-size: 14px;
+  color: #777;
+}
+
+.product-description {
+  font-size: 16px;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+/* ================= Options ================= */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.color-options,
+.size-options {
+  width: 100%;
+  background: #d6e6f0;
+  padding: 15px;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.color-options label,
+.size-options label {
+  font-size: 16px;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.color-options div,
+.size-options div {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Hide default radio buttons */
+.color-options input[type="radio"],
+.size-options input[type="radio"] {
+  display: none;
+}
+
+/* -------- Color Options -------- */
+.color-options label.color-label {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 3px solid black; /* keep width consistent to prevent movement */
+  display: inline-block;
+  cursor: pointer;
+  position: relative;
+  text-indent: -9999px;
+  transition: all 0.3s;
+}
+
+.color-label.black { background-color: black; }
+.color-label.green { background-color: green; }
+.color-label.red   { background-color: red; }
+.color-label.blue  { background-color: blue; }
+
+/* Outer circle highlight for selected color */
+input[type="radio"]:checked + label.color-label {
+  border-color: #f39c12;
+  box-shadow: 0 0 8px #f39c12;
+}
+
+/* Hover only if NOT selected */
+.color-options label.color-label:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(0,0,0,0.3);
+}
+
+/* Prevent hover for selected color */
+input[type="radio"]:checked + label.color-label:hover {
+  transform: none;
+  box-shadow: 0 0 8px #f39c12;
+}
+
+/* -------- Size Options -------- */
+.size-options label.size-label {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: 3px solid #ccc; /* consistent border width */
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  position: relative;
+  transition: all 0.3s;
+  background: linear-gradient(135deg, #ffffff, #d0e6f0);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Hover only if NOT selected */
+.size-options label.size-label:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* Outer circle highlight for selected size */
+input[type="radio"]:checked + label.size-label {
+  border-color: #f39c12;
+  box-shadow: 0 0 10px rgba(243, 156, 18, 0.6);
+}
+
+/* Prevent hover for selected size */
+input[type="radio"]:checked + label.size-label:hover {
+  transform: none;
+  box-shadow: 0 0 10px rgba(243, 156, 18, 0.6);
+}
+
+/* ================= Action Buttons ================= */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px; /* more space between buttons */
+  margin-top: 20px;
+  flex-wrap: wrap; /* allow wrapping on smaller screens */
+}
+
+.quantity-selector {  
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  border-radius: 30px;
+  padding: 8px 12px; /* slightly bigger padding */
+  background: #fff;
+  min-width: 120px; /* ensure consistent width */
+  justify-content: center;
+  font-size: 16px;
+}
+
+.qty-btn {
+  background: none;
+  border: none;
+  font-size: 20px; /* slightly bigger symbols */
+  cursor: pointer;
+  padding: 5px 12px;
+}
+
+.qty-value {
+  font-size: 16px;
+  margin: 0 10px;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+}
+
+.add-to-cart-btn,
+.buy-now-btn {
+  width: 180px; /* or 50%, or whatever you prefer */
+  text-align: center;
+  padding: 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+
+.add-to-cart-btn {
+  background: #0f3d2e; /* deep green */
+  color: white;
+  border: none;
+}
+
+.buy-now-btn {
+  background: #c1975a; /* gold/brown */
+  color: white;
+  border: none;
+}
+
+.add-to-cart-btn:hover,
+.buy-now-btn:hover {
+  transform: scale(1.05); /* subtle hover effect */
+}
+
+.wishlist-btn {
+  background: none;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  transition: transform 0.1s ease;
+}
+
+.wishlist-btn i.bi-heart {
+  font-size: 28px; /* make it bigger */
+  transition: transform 0.1s ease, color 0.1s ease;
+}
+
+.wishlist-btn i.bi-heart-fill {
+  font-size: 28px; /* make it bigger */
+  transition: transform 0.1s ease, color 0.1s ease;
+}
+
+.wishlist-btn:hover {
+  transform: scale(1.1);
+  border-color: #c1975a;
+}
+
+
+/* ================= Shipping Info ================= */
+.shipping-info {
+  font-size: 14px;
+  color: #333;
+  margin-top: 20px;
+  font-weight: 600;
+}
+
+.product-short-description {
+  font-size: 16px;
+  color: #333;
+  margin: 10px 0 15px 0; /* spacing between rating and options */
+  font-weight: 500;
+}
+
+.product-rating i {
+  color: #f39c12;
+  font-size: 20px;
+  margin-right: 2px;
+}
+
+/* Unavailable color styles */
+/* Unavailable colors */
+.color-label.unavailable {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border: 2px dashed #ccc;
+  position: relative;
+}
+
+.size-label.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border: 2px dashed #ccc;
+  position: relative;
+}
+
+.product-image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.main-product-img {
+  width: 350px;
+  height: auto;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.thumbnail-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  justify-content: center;
+}
+
+.thumbnail {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s, border 0.2s;
+}
+
+.thumbnail.active,
+.thumbnail:hover {
+  opacity: 1;
+  border: 2px solid #333;
+}
+
+.wishlist-notif {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s, background-color 0.3s;
+  transform: translateY(20px);
+  z-index: 1000;
+}
+
+/* Slide in / visible */
+.wishlist-notif.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* Added to wishlist */
+.wishlist-notif.added {
+  background-color: #0f3d2e; /* deep green */
+}
+
+/* Removed from wishlist */
+.wishlist-notif.removed {
+  background-color: #c0392b; /* red */
+}

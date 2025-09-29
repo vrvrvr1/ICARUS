@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fullscreen Product Page</title>
+  <link rel="stylesheet" href="/css/showcase.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<div id="wishlist-notif" class="wishlist-notif">Product added to your wishlist!</div>
+
+
+<div class="product-container">
+
+ <!-- Product Image Showcase -->
+<div class="product-image">
+  <!-- Main Image -->
+  <img
+    src="<%= (images && images.length) ? images[0] : '/image/default.png' %>"
+    alt="<%= product.name %>"
+    id="product-image"
+    class="main-product-img"
+  />
+
+  <!-- Thumbnails -->
+  <div class="thumbnail-row">
+    <% (images || []).forEach((img, index) => { %>
+      <img 
+        src="<%= img %>" 
+        alt="thumbnail <%= index %>" 
+        class="thumbnail <%= index === 0 ? 'active' : '' %>"
+        data-index="<%= index %>"
+      />
+    <% }) %>
+  </div>
+</div>
+
+  <!-- Product Details -->
+  <div class="product-details">
+    <div class="product-info">
+      <h1><%= product.name %></h1>
+
+      <div class="product-rating">
+        <%
+          const fullStars = Math.floor(product.rating || 0);
+          const partial = (product.rating || 0) - fullStars;
+          const emptyStars = 5 - fullStars - (partial > 0 ? 1 : 0);
+        %>
+
+        <% for (let i = 0; i < fullStars; i++) { %>
+          <i class="bi bi-star-fill"></i>
+        <% } %>
+
+        <% if (partial > 0) { %>
+          <% if (partial >= 0.75) { %>
+            <i class="bi bi-star-fill"></i>
+          <% } else if (partial >= 0.25) { %>
+            <i class="bi bi-star-half"></i>
+          <% } else { %>
+            <i class="bi bi-star"></i>
+          <% } %>
+        <% } %>
+
+        <% for (let i = 0; i < emptyStars; i++) { %>
+          <i class="bi bi-star"></i>
+        <% } %>
+
+        <span class="review-count">(<%= product.reviews || 0 %> Reviews)</span>
+      </div>
+
+       <p class="product-price">
+  $<span id="product-price-value"><%= Number(product.price).toFixed(2) %></span>
+</p>
+
+      <% if (product.short_description) { %>
+        <p class="product-short-description"><%= product.short_description %></p>
+      <% } %>
+    </div>
+
+    <!-- Color Options -->
+    <div class="color-options">
+      <label>Color Options:</label>
+      <div>
+        <% allColors.forEach(color => { 
+             const isAvailable = colors.includes(color);
+        %>
+          <input type="radio" 
+                 id="color-<%= color %>" 
+                 name="color" 
+                 value="<%= color %>" 
+                 <%= isAvailable ? '' : 'disabled' %> />
+
+          <label for="color-<%= color %>" 
+                 class="color-label <%= color %> <%= isAvailable ? '' : 'unavailable' %>"
+                 title="<%= isAvailable ? '' : 'This color is not available' %>">
+          </label>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- Size Options -->
+    <div class="size-options">
+      <label>Size Options:</label>
+      <div>
+        <% ["S","M","L","XL"].forEach(size => { %>
+          <input type="radio"
+                 id="size-<%= size %>"
+                 name="size"
+                 value="<%= size %>"
+                 <%= sizes.includes(size) ? "" : "disabled" %> />
+          <label for="size-<%= size %>" 
+                 class="size-label <%= sizes.includes(size) ? "" : "disabled" %>"
+                 title="<%= sizes.includes(size) ? '' : 'This size is unavailable' %>">
+            <%= size %>
+          </label>
+        <% }) %>
+      </div>
+    </div>
+
+<!-- Action Buttons -->
+<!-- Action Buttons -->
+<div class="action-buttons">
+  <!-- Quantity Selector -->
+  <div class="quantity-selector">
+    <button type="button" class="qty-btn minus">-</button>
+    <span class="qty-value">1</span>
+    <button type="button" class="qty-btn plus">+</button>
+  </div>
+
+  <!-- Add to Cart -->
+    <form action="/cart/add" method="POST" class="add-to-cart-form">
+      <input type="hidden" name="product_id" value="<%= product.id %>">
+      <input type="hidden" name="color" id="selected-color">
+      <input type="hidden" name="size" id="selected-size">
+      <input type="hidden" name="quantity" id="selected-qty" value="1">
+
+      <button type="submit" class="add-to-cart-btn">Add To Cart</button>
+    </form>
+
+  <!-- Buy Now -->
+  <button class="buy-now-btn">Buy Now</button>
+
+  <!-- Wishlist -->
+  <button class="wishlist-btn" data-id="<%= product.id %>">
+    <% if (userWishlisted) { %>
+      <i class="bi bi-heart-fill"></i>
+    <% } else { %>
+      <i class="bi bi-heart"></i>
+    <% } %>
+  </button>
+</div>
+
+<div id="cart-notif" 
+     style="display:none; position:fixed; top:20px; right:20px; 
+            background:#4caf50; color:#fff; padding:12px 20px; 
+            border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.2); 
+            font-weight:600; z-index:9999;">
+  ✅ Item added to cart!
+</div>
+
+<script src="js/filter.js"></script>
+<script>
+  
+document.addEventListener('DOMContentLoaded', function () {
+  // ----------------------
+  // Product Image Gallery
+  // ----------------------
+  const productImage = document.getElementById('product-image');
+  const thumbnails = Array.from(document.querySelectorAll('.thumbnail'));
+
+  function updateImage(index) {
+    productImage.src = thumbnails[index].src;
+    thumbnails.forEach(t => t.classList.remove('active'));
+    thumbnails[index].classList.add('active');
+  }
+
+  thumbnails.forEach((thumb, index) => {
+    thumb.addEventListener('click', () => updateImage(index));
+  });
+
+  if (thumbnails.length > 0) updateImage(0);
+
+  // ----------------------
+  // Quantity Selector & Dynamic Price
+  // ----------------------
+  const qtyValue = document.querySelector(".qty-value");
+  const minusBtn = document.querySelector(".qty-btn.minus");
+  const plusBtn = document.querySelector(".qty-btn.plus");
+  const priceElement = document.getElementById("product-price-value");
+  const qtyInput = document.getElementById("selected-qty");
+
+  const basePrice = Number(priceElement.textContent);
+  let quantity = parseInt(qtyInput.value) || 1;
+
+  function updateQuantityDisplay() {
+    qtyValue.textContent = quantity;
+    qtyInput.value = quantity;
+    priceElement.textContent = (basePrice * quantity).toFixed(2);
+  }
+
+  minusBtn.addEventListener("click", e => {
+    e.preventDefault();
+    if (quantity > 1) {
+      quantity--;
+      updateQuantityDisplay();
+    }
+  });
+
+  plusBtn.addEventListener("click", e => {
+    e.preventDefault();
+    quantity++;
+    updateQuantityDisplay();
+  });
+
+  updateQuantityDisplay();
+
+  // ----------------------
+  // Handle Color & Size
+  // ----------------------
+  document.querySelectorAll("input[name='color']").forEach(radio => {
+    radio.addEventListener("change", () => {
+      document.getElementById("selected-color").value = radio.value;
+    });
+  });
+
+  document.querySelectorAll("input[name='size']").forEach(radio => {
+    radio.addEventListener("change", () => {
+      document.getElementById("selected-size").value = radio.value;
+    });
+  });
+
+  // ----------------------
+  // Wishlist Button
+  // ----------------------
+  const wishlistBtn = document.querySelector(".wishlist-btn");
+  if (wishlistBtn) {
+    const wishlistIcon = wishlistBtn.querySelector("i");
+    const productId = "<%= product.id %>";
+    let isWishlisted = "<%= userWishlisted ? 'true' : 'false' %>";
+
+    function updateWishlistIcon() {
+      if (isWishlisted === "true") {
+        wishlistIcon.classList.remove("bi-heart");
+        wishlistIcon.classList.add("bi-heart-fill");
+        wishlistIcon.style.color = "red";
+      } else {
+        wishlistIcon.classList.remove("bi-heart-fill");
+        wishlistIcon.classList.add("bi-heart");
+        wishlistIcon.style.color = "#333";
+      }
+    }
+
+    function showWishlistNotif(message, type = "added") {
+      const notif = document.getElementById("wishlist-notif");
+      notif.textContent = message;
+      notif.classList.remove("added", "removed");
+      notif.classList.add(type, "show");
+      setTimeout(() => notif.classList.remove("show"), 2000);
+    }
+
+    updateWishlistIcon();
+
+    wishlistBtn.addEventListener("click", async () => {
+      try {
+        const res = await fetch(`/wishlist/toggle/${productId}`, { method: "POST" });
+        const data = await res.json();
+        if (data.wishlisted !== undefined) {
+          isWishlisted = data.wishlisted ? "true" : "false";
+          updateWishlistIcon();
+          showWishlistNotif(
+            isWishlisted === "true"
+              ? "Product added to your wishlist!"
+              : "Product removed from your wishlist!",
+            isWishlisted === "true" ? "added" : "removed"
+          );
+        }
+      } catch (err) {
+        console.error("Error updating wishlist:", err);
+        showWishlistNotif("Something went wrong!", "removed");
+      }
+    });
+  }
+
+  // ----------------------
+  // Add To Cart: Validation & Success Notification
+  // ----------------------
+  const addToCartForm = document.querySelector("form[action='/cart/add']");
+  if (addToCartForm) {
+    addToCartForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const selectedColor = document.getElementById("selected-color")?.value;
+      const selectedSize = document.getElementById("selected-size")?.value;
+
+      qtyInput.value = quantity;
+
+      if (!selectedColor || !selectedSize) {
+        alert("Please select a color and a size before adding to cart!");
+        return;
+      }
+
+      try {
+        // ✅ Send JSON instead of FormData
+        const res = await fetch("/cart/add", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            product_id: document.querySelector("input[name='product_id']").value,
+            color: selectedColor,
+            size: selectedSize,
+            quantity: qtyInput.value
+          })
+        });
+
+        if (res.status === 200) {
+          showCartNotif("Item added to cart!");
+        } else if (res.status === 400) {
+          alert("Please select a color and a size before adding to cart!");
+        } else {
+          alert("Failed to add to cart. Please try again.");
+        }
+
+      } catch (err) {
+        alert("Error adding to cart.");
+        console.error(err);
+      }
+    });
+  }
+
+  // ----------------------
+  // Cart Notification
+  // ----------------------
+  function showCartNotif(message) {
+    let notif = document.getElementById("cart-notif");
+    if (!notif) {
+      notif = document.createElement("div");
+      notif.id = "cart-notif";
+      notif.style.cssText = `
+        position:fixed; top:20px; right:20px;
+        background:#4caf50; color:white; padding:12px 20px;
+        border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.2);
+        font-weight:600; z-index:9999;
+      `;
+      document.body.appendChild(notif);
+    }
+    notif.textContent = message;
+    notif.style.display = "block";
+    setTimeout(() => { notif.style.display = "none"; }, 2500);
+  }
+});
+
+
+
+
+
+</script>
+
+
+</body>
+</html>

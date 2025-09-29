@@ -16,12 +16,16 @@
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
     "crypto": "^1.0.1",
+    "dotenv": "^17.2.2",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
     "git": "^0.1.5",
     "js": "^0.1.0",
+    "multer": "^2.0.2",
     "nodemailer": "^7.0.6",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "pg": "^8.16.3"
   }
 }

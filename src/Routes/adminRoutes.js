@@ -1,4 +1,3 @@
-// routes/adminRoutes.js
 import express from "express";
 import db from "../database/db.js"; // PostgreSQL connection
 import { requireAdmin } from "../Middleware/authMiddleware.js";
@@ -9,26 +8,32 @@ const router = express.Router();
 
 // ================== MULTER SETUP ==================
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "src/public/uploads/");
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + ext);
-  }
+  destination: (req, file, cb) => cb(null, "src/public/uploads/"),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage });
 
 // ================== ADMIN PRODUCTS ==================
 router.get("/adminproducts", async (req, res) => {
   try {
-    const result = await db.query(
-      "SELECT id, name, price::float AS price, stock, category, image_url FROM products ORDER BY id ASC"
-    );
+    const result = await db.query(`
+      SELECT 
+        p.id, 
+        p.name, 
+        p.price, 
+        p.stock, 
+        p.category, 
+        p.image_url,
+        COALESCE(SUM(oi.quantity), 0) AS sold
+      FROM products p
+      LEFT JOIN order_items oi ON p.id = oi.product_id
+      GROUP BY p.id
+      ORDER BY p.id ASC
+    `);
 
-    const products = result.rows.map(p => ({
-      ...p,
-      price: p.price !== null ? Number(p.price) : 0,
+    const products = result.rows.map(product => ({
+      ...product,
+      sold: Number(product.sold)
     }));
 
     res.render("admin/adminProducts", { products });
@@ -39,22 +44,19 @@ router.get("/adminproducts", async (req, res) => {
 });
 
 // ================== ADD PRODUCT ==================
-router.get("/addproduct", (req, res) => {
-  res.render("admin/addProduct");
-});
+router.get("/addproduct", (req, res) => res.render("admin/addProduct"));
 
-// POST route with image upload
 router.post("/addproduct", upload.single("image"), async (req, res) => {
   try {
     const { name, price, stock, category, sizes, color } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : null;
+    const priceInt = Math.round(Number(price));
 
-await db.query(
-  `INSERT INTO products (name, price, stock, category, image_url, sizes, colors)
-   VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-  [name, price, stock, category, image, sizes, color]
-);
-
+    await db.query(
+      `INSERT INTO products (name, price, stock, category, image_url, sizes, colors)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [name, priceInt, stock, category, image, sizes, color]
+    );
 
     res.redirect("/adminproducts");
   } catch (err) {
@@ -66,7 +68,9 @@ await db.query(
 // ================== CUSTOMERS ==================
 router.get("/customers", async (req, res) => {
   try {
-    const result = await db.query("SELECT * FROM customers ORDER BY id DESC");
+    const result = await db.query(
+      "SELECT id, email, first_name, last_name, role FROM customers ORDER BY id DESC"
+    );
     res.render("admin/customers", { customers: result.rows });
   } catch (err) {
     console.error("Error fetching customers:", err);
@@ -87,8 +91,14 @@ router.get("/logout", (req, res) => {
 
 // ================== VIEW SINGLE PRODUCT ==================
 router.get("/adminproducts/:id", async (req, res) => {
+  const productId = Number(req.params.id);
+  if (isNaN(productId)) return res.status(400).send("Invalid product ID");
+
   try {
-    const result = await db.query("SELECT * FROM products WHERE id = $1", [req.params.id]);
+    const result = await db.query(
+      "SELECT * FROM products WHERE id = $1",
+      [productId]
+    );
     res.render("admin/viewProducts", { product: result.rows[0] });
   } catch (err) {
     console.error("Error fetching product:", err);
@@ -98,8 +108,14 @@ router.get("/adminproducts/:id", async (req, res) => {
 
 // ================== EDIT PRODUCT ==================
 router.get("/adminproducts/:id/edit", async (req, res) => {
+  const productId = Number(req.params.id);
+  if (isNaN(productId)) return res.status(400).send("Invalid product ID");
+
   try {
-    const result = await db.query("SELECT * FROM products WHERE id = $1", [req.params.id]);
+    const result = await db.query(
+      "SELECT * FROM products WHERE id = $1",
+      [productId]
+    );
     res.render("admin/editProducts", { product: result.rows[0] });
   } catch (err) {
     console.error("Error fetching product:", err);
@@ -107,23 +123,24 @@ router.get("/adminproducts/:id/edit", async (req, res) => {
   }
 });
 
-// POST update product with optional image
 router.post("/adminproducts/:id/edit", upload.single("image"), async (req, res) => {
+  const productId = Number(req.params.id);
+  if (isNaN(productId)) return res.status(400).send("Invalid product ID");
+
   try {
     const { name, price, stock, category, sizes, color } = req.body;
-    const productId = req.params.id;
+    const priceInt = Math.round(Number(price));
 
-    // Update query dynamically if image uploaded
     if (req.file) {
       const image = `/uploads/${req.file.filename}`;
       await db.query(
-        `UPDATE products SET name=$1, price=$2, stock=$3, category=$4, image_url=$5, sizes=$6, color=$7 WHERE id=$8`,
-        [name, price, stock, category, image, sizes, color, productId]
+        `UPDATE products SET name=$1, price=$2, stock=$3, category=$4, image_url=$5, sizes=$6, colors=$7 WHERE id=$8`,
+        [name, priceInt, stock, category, image, sizes, color, productId]
       );
     } else {
       await db.query(
-        `UPDATE products SET name=$1, price=$2, stock=$3, category=$4, sizes=$5, color=$6 WHERE id=$7`,
-        [name, price, stock, category, sizes, color, productId]
+        `UPDATE products SET name=$1, price=$2, stock=$3, category=$4, sizes=$5, colors=$6 WHERE id=$7`,
+        [name, priceInt, stock, category, sizes, color, productId]
       );
     }
 
@@ -136,8 +153,11 @@ router.post("/adminproducts/:id/edit", upload.single("image"), async (req, res) 
 
 // ================== DELETE PRODUCT ==================
 router.post("/adminproducts/:id/delete", async (req, res) => {
+  const productId = Number(req.params.id);
+  if (isNaN(productId)) return res.status(400).send("Invalid product ID");
+
   try {
-    await db.query("DELETE FROM products WHERE id = $1", [req.params.id]);
+    await db.query("DELETE FROM products WHERE id = $1", [productId]);
     res.redirect("/adminproducts");
   } catch (err) {
     console.error("Error deleting product:", err);
@@ -148,7 +168,6 @@ router.post("/adminproducts/:id/delete", async (req, res) => {
 // ================== ADMIN DASHBOARD ==================
 router.get("/admin", requireAdmin, async (req, res) => {
   try {
-    // Total revenue
     const revenueResult = await db.query(`
       SELECT COALESCE(SUM(oi.quantity * p.price), 0) AS revenue
       FROM order_items oi
@@ -156,13 +175,11 @@ router.get("/admin", requireAdmin, async (req, res) => {
     `);
     const totalRevenue = revenueResult.rows[0].revenue;
 
-    // Total orders
     const ordersResult = await db.query("SELECT COUNT(*) AS count FROM orders");
     const totalOrders = ordersResult.rows[0].count;
 
-    // Top 3 products sold
     const topProductsResult = await db.query(`
-      SELECT p.name, SUM(oi.quantity) as total_sold
+      SELECT p.name, COALESCE(SUM(oi.quantity),0) as total_sold
       FROM order_items oi
       JOIN products p ON oi.product_id = p.id
       GROUP BY p.name
@@ -170,7 +187,6 @@ router.get("/admin", requireAdmin, async (req, res) => {
       LIMIT 3
     `);
 
-    // Recent orders
     const recentOrdersResult = await db.query(`
       SELECT o.id, (c.first_name || ' ' || c.last_name) AS customer_name, o.order_date, o.status
       FROM orders o

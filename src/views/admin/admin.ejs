@@ -11,7 +11,7 @@
   <!-- Header -->
   <header class="header">
     <h1>Admin Dashboard</h1>
-            <a href="/logout" class="btn-logout">Logout</a>
+    <a href="/logout" class="btn-logout">Logout</a>
   </header>
   
   <!-- Sidebar -->
@@ -35,44 +35,57 @@
 
     <!-- Cards -->
     <div class="cards">
-  <div class="card">
-    <h3>Total Revenue</h3>
-    <p>$<%= revenue %></p>
-  </div>
-  <div class="card">
-    <h3>Total Orders</h3>
-    <p><%= totalOrders %></p>
-  </div>
-  <div class="card">
-    <h3>Top Products</h3>
-    <% topProducts.forEach(product => { %>
-      <p><%= product.name %> (<%= product.total_sold %>)</p>
-    <% }) %>
-  </div>
-</div>
+      <div class="card">
+        <h3>Total Revenue</h3>
+        <p>$<%= revenue %></p>
+      </div>
+      <div class="card">
+        <h3>Total Orders</h3>
+        <p><%= totalOrders %></p>
+      </div>
+      <div class="card">
+        <h3>Top Products</h3>
+        <% if (topProducts.length > 0) { %>
+          <% topProducts.forEach(product => { %>
+            <p><%= product.name %> (<%= product.total_sold %>)</p>
+          <% }) %>
+        <% } else { %>
+          <p>No products sold yet</p>
+        <% } %>
+      </div>
+    </div>
 
-<!-- Table -->
-<div class="table-container">
-  <h3>Recent Orders</h3>
-  <table>
-    <tr>
-      <th>Order ID</th>
-      <th>Customer</th>
-      <th>Date</th>
-      <th>Status</th>
-    </tr>
-    <% recentOrders.forEach(order => { %>
-      <tr>
-        <td>#<%= order.id %></td>
-        <td><%= order.username %></td>
-        <td><%= order.order_date.toISOString().split("T")[0] %></td>
-        <td class="status-<%= order.status.toLowerCase() %>">
-          <%= order.status %>
-        </td>
-      </tr>
-    <% }) %>
-  </table>
-</div>
+    <!-- Recent Orders Table -->
+    <div class="table-container">
+      <h3>Recent Orders</h3>
+      <% if (recentOrders.length > 0) { %>
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% recentOrders.forEach(order => { %>
+              <tr>
+                <td>#<%= order.id %></td>
+                <td><%= order.customer_name %></td>
+                <td><%= order.order_date ? order.order_date.toISOString().split("T")[0] : "N/A" %></td>
+                <td class="status-<%= order.status.toLowerCase() %>">
+                  <%= order.status %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <p>No recent orders</p>
+      <% } %>
+    </div>
+  </div>
 
 </body>
 </html>

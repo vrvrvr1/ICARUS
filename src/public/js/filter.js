@@ -15,7 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const colorSpans = document.querySelectorAll('.colors span');
   const sizeButtons = document.querySelectorAll('.sizes button');
   const applyBtn = document.getElementById('applyFilter');
-  const productGrid = document.querySelector('#mens .product-grid'); // adjust per tab
+  // Select the product grid inside the currently active tab; fallback to any .product-grid
+  const getProductGrid = () => document.querySelector('.tab-content.active .product-grid') || document.querySelector('.product-grid');
 
   let selectedColors = [];
   let selectedSizes = [];
@@ -114,6 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---------- Apply Filter (AJAX) ----------
 // ---------- Apply Filter (AJAX) ----------
+if (!applyBtn) return; // nothing to do
+
 applyBtn.addEventListener('click', async () => {
   const query = new URLSearchParams({
     minPrice: minRange.value || 1,
@@ -130,6 +133,11 @@ applyBtn.addEventListener('click', async () => {
     });
     const data = await res.json();
 
+    const productGrid = getProductGrid();
+    if (!productGrid) {
+      console.warn('No product grid found to render filter results into.');
+      return;
+    }
     productGrid.innerHTML = "";
 
     if (data.length > 0) {

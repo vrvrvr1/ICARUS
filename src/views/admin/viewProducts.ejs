@@ -4,52 +4,160 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>View Product</title>
-  <link rel="stylesheet" href="/css/admin.css">
-  <style>
-    .product-container {
-      max-width: 600px;
-      margin: 40px auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .product-container h2 {
-      margin-top: 0;
-      color: #333;
-    }
-    .product-detail {
-      margin: 10px 0;
-      padding: 10px;
-      border-bottom: 1px solid #eee;
-    }
-    .btn-back {
-      display: inline-block;
-      margin-top: 20px;
-      background: #007bff;
-      color: #fff;
-      padding: 10px 16px;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-    .btn-back:hover {
-      background: #0056b3;
-    }
-  </style>
+    <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
-  <header class="header">
-    <h1>View Product</h1>
-  </header>
+  <!-- Sidebar (reuse dashboard sidebar) -->
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
 
-  <div class="product-container">
-    <h2><%= product.name %></h2>
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts" class="active"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="#"><i class="bi bi-gear"></i> Settings</a>
+      </nav>
+    </div>
 
-    <div class="product-detail"><strong>Price:</strong> $<%= product.price %></div>
-    <div class="product-detail"><strong>Stock:</strong> <%= product.stock %> items</div>
-    <div class="product-detail"><strong>Category:</strong> <%= product.category %></div>
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
 
-    <a href="/adminproducts" class="btn-back">← Back to Products</a>
-  </div>
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">View Product</div>
+        <div class="dashboard-title-sub">Product details and metadata</div>
+      </div>
+    </div>
+
+    <div style="max-width:980px;margin:0 auto;">
+      <div class="dashboard-card product-card">
+        <% // support multiple images: prefer product.images array, otherwise collect available image fields (image, image2, image_url, etc.) and remove duplicates %>
+        <%
+          let images = [];
+          if (product.images && Array.isArray(product.images) && product.images.length) {
+            images = product.images.slice();
+          } else {
+            // push common image fields in priority order (include image_url_2)
+            [product.image, product.image2, product.image_url, product.image_url_2, product.image_path, product.photo, product.img].forEach(i => { if (i) images.push(i); });
+          }
+          // normalize and dedupe while keeping order
+          const seen = new Set();
+          images = images.map(i => String(i)).filter(i => i && !seen.has(i) && (seen.add(i), true));
+          const mainImg = images[0] || '/image/profile1.png';
+          function hrefify(src){ return src && (/^https?:\/\//i.test(src) || src.startsWith('/')) ? src : ('/uploads/' + src); }
+  %>
+        <div class="product-media">
+          <img id="mainProductImage" src="<%= hrefify(mainImg) %>" alt="<%= product.name %>" class="product-large-thumb" onerror="this.onerror=null;this.src='/image/profile1.png'">
+          <% if (images.length > 0) { %>
+            <div class="thumbnails" id="thumbs">
+              <% images.forEach((img, idx) => { %>
+                <img data-src="<%= hrefify(img) %>" class="thumb-item <%= idx===0 ? 'active' : '' %>" src="<%= hrefify(img) %>" onerror="this.onerror=null;this.src='/image/profile1.png'" />
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+
+        <div class="product-main">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+            <h3 class="product-title"><%= product.name %></h3>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <!-- Back button moved here (upper-right) -->
+              <button class="btn" onclick="location.href='/adminproducts'">← Back to Products</button>
+            </div>
+          </div>
+
+          <div style="margin-top:8px;display:flex;align-items:center;gap:12px;">
+            <div class="price-badge">$<%= Number(product.price || 0).toFixed(2) %></div>
+          </div>
+
+          <p style="margin-top:12px;color:var(--text-secondary);"><%= product.short_description || (product.description ? product.description.substring(0,220) : '') %></p>
+
+          <div class="kpi-row" style="margin-top:12px;">
+            <div class="dashboard-card" style="padding:10px;min-width:120px;">
+              <div class="card-label">Units Sold</div>
+              <div class="card-value"><%= product.sold || 0 %></div>
+            </div>
+            <div class="dashboard-card" style="padding:10px;min-width:120px;">
+              <div class="card-label">Revenue</div>
+              <div class="card-value">$<%= Number(product.revenue || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) %></div>
+            </div>
+          </div>
+
+          <div class="product-summary" style="margin-top:18px;color:var(--text-secondary);">
+            <div class="product-detail"><span class="attr-label">Category:</span> <%= product.category || '—' %></div>
+            <% if (product.description) { %>
+              <div class="product-detail"><span class="attr-label">Description:</span>
+                <div style="margin-top:6px;color:var(--text-secondary);font-size:0.95rem;"><%= product.description %></div>
+              </div>
+            <% } %>
+
+            <!-- additional images are shown as thumbnails under the main image; removed duplicate rendering here -->
+
+            <div style="margin-top:12px;display:flex;gap:12px;align-items:center;">
+              <div class="product-detail" style="margin:0;padding:0"><span class="attr-label">Stock:</span> <span style="color:var(--text-primary);font-weight:600;"><%= product.stock %> items</span></div>
+            </div>
+
+            <div style="margin-top:18px;">
+              <h4 style="margin:0 0 8px 0;color:var(--text-primary)">Recent Orders</h4>
+              <% if (product.recentOrders && product.recentOrders.length) { %>
+                <table class="orders-table">
+                  <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Qty</th><th>Price</th><th>Status</th></tr></thead>
+                  <tbody>
+                  <% product.recentOrders.forEach(o => { %>
+                    <tr>
+                      <td>#<%= o.order_id %></td>
+                      <td><%= o.customer_name %></td>
+                      <td><%= o.order_date ? new Date(o.order_date).toLocaleString() : 'N/A' %></td>
+                      <td><%= o.quantity %></td>
+                      <td>$<%= Number(o.price || 0).toFixed(2) %></td>
+                      <td><span class="order-status <%= (o.status && o.status.toLowerCase().includes('completed')) ? 'completed' : 'pending' %>"><%= o.status || 'N/A' %></span></td>
+                    </tr>
+                  <% }) %>
+                  </tbody>
+                </table>
+              <% } else { %>
+                <div>No recent orders for this product.</div>
+              <% } %>
+            </div>
+
+            <!-- Back button has been moved to the header -->
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // thumbnail click -> swap main image
+      document.addEventListener('DOMContentLoaded', function(){
+        const thumbs = document.getElementById('thumbs');
+        const main = document.getElementById('mainProductImage');
+        if(thumbs && main){
+          thumbs.addEventListener('click', function(e){
+            const t = e.target.closest('.thumb-item');
+            if(!t) return;
+            document.querySelectorAll('.thumb-item').forEach(i=>i.classList.remove('active'));
+            t.classList.add('active');
+            main.src = t.getAttribute('data-src') || t.src;
+          });
+        }
+
+        // tabs removed - view-only page
+      });
+    </script>
+
+  </main>
 </body>
 </html>

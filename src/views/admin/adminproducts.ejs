@@ -8,83 +8,163 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 </head>
 <body>
-    
-  <!-- Header -->
-  <header class="header">
-    <h1>Admin Dashboard</h1>
-        <a href="/logout" class="btn-logout">Logout</a>
-  </header>
-
   <!-- Sidebar -->
-  <div class="sidebar">
-    <h2>ADMIN</h2>
-    <a href="/admin">Dashboard</a>
-    <a href="/adminproducts" class="active">Products</a>
-    <a href="/orders">Orders</a>
-    <a href="/customers">Customers</a>
-  </div>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
 
-  <!-- Main Content -->
-  <div class="main">
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts" class="active"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="#"><i class="bi bi-gear"></i> Settings</a>
+      </nav>
+    </div>
+
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="dashboard-main">
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Product List</div>
+        <div class="dashboard-title-sub">Manage your catalog</div>
+      </div>
+    </div>
     
     <!-- Topbar -->
-    <div class="topbar">
-      <h2>Product List</h2>
-      <div>
-        <a href="/addproduct" class="btn">Add Product</a>
-        <select class="filter">
-          <option>This Month</option>
-          <option>Last Month</option>
-          <option>All Time</option>
+    <div class="topbar" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <h2 style="margin:0">Product List</h2>
+        <input type="search" placeholder="Search products..." class="search-input" id="productSearch">
+      </div>
+      <div class="actions">
+        <% const _categories = Array.from(new Set((products || []).map(p => p.category).filter(Boolean)));
+           // ensure a stable ordering: alphabetical
+           _categories.sort(); %>
+        <select id="categoryFilter" class="filter" aria-label="Filter category">
+          <option value="">All Categories</option>
+          <% _categories.forEach(cat => { %>
+            <option value="<%= cat %>"><%= cat %></option>
+          <% }) %>
         </select>
+        <button type="button" class="btn" title="Add Product" onclick="location.href='/addproduct'">Add Product</button>
       </div>
     </div>
 
     <!-- Product Table -->
     <div class="table-container">
       <h3>All Product List</h3>
-      <table>
-        <tr>
-          <th>Product Name</th>
-          <th>Price</th>
-          <th>Stock</th>
-          <th>Category</th>
-          <th>Action</th>
-        </tr>
-
-        <% if (products.length === 0) { %>
-          <tr>
-            <td colspan="5">No products available.</td>
-          </tr>
-        <% } else { %>
-          <% products.forEach(product => { %>
+      <div class="table-responsive">
+        <table>
+          <thead>
             <tr>
-              <td><%= product.name %></td>
-              <td>$<%= Number(product.price).toFixed(2) %></td>
-              <td>
-                <%= product.stock %> items left <br>
-                <small><%= product.sold || 0 %> sold</small>
-              </td>
-              <td><%= product.category %></td>
-              <td>
-                  <a href="/adminproducts/<%= product.id %>" class="btn-action">
-                    <i class="bi bi-eye-fill"></i>
-                  </a>
-                  <a href="/adminproducts/<%= product.id %>/edit" class="btn-action">
-                    <i class="bi bi-pencil-fill"></i>
-                  </a>
-                  <form action="/adminproducts/<%= product.id %>/delete" method="POST" style="display:inline;">
-                  <button type="submit" class="btn-action" onclick="return confirm('Are you sure you want to delete this product?')">
-                    <i class="bi bi-trash3-fill"></i>
-                  </button>
-                </form>
-              </td>
+              <th>Image</th>
+              <th>Product Name</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Category</th>
+              <th>Action</th>
             </tr>
-          <% }) %>
-        <% } %>
-      </table>
+          </thead>
+          <tbody id="productsTableBody">
+
+          <% if (!products || products.length === 0) { %>
+            <tr>
+              <td colspan="6">No products available.</td>
+            </tr>
+          <% } else { %>
+            <% products.forEach(product => { %>
+              <% const imgSrcRaw = product.image || product.image_url || product.image_path || product.photo || product.img || ''; %>
+              <% const imgHref = imgSrcRaw ? ((/^https?:\/\//i.test(imgSrcRaw) || imgSrcRaw.startsWith('/')) ? imgSrcRaw : ('/uploads/' + imgSrcRaw)) : '/image/profile1.png'; %>
+              <tr>
+                <td>
+                  <img src="<%= imgHref %>" alt="<%= product.name %>" class="product-thumb" onerror="this.onerror=null;this.src='/image/profile1.png'">
+                </td>
+                <td>
+                  <strong><%= product.name %></strong>
+                  <% if (product.description) { %>
+                    <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;"> <%= product.description.substring(0,80) %><%= product.description.length>80 ? '...' : '' %></div>
+                  <% } %>
+                </td>
+                <td>$<%= Number(product.price || 0).toFixed(2) %></td>
+                <td>
+                  <%= product.stock %> items<br>
+                  <small style="color:var(--text-secondary)"><%= product.sold || 0 %> sold</small>
+                </td>
+                <td><%= product.category || '—' %></td>
+                <td>
+                  <div style="display:flex;gap:6px;align-items:center;justify-content:flex-end;">
+                    <a href="/adminproducts/<%= product.id %>" class="btn-action" title="View"><i class="bi bi-eye-fill"></i></a>
+                    <a href="/adminproducts/<%= product.id %>/edit" class="btn-action" title="Edit"><i class="bi bi-pencil-fill"></i></a>
+                    <form action="/adminproducts/<%= product.id %>/delete" method="POST" style="display:inline;">
+                      <button type="submit" class="btn-action" onclick="return confirm('Are you sure you want to delete this product?')" title="Delete"><i class="bi bi-trash3-fill"></i></button>
+                    </form>
+                  </div>
+
+                  <script>
+                  // Simple client-side search for the products table
+                  document.addEventListener('DOMContentLoaded', function(){
+                    const input = document.getElementById('productSearch');
+                    const tbody = document.getElementById('productsTableBody');
+                    if(!input || !tbody) return;
+                    input.addEventListener('input', function(){
+                      const q = input.value.trim().toLowerCase();
+                      Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
+                        const text = tr.innerText.toLowerCase();
+                        tr.style.display = q === '' ? '' : (text.includes(q) ? '' : 'none');
+                      });
+                    });
+                  });
+                  </script>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
+
+  <script>
+  // Combined client-side search + category filter for the products table
+  document.addEventListener('DOMContentLoaded', function(){
+    const input = document.getElementById('productSearch');
+    const category = document.getElementById('categoryFilter');
+    const tbody = document.getElementById('productsTableBody');
+    if(!tbody) return;
+
+    function applyFilters(){
+      const q = input ? input.value.trim().toLowerCase() : '';
+      const cat = category ? category.value : '';
+      Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
+        const text = tr.innerText.toLowerCase();
+        const matchesText = q === '' ? true : text.includes(q);
+        const cell = tr.querySelector('td:nth-child(5)'); // category cell
+        const cellCat = cell ? cell.innerText.trim() : '';
+        const matchesCat = !cat || (cellCat === cat);
+        tr.style.display = (matchesText && matchesCat) ? '' : 'none';
+      });
+    }
+
+    if(input) input.addEventListener('input', applyFilters);
+    if(category) category.addEventListener('change', applyFilters);
+  });
+  </script>
 
 </body>
 </html>

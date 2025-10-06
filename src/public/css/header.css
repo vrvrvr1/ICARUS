@@ -46,8 +46,8 @@
 /* Main Header */
 .header {
   background: white;
-  position: sticky;
-  top: 0;
+  /* Header should scroll with the page (not sticky) */
+  position: static;
   z-index: 1000;
 }
 
@@ -223,6 +223,67 @@
 }
 .cart-badge.text-white {
   color: #fff !important;
+}
+
+
+/* Breadcrumb styles */
+.breadcrumb-wrap {
+  max-width: 1200px;
+  margin: 12px auto;
+  padding: 0 20px;
+}
+
+.breadcrumb {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  margin: 0;
+  font-size: 14px;
+}
+
+.breadcrumb-item a {
+  color: #666;
+  text-decoration: none;
+  transition: color .15s;
+}
+
+.breadcrumb-item a:hover {
+  color: #111;
+}
+
+.breadcrumb-item::after {
+  content: '\203A'; /* single right-pointing angle quotation */
+  color: #bbb;
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+.breadcrumb-item.current::after {
+  content: "";
+}
+
+.breadcrumb-item.current span {
+  color: #111;
+  font-weight: 600;
+}
+
+@media (max-width: 520px) {
+  .breadcrumb {
+    font-size: 13px;
+  }
+  .breadcrumb-item:not(:first-child):not(:last-child) {
+    display: none;
+  }
+  .breadcrumb-item.current span {
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+  }
 }
 
 

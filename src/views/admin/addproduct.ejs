@@ -4,72 +4,142 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Add Product</title>
-  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
-
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <h2>ADMIN</h2>
-    <a href="/admin">Dashboard</a>
-    <a href="/adminproducts" class="active">Products</a>
-    <a href="/orders">Orders</a>
-    <a href="/customers">Customers</a>
-  </div>
-
-  <!-- Main Content -->
-  <div class="main">
-    <form action="/addproduct" method="POST" enctype="multipart/form-data" class="form-sections">
-      <div class="topbar">
-        <h2>Add Product</h2>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
         <div>
-          <a href="/adminproducts" class="btn-discard">Discard</a>
-          <button type="submit" class="btn">Add Product</button>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
         </div>
       </div>
 
-      <div class="form-sections">
-        <!-- Product Details -->
-        <div class="card">
-          <h3>Product Details</h3>
-          <label>Product Name</label>
-          <input type="text" name="name" placeholder="Enter product name" required>
-          
-          <label>Category</label>
-          <input type="text" name="category" placeholder="Enter category" required>
-        </div>
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts" class="active"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+      </nav>
+    </div>
 
-        <!-- Product Image -->
-        <div class="card">
-          <h3>Product Image</h3>
-          <div class="upload-box">
-            <p>Drop your image here, or select <label for="image-upload" style="cursor:pointer;color:#0d6efd;">Click to browse</label></p>
-            <input type="file" id="image-upload" name="image" accept="image/*" required>
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Add Product</div>
+        <div class="dashboard-title-sub">Create a new product</div>
+      </div>
+      <div class="dashboard-search">
+        <a href="/adminproducts" class="btn btn-ghost">← Back to Products</a>
+      </div>
+    </div>
+
+    <div style="max-width:980px;margin:0 auto;">
+      <div class="dashboard-card">
+        <form action="/addproduct" method="POST" enctype="multipart/form-data" style="display:grid;grid-template-columns: 1fr 360px; gap:1rem; align-items:start;">
+
+          <div>
+            <label class="attr-label" for="name">Product Name</label>
+            <input class="search-input" type="text" id="name" name="name" required>
+
+            <label class="attr-label" for="short_description" style="margin-top:10px;">Short Description</label>
+            <textarea class="search-input" id="short_description" name="short_description" rows="4" style="resize:vertical;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text-primary);"></textarea>
+
+            <div style="display:flex;gap:0.75rem;margin-top:10px;">
+              <div style="flex:1">
+                <label class="attr-label" for="price">Price</label>
+                <input class="search-input" type="number" id="price" name="price" step="0.01" required>
+
+                <label class="attr-label" style="margin-top:8px;display:block;">Sizes</label>
+                <div class="size-chips">
+                  <% const sizesList = ['S','M','L','XL']; %>
+                  <% sizesList.forEach(sz => { %>
+                    <label class="chip"><input type="checkbox" name="sizes[]" value="<%= sz %>" /><span class="swatch"><%= sz %></span></label>
+                  <% }) %>
+                </div>
+              </div>
+              <div style="width:180px">
+                <label class="attr-label">Colors</label>
+                <div class="size-chips">
+                  <% const colorsList = ['black','red','blue','green']; %>
+                  <% colorsList.forEach(c => { %>
+                    <label class="chip" aria-label="color-<%= c %>"><input type="checkbox" name="colors[]" value="<%= c %>" /><span class="swatch <%= c %>"><%= c.charAt(0).toUpperCase() + c.slice(1) %></span></label>
+                  <% }) %>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:0.75rem;margin-top:10px;">
+              <div style="flex:1">
+                <label class="attr-label" for="stock">Stock</label>
+                <input class="search-input" type="number" id="stock" name="stock" required>
+              </div>
+              <div style="width:180px">
+                <label class="attr-label" for="category">Category</label>
+                <input class="search-input" type="text" id="category" name="category">
+              </div>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+              <button type="submit" class="btn">Add Product</button>
+              <a href="/adminproducts" class="btn btn-ghost">Cancel</a>
+            </div>
           </div>
-        </div>
+
+          <aside style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label class="attr-label">Product Images</label>
+              <div class="upload-grid">
+                <% for(let i=0;i<4;i++){ %>
+                  <div class="upload-slot empty-slot" data-slot="<%= i %>">
+                    <input id="input-<%= i %>" type="file" name="image<%= i %>" accept="image/*" style="opacity:0;position:absolute;inset:0;cursor:pointer;" />
+                    <div style="height:100px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);">Click to add</div>
+                  </div>
+                <% } %>
+              </div>
+              <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:6px;">Add up to 4 images. Pay attention to background and dimensions.</div>
+            </div>
+
+            <!-- right column reserved for images and helpers -->
+          </aside>
+
+        </form>
       </div>
+    </div>
+  </main>
 
-      <!-- Inventory and Pricing -->
-      <div class="card">
-        <h3>Inventory and Pricing</h3>
-        <label>Selling Price</label>
-        <input type="number" step="0.01" name="price" placeholder="Enter selling price" required>
-        
-        <label>Quantity</label>
-        <input type="number" name="stock" placeholder="Enter quantity" required>
-        
-        <label>Sizes</label>
-        <input type="text" name="sizes" placeholder="Enter sizes (e.g., S, M, L, XL)">
+  <script>
+    // small preview for selected image slots
+    document.addEventListener('DOMContentLoaded', function(){
+      function readFileToImg(file, imgEl){
+        const reader = new FileReader();
+        reader.onload = e => imgEl.src = e.target.result;
+        reader.readAsDataURL(file);
+      }
 
-        <div class="color-options">
-          <label><input type="radio" name="color" value="black" required> <span class="circle black"></span> BLACK</label>
-          <label><input type="radio" name="color" value="red"> <span class="circle red"></span> RED</label>
-          <label><input type="radio" name="color" value="green"> <span class="circle green"></span> GREEN</label>
-          <label><input type="radio" name="color" value="blue"> <span class="circle blue"></span> BLUE</label>
-        </div>
-      </div>
-    </form>
-  </div>
-
+      for(let i=0;i<4;i++){
+        const input = document.getElementById('input-' + i);
+        if(!input) continue;
+        input.addEventListener('change', function(e){
+          const file = e.target.files[0];
+          const slot = document.querySelector('.upload-slot[data-slot="'+i+'"]');
+          if(file && slot){
+            let img = slot.querySelector('.upload-preview-img');
+            if(!img){ img = document.createElement('img'); img.className='upload-preview-img'; slot.appendChild(img); }
+            readFileToImg(file, img);
+            slot.classList.remove('empty-slot');
+          }
+        });
+      }
+    });
+  </script>
 </body>
 </html>

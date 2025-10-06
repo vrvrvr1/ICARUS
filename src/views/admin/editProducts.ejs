@@ -7,30 +7,199 @@
   <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
-  <header class="header">
-    <h1>Edit Product</h1>
-    <a href="/adminproducts" class="btn">Back to Products</a>
-  </header>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
 
-  <div class="main">
-    <div class="form-container">
-      <form action="/adminproducts/<%= product.id %>/edit" method="POST">
-        
-        <label for="name">Product Name</label>
-        <input type="text" id="name" name="name" value="<%= product.name %>" required>
-
-        <label for="price">Price</label>
-        <input type="number" id="price" name="price" step="0.01" value="<%= product.price %>" required>
-
-        <label for="stock">Stock</label>
-        <input type="number" id="stock" name="stock" value="<%= product.stock %>" required>
-
-        <label for="category">Category</label>
-        <input type="text" id="category" name="category" value="<%= product.category %>" required>
-
-        <button type="submit" class="btn">Update Product</button>
-      </form>
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts" class="active"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="#"><i class="bi bi-gear"></i> Settings</a>
+      </nav>
     </div>
-  </div>
+
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Edit Product</div>
+        <div class="dashboard-title-sub">Make updates to product details</div>
+      </div>
+      <div class="dashboard-search">
+        <a href="/adminproducts" class="btn btn-ghost">← Back to Products</a>
+      </div>
+    </div>
+
+    <div style="max-width:980px;margin:0 auto;">
+      <div class="dashboard-card">
+  <form action="/adminproducts/<%= product.id %>/edit" method="POST" enctype="multipart/form-data" style="display:grid;grid-template-columns: 1fr 360px; gap:1rem; align-items:start;">
+
+          <div>
+            <label class="attr-label" for="name">Product Name</label>
+            <input class="search-input" type="text" id="name" name="name" value="<%= product.name %>" required>
+
+            <label class="attr-label" for="short_description" style="margin-top:10px;">Short Description</label>
+            <textarea class="search-input" id="short_description" name="short_description" rows="4" style="resize:vertical;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text-primary);"><%= product.short_description || '' %></textarea>
+
+            <% 
+              // normalize product.colors (or product.color) to an array for use in the color chips
+              let selectedColors = [];
+              const rawColors = product.colors || product.color || null;
+              if (rawColors) {
+                if (Array.isArray(rawColors)) selectedColors = rawColors.map(c => String(c).toLowerCase());
+                else selectedColors = String(rawColors).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+              }
+
+              // normalize product.sizes to an array for use in the size chips
+              // Accepts product.sizes as an array or comma-separated string.
+              let selectedSizes = [];
+              const rawSizes = product.sizes || product.size || null;
+              if (rawSizes) {
+                if (Array.isArray(rawSizes)) selectedSizes = rawSizes.map(sz => String(sz).toUpperCase());
+                else selectedSizes = String(rawSizes).split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+              }
+            %>
+
+            <div style="display:flex;gap:0.75rem;margin-top:10px;">
+              <div style="flex:1">
+                <label class="attr-label" for="price">Price</label>
+                <input class="search-input" type="number" id="price" name="price" step="0.01" value="<%= product.price %>" required>
+
+                <label class="attr-label" style="margin-top:8px;display:block;">Sizes</label>
+                <div class="size-chips">
+                  <% const sizesList = ['S','M','L','XL']; %>
+                  <% sizesList.forEach(sz => { %>
+                    <label class="chip"><input type="checkbox" name="sizes[]" value="<%= sz %>" <%= selectedSizes.includes(sz) ? 'checked' : '' %> /><span class="swatch"><%= sz %></span></label>
+                  <% }) %>
+                </div>
+              </div>
+              <div style="width:180px">
+                <label class="attr-label">Colors</label>
+                <div class="size-chips">
+                  <% const colorsList = ['black','red','blue','green']; %>
+                  <% colorsList.forEach(c => { %>
+                    <label class="chip" aria-label="color-<%= c %>"><input type="checkbox" name="colors[]" value="<%= c %>" <%= selectedColors.includes(c) ? 'checked' : '' %> /><span class="swatch <%= c %>"><%= c.charAt(0).toUpperCase() + c.slice(1) %></span></label>
+                  <% }) %>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:0.75rem;margin-top:10px;">
+              <div style="flex:1">
+                <label class="attr-label" for="stock">Stock</label>
+                <input class="search-input" type="number" id="stock" name="stock" value="<%= product.stock %>" required>
+              </div>
+              <div style="width:180px">
+                <label class="attr-label" for="category">Category</label>
+                <input class="search-input" type="text" id="category" name="category" value="<%= product.category %>">
+              </div>
+            </div>
+
+            <!-- category handled above in the left column; color chips moved under Short Description -->
+
+            <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+              <button type="submit" class="btn">Update Product</button>
+              <a href="/adminproducts" class="btn btn-ghost">Cancel</a>
+            </div>
+          </div>
+
+          <aside style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label class="attr-label">Product Images</label>
+              <div class="upload-grid">
+                <% 
+                  // gather up to four image columns from the product record
+                  const previewImgs = [];
+                  ['image_url','image_url_2','image_url_3','image_url_4','image','image2'].forEach(k => {
+                    if (product[k]) previewImgs.push(product[k]);
+                  });
+                  // ensure length 4 for slots
+                  while(previewImgs.length < 4) previewImgs.push(null);
+                %>
+                <% for(let i=0;i<4;i++){ %>
+                  <% if(previewImgs[i]){ %>
+                    <div class="upload-slot" data-slot="<%= i %>">
+                      <input id="input-<%= i %>" type="file" name="image<%= i %>" accept="image/*" style="opacity:0;position:absolute;inset:0;cursor:pointer;" />
+                      <img src="<%= (previewImgs[i].startsWith('/') ? previewImgs[i] : ('/uploads/' + previewImgs[i])) %>" class="upload-preview-img" onerror="this.onerror=null;this.style.display='none'" />
+                      <button type="button" class="img-delete" data-slot="<%= i %>">Delete</button>
+                    </div>
+                  <% } else { %>
+                    <div class="upload-slot empty-slot" data-slot="<%= i %>">
+                      <input id="input-<%= i %>" type="file" name="image<%= i %>" accept="image/*" style="opacity:0;position:absolute;inset:0;cursor:pointer;" />
+                    </div>
+                  <% } %>
+                <% } %>
+              </div>
+              <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:6px;">You need to add at least 4 images. Pay attention to background and dimensions.</div>
+            </div>
+
+            <!-- right column reserved for images and helpers -->
+          </aside>
+
+        </form>
+      </div>
+    </div>
+  </main>
+  <script>
+    // preview selected files per slot
+    document.addEventListener('DOMContentLoaded', function(){
+      // (no client-side preselect) initial checked state is emitted by EJS server-side
+      function readFileToImg(file, imgEl){
+        const reader = new FileReader();
+        reader.onload = e => imgEl.src = e.target.result;
+        reader.readAsDataURL(file);
+      }
+
+      for(let i=0;i<4;i++){
+        const input = document.getElementById('input-' + i);
+        if(!input) continue;
+        input.addEventListener('change', function(e){
+          const file = e.target.files[0];
+          const slot = document.querySelector('.upload-slot[data-slot="'+i+'"]');
+          if(file && slot){
+            let img = slot.querySelector('.upload-preview-img');
+            if(!img){ img = document.createElement('img'); img.className='upload-preview-img'; slot.appendChild(img); }
+            readFileToImg(file, img);
+            slot.classList.remove('empty-slot');
+          }
+        });
+      }
+
+      // handle delete buttons (AJAX)
+      document.querySelectorAll('.img-delete').forEach(btn => {
+        btn.addEventListener('click', async function(){
+          const slot = btn.getAttribute('data-slot');
+          const productId = '<%= product.id %>';
+          if(!confirm('Delete this image? This cannot be undone.')) return;
+          try{
+            const res = await fetch(`/adminproducts/${productId}/image/${slot}`, { method: 'DELETE' });
+            const json = await res.json();
+            if(json.ok){
+              const container = document.querySelector('.upload-slot[data-slot="'+slot+'"]');
+              if(container){
+                const img = container.querySelector('.upload-preview-img'); if(img) img.remove();
+                container.classList.add('empty-slot');
+              }
+            } else {
+              alert('Failed to delete image');
+            }
+          } catch(err){ console.error(err); alert('Error deleting'); }
+        });
+      });
+    });
+  </script>
 </body>
 </html>

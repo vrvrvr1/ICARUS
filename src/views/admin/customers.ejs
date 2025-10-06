@@ -8,72 +8,95 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 </head>
 <body>
-    
-  <!-- Header -->
-  <header class="header">
-    <h1>Admin Dashboard</h1>
-            <a href="/logout" class="btn-logout">Logout</a>
-  </header>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
 
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <h2>ADMIN</h2>
-    <a href="/admin">Dashboard</a>
-    <a href="/adminproducts">Products</a>
-    <a href="/orders">Orders</a>
-    <a href="/customers" class="active">Customers</a>
-  </div>
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers" class="active"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="#"><i class="bi bi-gear"></i> Settings</a>
+      </nav>
+    </div>
 
-  <!-- Main Content -->
-  <div class="main">
-    
-    <!-- Topbar -->
-    <div class="topbar">
-      <h2>Customers</h2>
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
       <div>
-        <select class="filter">
-          <option>This Month</option>
-          <option>Last Month</option>
-          <option>All Time</option>
-        </select>
+        <div class="dashboard-title-main">Customers</div>
+        <div class="dashboard-title-sub">Manage your store customers</div>
+      </div>
+      <div class="dashboard-search">
+        <a href="/admin" class="btn btn-ghost">← Back to Dashboard</a>
       </div>
     </div>
 
-    <!-- Customer Table -->
-    <div class="table-container">
-      <h3>All Customers</h3>
-      <table>
-        <tr>
-          <th>Username</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Total Orders</th>
-          <th>Action</th>
-        </tr>
+    <div class="dashboard-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="margin:0">All Customers</h3>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select class="filter">
+            <option>This Month</option>
+            <option>Last Month</option>
+            <option>All Time</option>
+          </select>
+          <button class="btn" onclick="location.reload()">Refresh</button>
+        </div>
+      </div>
 
-        <% if (customers.length === 0) { %>
-          <tr>
-            <td colspan="5">No customers found.</td>
-          </tr>
-        <% } else { %>
-          <% customers.forEach(customer => { %>
-            <tr>
-              <td><%= customer.username %></td>
-              <td><%= customer.email %></td>
-              <td><%= customer.role %></td>
-              <td><%= customer.total_orders || 0 %></td>
-              <td>
-                <button class="btn-action"><i class="bi bi-eye-fill"></i></button>
-                <button class="btn-action"><i class="bi bi-pencil-fill"></i></button>
-                <button class="btn-action"><i class="bi bi-trash3-fill"></i></button>
-              </td>
-            </tr>
-          <% }) %>
-        <% } %>
-
-      </table>
+      <div class="table-container">
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Total Orders</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+            <% if (!customers || customers.length === 0) { %>
+              <tr>
+                <td colspan="5">No customers found.</td>
+              </tr>
+            <% } else { %>
+              <% customers.forEach(customer => { %>
+                <tr>
+                  <td><%= (customer.first_name || '') + ' ' + (customer.last_name || '') %><br><small style="color:var(--text-secondary)">@<%= customer.email.split('@')[0] %></small></td>
+                  <td><%= customer.email %></td>
+                  <td><%= customer.role %></td>
+                  <td><%= customer.total_orders || 0 %></td>
+                  <td style="text-align:right;">
+                    <a href="/customers/<%= customer.id %>" class="btn-action" title="View"><i class="bi bi-eye-fill"></i></a>
+                    <a href="/customers/<%= customer.id %>/edit" class="btn-action" title="Edit"><i class="bi bi-pencil-fill"></i></a>
+                    <form action="/customers/<%= customer.id %>/delete" method="POST" style="display:inline;">
+                      <button type="submit" class="btn-action" onclick="return confirm('Delete this customer?')" title="Delete"><i class="bi bi-trash3-fill"></i></button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
-  </div>
+  </main>
 
 </body>
 </html>

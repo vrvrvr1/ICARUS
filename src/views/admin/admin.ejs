@@ -1,91 +1,316 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard</title>
-  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-  
-  <!-- Header -->
-  <header class="header">
-    <h1>Admin Dashboard</h1>
-    <a href="/logout" class="btn-logout">Logout</a>
-  </header>
-  
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <h2>ADMIN</h2>
-    <a href="/admin" class="active">Dashboard</a>
-    <a href="/adminproducts">Products</a>
-    <a href="/orders">Orders</a>
-    <a href="/customers">Customers</a>
-  </div>
 
-  <!-- Main Content -->
-  <div class="main">
-    <!-- Topbar -->
-    <div class="topbar">
-      <h2>Dashboard</h2>
-      <div>
-        <input type="text" placeholder="Search...">
+<body>
+  <!-- Sidebar -->
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
       </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" class="active"><i class="bi bi-house-door"></i> Dashboard</a>
+  <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="#"><i class="bi bi-people"></i> Customers</a>
+        <a href="#"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="#"><i class="bi bi-gear"></i> Settings</a>
+      </nav>
+    </div>
+
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="dashboard-main">
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Dashboard Overview</div>
+        <div class="dashboard-title-sub">Analytics and activity summary</div>
+      </div>
+      
     </div>
 
     <!-- Cards -->
-    <div class="cards">
-      <div class="card">
-        <h3>Total Revenue</h3>
-        <p>$<%= revenue %></p>
+    <div class="dashboard-cards">
+      <div class="dashboard-card">
+        <div class="card-label"><i class="bi bi-currency-dollar card-icon"></i> Total Sales</div>
+  <div class="card-value">$<%= revenue ? Number(revenue).toLocaleString() : '0' %></div>
       </div>
-      <div class="card">
-        <h3>Total Orders</h3>
-        <p><%= totalOrders %></p>
+      <div class="dashboard-card">
+        <div class="card-label"><i class="bi bi-bag-check card-icon"></i> Total Orders</div>
+        <div class="card-value"><%= totalOrders || 0 %></div>
       </div>
-      <div class="card">
-        <h3>Top Products</h3>
-        <% if (topProducts.length > 0) { %>
-          <% topProducts.forEach(product => { %>
-            <p><%= product.name %> (<%= product.total_sold %>)</p>
-          <% }) %>
-        <% } else { %>
-          <p>No products sold yet</p>
-        <% } %>
+      <div class="dashboard-card">
+        <div class="card-label"><i class="bi bi-people card-icon"></i> Customers</div>
+        <div class="card-value"><%= customersCount || 0 %></div>
       </div>
+      <div class="dashboard-card">
+        <div class="card-label"><i class="bi bi-box-seam card-icon"></i> Products</div>
+        <div class="card-value"><%= productsCount || 0 %></div>
+      </div>
+      
     </div>
 
-    <!-- Recent Orders Table -->
-    <div class="table-container">
-      <h3>Recent Orders</h3>
-      <% if (recentOrders.length > 0) { %>
-        <table>
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Customer</th>
-              <th>Date</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% recentOrders.forEach(order => { %>
-              <tr>
-                <td>#<%= order.id %></td>
-                <td><%= order.customer_name %></td>
-                <td><%= order.order_date ? order.order_date.toISOString().split("T")[0] : "N/A" %></td>
-                <td class="status-<%= order.status.toLowerCase() %>">
-                  <%= order.status %>
-                </td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      <% } else { %>
-        <p>No recent orders</p>
-      <% } %>
-    </div>
+    <!-- Charts and Analytics -->
+    <div class="dashboard-content-row">
+      <!-- Line Chart -->
+      <div class="dashboard-main-analytics">
+        <div class="analytics-title-row">
+  <div class="analytics-title"><i class="bi bi-graph-up me-2"></i> Revenue Trends <span class="analytics-growth <%= analytics && analytics.revenueGrowthClass ? analytics.revenueGrowthClass : 'positive' %>"><%= analytics && analytics.revenueGrowthText ? analytics.revenueGrowthText : '+0%' %></span></div>
+        </div>
+  <div class="chart-container">
+    <canvas id="lineChart" role="img" aria-label="Monthly revenue chart"></canvas>
   </div>
+      </div>
 
+      <!-- Right Analytics -->
+      <div class="dashboard-side-analytics">
+        <div class="side-card">
+          <div class="donut-title-row">
+            <div class="donut-title">Sales by Category</div>
+            <div class="donut-sub">This month</div>
+          </div>
+    <canvas id="donutChart" height="200"></canvas>
+
+          <div class="donut-legend-row" id="donut-legend-row"></div>
+          <div class="donut-total">Total: $<%= revenue ? Number(revenue).toLocaleString() : '0' %></div>
+        </div>
+
+        <!-- Top Products -->
+        <div class="side-card top-products-card">
+          <div class="recent-title">Top Products</div>
+          <ul class="recent-sales-list">
+            <% (topProducts || []).forEach(p => { %>
+              <li>
+                <div class="d-flex align-items-center">
+                  <img src="<%= p.image_url || '/image/popular1.png' %>" class="recent-avatar" alt="<%= p.name %>" onerror="this.src='/image/popular1.png'" />
+                  <span><%= p.name %></span>
+                </div>
+                <div class="recent-amount"><%= Number(p.total_sold || 0) %> sold</div>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="dashboard-orders">
+      <div class="orders-title-row">
+        <div class="orders-title">Recent Orders</div>
+      </div>
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th><i class="bi bi-person-circle"></i> Customer</th>
+            <th>Name</th>
+            <th>Date</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% (recentOrders || []).forEach(o => { %>
+            <tr>
+              <td>
+                <img src="<%= o.customer_image || '/image/profile1.png' %>" alt="customer avatar" class="order-thumb" onerror="this.src='/image/profile1.png'" />
+              </td>
+              <td><%= o.customer_name %></td>
+              <td><%= o.order_date ? new Date(o.order_date).toLocaleDateString() : 'N/A' %></td>
+              <td>$<%= Number(o.total_amount || 0).toLocaleString() %></td>
+              <td><span class="order-status <%= (o.status && o.status.toLowerCase().includes('completed')) ? 'completed' : 'pending' %>"><%= o.status || 'N/A' %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Chart.js Setup -->
+  <!-- Analytics JSON (safe injection) -->
+  <script id="analytics-data" type="application/json"><%- JSON.stringify(analytics || { monthlyRevenue: [], categoryDistribution: [] }) %></script>
+  <script>
+    // Parse analytics JSON safely from the DOM
+    const analyticsEl = document.getElementById('analytics-data');
+    const analytics = analyticsEl ? JSON.parse(analyticsEl.textContent) : { monthlyRevenue: [], categoryDistribution: [] };
+
+    // Prepare line chart data (months and revenue)
+  const months = (analytics.monthlyRevenue || []).map(m => m.month);
+  const revenues = (analytics.monthlyRevenue || []).map(m => Number(m.revenue || 0));
+
+    // Fallback to empty 12-month series if no data (keeps chart layout stable)
+    if (!months.length) {
+      const now = new Date();
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(d.toLocaleString('default', { month: 'short', year: 'numeric' }));
+        revenues.push(0);
+      }
+    }
+
+    // Line Chart using stacked config
+    const ctxLine = document.getElementById('lineChart').getContext('2d');
+
+    // derive accent color from CSS variable for consistent theming
+    const style = getComputedStyle(document.body);
+    const accent = (style.getPropertyValue('--accent') || '#ff6b81').trim();
+  // create gradient using accent (stronger for taller chart)
+  const grad = ctxLine.createLinearGradient(0, 0, 0, 600);
+  grad.addColorStop(0, accentToRgba(accent, 0.32));
+  grad.addColorStop(0.5, accentToRgba(accent, 0.12));
+  grad.addColorStop(1, accentToRgba(accent, 0.04));
+
+    function accentToRgba(hex, alpha){
+      // simple hex to rgba helper
+      const h = hex.replace('#','');
+      const bigint = parseInt(h.length===3? h.split('').map(c=>c+c).join(''):h,16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+    const data = {
+      labels: months,
+      datasets: [
+        {
+          label: 'Revenue',
+          data: revenues,
+          borderColor: accent,
+          backgroundColor: grad,
+          tension: 0.36,
+          fill: true,
+          pointRadius: 6,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: accent,
+          pointBorderWidth: 3,
+          borderWidth: 5,
+          pointHoverRadius: 9,
+          pointHoverBorderWidth: 3,
+          cubicInterpolationMode: 'monotone'
+        }
+      ]
+    };
+
+    const config = {
+      type: 'line',
+      data: data,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Revenue ($) - Monthly',
+            padding: { top: 6, bottom: 6 }
+          },
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              boxWidth: 14,
+              padding: 12,
+              color: getComputedStyle(document.body).getPropertyValue('--text-secondary') || '#8B949E'
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return '$' + Number(context.parsed.y || 0).toLocaleString();
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-secondary') || '#8B949E' }
+          },
+          y: {
+            beginAtZero: true,
+            stacked: true,
+            grid: { color: 'rgba(255,255,255,0.02)' },
+            ticks: {
+              color: getComputedStyle(document.body).getPropertyValue('--text-secondary') || '#8B949E',
+              callback: function(value) { return '$' + Number(value).toLocaleString(); }
+            }
+          },
+          // removed secondary axis (y1) because Orders/Units series were removed
+        }
+      }
+    };
+
+  // instantiate the line chart
+  const lineChart = new Chart(ctxLine, config);
+
+  // categories and counts for donut (ensure variables are defined)
+  const categories = (analytics.categoryDistribution || []).map(c => c.category || 'Unknown');
+  const categoryCounts = (analytics.categoryDistribution || []).map(c => Number(c.total_sold || 0));
+
+    // Fallback palette
+    const palette = ['#6366f1', '#818cf8', '#a5b4fc', '#60a5fa', '#34d399', '#f59e0b'];
+
+  const ctxDonut = document.getElementById('donutChart').getContext('2d');
+    new Chart(ctxDonut, {
+      type: 'doughnut',
+      data: {
+        labels: categories.length ? categories : ['No data'],
+        datasets: [{
+          data: categoryCounts.length ? categoryCounts : [1],
+          backgroundColor: (categories.length ? categories : ['No data']).map((_, i) => palette[i % palette.length]),
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        cutout: '70%',
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    // Build donut legend dynamically to avoid inline server-side style injection
+    (function buildDonutLegend(){
+      const legendRow = document.getElementById('donut-legend-row');
+      if (!legendRow) return;
+      const palette = ['#6366f1', '#818cf8', '#a5b4fc', '#60a5fa', '#34d399', '#f59e0b'];
+      const cats = (analytics && analytics.categoryDistribution && analytics.categoryDistribution.length) ? analytics.categoryDistribution : null;
+      if (!cats) {
+        const defaults = [ ['Electronics', 0, palette[0]], ['Clothing', 0, palette[1]], ['Home', 0, palette[2]] ];
+        defaults.forEach(d => {
+          const div = document.createElement('div'); div.className='donut-legend vertical';
+          div.innerHTML = `<span class="legend-dot" style="background:${d[2]}"></span> ${d[0]} (${d[1]})`;
+          legendRow.appendChild(div);
+        });
+        return;
+      }
+
+      // compute total for percentages
+      const total = cats.reduce((s, x) => s + Number(x.total_sold || 0), 0) || 1;
+      cats.forEach((c, i) => {
+        const color = palette[i % palette.length];
+        const pct = Math.round((Number(c.total_sold || 0) / total) * 100);
+        const div = document.createElement('div'); div.className='donut-legend vertical';
+        div.innerHTML = `<span class="legend-dot" style="background:${color}"></span> ${c.category} (${c.total_sold}) • ${pct}%`;
+        legendRow.appendChild(div);
+      });
+    })();
+  </script>
 </body>
 </html>

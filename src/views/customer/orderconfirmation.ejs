@@ -33,9 +33,9 @@
         <h3>Payment Information</h3>
         <p>
           <strong>Method:</strong> <%= order.payment_method %><br>
-          <strong>Subtotal:</strong> ₱<%= order.subtotal %><br>
-          <strong>Tax:</strong> ₱<%= order.tax %><br>
-          <strong>Total:</strong> ₱<%= order.total %>
+          <strong>Subtotal:</strong> $<%= order.subtotal %><br>
+          <strong>Tax:</strong> $<%= order.tax %><br>
+          <strong>Total:</strong> $<%= order.total %>
         </p>
       </div>
     </div>
@@ -61,8 +61,8 @@
                   <%= item.product_name %>
                 </td>
                 <td><%= item.quantity %></td>
-                <td>₱<%= item.price %></td>
-                <td>₱<%= item.price * item.quantity %></td>
+                <td>$<%= item.price %></td>
+                <td>$<%= item.price * item.quantity %></td>
               </tr>
             <% }) %>
           </tbody>

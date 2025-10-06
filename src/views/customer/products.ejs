@@ -11,9 +11,35 @@
 <body>
 
     <!-- Header -->
-    <nav>
     <%- include ("../partials/header.ejs") %>
-    </nav>
+
+<!-- Breadcrumb -->
+<%
+  // Friendly category label (e.g. 'men' -> 'Men')
+  const prettyCategory = (typeof currentCategory !== 'undefined' && currentCategory)
+    ? (currentCategory.charAt(0).toUpperCase() + currentCategory.slice(1))
+    : null;
+%>
+<nav aria-label="breadcrumb" class="breadcrumb-wrap">
+  <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem" class="breadcrumb-item">
+      <a href="/" itemprop="item"><span itemprop="name">Home</span></a>
+      <meta itemprop="position" content="1" />
+    </li>
+    <% if (prettyCategory) { %>
+      <!-- If a category is active, show it as the current page (no extra 'Products' breadcrumb) -->
+      <li class="breadcrumb-item current" aria-current="page" itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem">
+        <span itemprop="name"><%= prettyCategory %></span>
+        <meta itemprop="position" content="2" />
+      </li>
+    <% } else { %>
+      <!-- Default: listing page itself -->
+      <li class="breadcrumb-item current" aria-current="page">
+        <span>Products</span>
+      </li>
+    <% } %>
+  </ol>
+</nav>
 
      <!-- Notification container (add this right after header) -->
   <div id="cart-notification" style="

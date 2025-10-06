@@ -48,7 +48,8 @@ router.get("/products/filter", async (req, res) => {
       return res.json(result.rows); // for AJAX
     }
 
-    res.render("customer/products", { products: result.rows });
+    const currentCategory = req.query.category || null;
+    res.render("customer/products", { products: result.rows, user: req.session.user, currentCategory });
   } catch (err) {
     console.error(err);
     res.status(500).send("Error filtering products");
@@ -79,7 +80,8 @@ router.get("/products", async (req, res) => {
       }));
     }
 
-    res.render("customer/products", { products, user: req.session.user });
+  const currentCategory = req.query.category || null;
+  res.render("customer/products", { products, user: req.session.user, currentCategory });
   } catch (err) {
     console.error("❌ Error fetching products:", err);
     res.status(500).send("Server error");

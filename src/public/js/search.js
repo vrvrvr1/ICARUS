@@ -26,7 +26,7 @@ searchInput.addEventListener("input", async () => {
         <img src="${p.image_url}" alt="${p.name}" style="width:40px;height:40px;object-fit:cover;margin-right:10px;">
         <div>
           <strong>${p.name}</strong><br>
-          <small>₱${p.price}</small>
+          <small>$${p.price}</small>
         </div>
       `;
 

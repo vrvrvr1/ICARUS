@@ -4,9 +4,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fullscreen Product Page</title>
-  <link rel="stylesheet" href="/css/showcase.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-</head>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<link rel="stylesheet" href="/css/showcase.css">
+
+<body>
+<!-- Header -->
+    <%- include ("../partials/header.ejs") %>
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="breadcrumb-wrap">
+  <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
+    <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem" class="breadcrumb-item">
+      <a href="/" itemprop="item"><span itemprop="name">Home</span></a>
+      <meta itemprop="position" content="1" />
+    </li>
+
+    <% if (product && product.category) { %>
+      <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem" class="breadcrumb-item">
+        <a href="/products?category=<%= encodeURIComponent(product.category) %>" itemprop="item">
+          <span itemprop="name"><%= product.category %></span>
+        </a>
+        <meta itemprop="position" content="2" />
+      </li>
+      <li class="breadcrumb-item current" aria-current="page" itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem">
+        <span itemprop="name"><%= product.name.length > 40 ? product.name.slice(0,37) + '...' : product.name %></span>
+        <meta itemprop="position" content="3" />
+      </li>
+    <% } else { %>
+      <li class="breadcrumb-item current" aria-current="page">
+        <span><%= product.name %></span>
+      </li>
+    <% } %>
+  </ol>
+</nav>
+
+
 <div id="wishlist-notif" class="wishlist-notif">Product added to your wishlist!</div>
 
 
@@ -79,7 +112,7 @@
 
     <!-- Color Options -->
     <div class="color-options">
-      <label>Color Options:</label>
+      <label>Select Color</label>
       <div>
         <% allColors.forEach(color => { 
              const isAvailable = colors.includes(color);
@@ -100,7 +133,7 @@
 
     <!-- Size Options -->
     <div class="size-options">
-      <label>Size Options:</label>
+      <label>Select Size</label>
       <div>
         <% ["S","M","L","XL"].forEach(size => { %>
           <input type="radio"
@@ -134,11 +167,11 @@
       <input type="hidden" name="size" id="selected-size">
       <input type="hidden" name="quantity" id="selected-qty" value="1">
 
-      <button type="submit" class="add-to-cart-btn">Add To Cart</button>
+      <button type="submit" class="add-to-cart-btn">ADD TO CART</button>
     </form>
 
   <!-- Buy Now -->
-  <button class="buy-now-btn">Buy Now</button>
+  <button class="buy-now-btn">BUY NOW</button>
 
   <!-- Wishlist -->
   <button class="wishlist-btn" data-id="<%= product.id %>">
@@ -158,6 +191,7 @@
   ✅ Item added to cart!
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 <script src="js/filter.js"></script>
 <script>
   

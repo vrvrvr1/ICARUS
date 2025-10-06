@@ -8,9 +8,13 @@ html, body {
   font-family: poppins;
 }
 
+body::-webkit-scrollbar {
+    display: none;
+}
+
 body {
-  background-color: #4F94B5;
-  display: flex;
+  background-color: #fff;
+    display: block;
   justify-content: center;
   align-items: center;
 }
@@ -18,7 +22,7 @@ body {
 /* ================= Product Container ================= */
 .product-container {
   display: flex;
-  background-color: #4F94B5;
+  background: #fff;
   width: 100vw;
   height: 100vh;
   padding: 40px;
@@ -87,7 +91,7 @@ body {
 .product-details {
   flex: 1;
   padding: 20px;
-  background-color: #A0C8D7;
+  background-color: #fff;
   border-radius: 8px;
   margin-left: 20px;
   display: flex;
@@ -106,6 +110,8 @@ h1 {
   text-transform: uppercase;  
   font-size: 28px;
   margin-bottom: 10px;
+  font-weight: bold;
+  color: black;
 }
 
 .product-rating {
@@ -126,6 +132,7 @@ h1 {
 }
 
 /* ================= Options ================= */
+/* ================= Options ================= */
 .options {
   display: flex;
   flex-direction: column;
@@ -136,7 +143,7 @@ h1 {
 .color-options,
 .size-options {
   width: 100%;
-  background: #d6e6f0;
+  background: #fff;
   padding: 15px;
   border-radius: 6px;
   box-sizing: border-box;
@@ -153,7 +160,7 @@ h1 {
 .color-options div,
 .size-options div {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-evenly;
   flex-wrap: wrap;
   gap: 10px;
 }
@@ -165,16 +172,19 @@ h1 {
 }
 
 /* -------- Color Options -------- */
+/* -------- Color Options -------- */
+/* -------- Color Options -------- */
 .color-options label.color-label {
   width: 35px;
   height: 35px;
   border-radius: 50%;
-  border: 3px solid black; /* keep width consistent to prevent movement */
+  border: 2px solid transparent;
   display: inline-block;
   cursor: pointer;
   position: relative;
-  text-indent: -9999px;
+  overflow: hidden; /* needed for overlay */
   transition: all 0.3s;
+  z-index: 0;
 }
 
 .color-label.black { background-color: black; }
@@ -182,92 +192,104 @@ h1 {
 .color-label.red   { background-color: red; }
 .color-label.blue  { background-color: blue; }
 
-/* Outer circle highlight for selected color */
-input[type="radio"]:checked + label.color-label {
-  border-color: #f39c12;
-  box-shadow: 0 0 8px #f39c12;
-}
-
-/* Hover only if NOT selected */
-.color-options label.color-label:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 8px rgba(0,0,0,0.3);
-}
-
-/* Prevent hover for selected color */
-input[type="radio"]:checked + label.color-label:hover {
-  transform: none;
-  box-shadow: 0 0 8px #f39c12;
-}
-
-/* -------- Size Options -------- */
-.size-options label.size-label {
-  width: 45px;
-  height: 45px;
+/* Overlay dark when selected */
+input[type="radio"]:checked + label.color-label::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
   border-radius: 50%;
-  border: 3px solid #ccc; /* consistent border width */
+  z-index: 1;
+}
+
+/* White checkmark */
+input[type="radio"]:checked + label.color-label::after {
+  content: "✔";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  color: #fff;
+  font-weight: bold;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Disabled/unavailable colors */
+.color-label.unavailable {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border: 2px dashed #ccc;
+  position: relative;
+}
+
+
+/* -------- Size Options (pill style) -------- */
+.size-options label.size-label {
+  min-width: 60px;
+  height: 40px;
+  padding: 0 15px;
+  border-radius: 999px; /* pill shape */
+  border: 1px solid #ccc;
   display: inline-flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 600;
   font-size: 14px;
-  position: relative;
+  background: #f5f5f5;
+  color: #333;
   transition: all 0.3s;
-  background: linear-gradient(135deg, #ffffff, #d0e6f0);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-/* Hover only if NOT selected */
+/* Hover (unselected) */
 .size-options label.size-label:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  background: #eaeaea;
 }
 
-/* Outer circle highlight for selected size */
+/* Selected size */
 input[type="radio"]:checked + label.size-label {
-  border-color: #f39c12;
-  box-shadow: 0 0 10px rgba(243, 156, 18, 0.6);
+  background: #000;
+  color: #fff;
+  border-color: #000;
 }
 
-/* Prevent hover for selected size */
-input[type="radio"]:checked + label.size-label:hover {
-  transform: none;
-  box-shadow: 0 0 10px rgba(243, 156, 18, 0.6);
-}
 
 /* ================= Action Buttons ================= */
 .action-buttons {
   display: flex;
   align-items: center;
-  gap: 15px; /* more space between buttons */
+  gap: 25px; /* space between elements */
   margin-top: 20px;
-  flex-wrap: wrap; /* allow wrapping on smaller screens */
+  flex-wrap: wrap;
 }
 
 .quantity-selector {  
   display: flex;
   align-items: center;
-  border: 1px solid #ddd;
-  border-radius: 30px;
-  padding: 8px 12px; /* slightly bigger padding */
+  border: 1px solid #000;
   background: #fff;
-  min-width: 120px; /* ensure consistent width */
+  min-width: 120px;
   justify-content: center;
   font-size: 16px;
+
+  /* match button height */
+  height: 48px; 
+  box-sizing: border-box;
 }
 
 .qty-btn {
   background: none;
   border: none;
-  font-size: 20px; /* slightly bigger symbols */
+  font-size: 20px;
   cursor: pointer;
-  padding: 5px 12px;
+  padding: 0 12px;
+  line-height: 1;
 }
 
 .qty-value {
   font-size: 16px;
-  margin: 0 10px;
   font-weight: 600;
   min-width: 20px;
   text-align: center;
@@ -275,27 +297,30 @@ input[type="radio"]:checked + label.size-label:hover {
 
 .add-to-cart-btn,
 .buy-now-btn {
-  width: 180px; /* or 50%, or whatever you prefer */
+  width: 180px;
   text-align: center;
-  padding: 12px 0;
   font-size: 16px;
   font-weight: 600;
-  border-radius: 30px;
   cursor: pointer;
   transition: transform 0.1s ease;
+  letter-spacing: 1px;
+
+  /* same height as quantity selector */
+  height: 48px; 
+  line-height: 48px;
+  box-sizing: border-box;
 }
 
-
 .add-to-cart-btn {
-  background: #0f3d2e; /* deep green */
-  color: white;
-  border: none;
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
 }
 
 .buy-now-btn {
-  background: #c1975a; /* gold/brown */
-  color: white;
-  border: none;
+  background: #000;
+  color: #fff;
+  border: 1px solid #000;
 }
 
 .add-to-cart-btn:hover,
@@ -334,12 +359,6 @@ input[type="radio"]:checked + label.size-label:hover {
 
 
 /* ================= Shipping Info ================= */
-.shipping-info {
-  font-size: 14px;
-  color: #333;
-  margin-top: 20px;
-  font-weight: 600;
-}
 
 .product-short-description {
   font-size: 16px;

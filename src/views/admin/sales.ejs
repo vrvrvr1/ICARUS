@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales Overview</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/admin" class=""><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales" class="active"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+      </nav>
+    </div>
+
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Sales Overview</div>
+        <div class="dashboard-title-sub">Revenue trends and product performance</div>
+      </div>
+    </div>
+
+    <div class="dashboard-cards">
+      <div class="dashboard-card">
+        <div class="card-label"><i class="bi bi-currency-dollar card-icon"></i> Total Sales</div>
+        <div class="card-value">$<%= revenue ? Number(revenue).toLocaleString() : '0' %></div>
+      </div>
+      <div class="dashboard-card">
+        <div class="card-label"><i class="bi bi-calendar-week card-icon"></i> Weekly Sales</div>
+        <div class="card-value">$<%= typeof weeklySales !== 'undefined' ? Number(weeklySales).toLocaleString() : '0' %></div>
+      </div>
+      <div class="dashboard-card">
+        <div class="card-label"><i class="bi bi-calendar-day card-icon"></i> Daily Sales</div>
+        <div class="card-value">$<%= typeof dailySales !== 'undefined' ? Number(dailySales).toLocaleString() : '0' %></div>
+      </div>
+      <div class="dashboard-card">
+        <div class="card-label"><i class="bi bi-bag-check card-icon"></i> Weekly Orders</div>
+        <div class="card-value"><%= typeof weeklyOrdersCount !== 'undefined' ? weeklyOrdersCount : 0 %></div>
+      </div>
+    </div>
+
+    <div class="dashboard-content-row">
+      <div class="dashboard-main-analytics">
+        <div class="analytics-title-row">
+          <div class="analytics-title"><i class="bi bi-graph-up me-2"></i> Revenue (12 months) <span class="analytics-growth"><%= analytics && analytics.revenueGrowthText ? analytics.revenueGrowthText : '+0%' %></span></div>
+        </div>
+        <div class="chart-container">
+          <canvas id="salesLine" role="img" aria-label="Monthly revenue chart" style="width:100%;height:320px;" height="320"></canvas>
+        </div>
+        
+        <!-- Weekly KPI (stacked: KPI card with multi-axis chart under it) -->
+        <div style="display:flex;gap:1rem;margin-top:1rem;align-items:flex-start;">
+          <div style="flex:0 0 480px; display:flex; flex-direction:column;">
+            <div class="dashboard-card" style="padding:0.8rem 1rem;">
+              <div class="card-label">This week</div>
+              <div class="card-value">$<%= analytics && analytics.currentWeek ? analytics.currentWeek.reduce((s,x)=>s+Number(x.revenue||0),0).toLocaleString() : '0' %></div>
+              <div class="card-label" style="font-size:0.85rem;margin-top:6px;color:var(--text-secondary);">Change <span class="analytics-growth <%= analytics && analytics.weekGrowthClass ? analytics.weekGrowthClass : 'positive' %>"><%= analytics && analytics.weekGrowthText ? analytics.weekGrowthText : '+0%' %></span></div>
+            </div>
+            <div style="margin-top:0.75rem; min-height:320px;">
+              <canvas id="thisWeekChart" style="width:100%;height:320px;"></canvas>
+            </div>
+          </div>
+          <div style="flex:1;"></div>
+        </div>
+      </div>
+
+      <div class="dashboard-side-analytics">
+        <div class="side-card">
+          <div class="donut-title-row">
+            <div class="donut-title">Monthly Category Breakdown</div>
+            <div class="donut-sub">Last 12 months</div>
+          </div>
+          <canvas id="monthlyDonut" height="260" style="width:100%;height:260px;"></canvas>
+          <div class="donut-legend-row" id="monthly-donut-legend"></div>
+          <div class="donut-total">Total: $<%= revenue ? Number(revenue).toLocaleString() : '0' %></div>
+        </div>
+
+        <div class="side-card" style="margin-top:1rem;">
+          <div class="donut-title-row">
+            <div class="donut-title">Weekly Category Breakdown</div>
+            <div class="donut-sub">Last 7 days</div>
+          </div>
+          <canvas id="salesDonut" height="260" style="width:100%;height:260px;"></canvas>
+          <div class="donut-legend-row" id="sales-donut-legend"></div>
+          <div class="donut-total">Total (7d): $<%= weeklySales ? Number(weeklySales).toLocaleString() : '0' %></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent orders removed from Sales page to keep it sales-focused -->
+  </main>
+
+  <!-- Analytics JSON (safe injection) -->
+  <script id="analytics-data" type="application/json"><%- JSON.stringify(analytics || { monthlyRevenue: [], categoryDistribution: [], weeklyCategoryDistribution: [] }) %></script>
+  <script>
+    const analyticsEl = document.getElementById('analytics-data');
+    const analytics = analyticsEl ? JSON.parse(analyticsEl.textContent) : { monthlyRevenue: [], categoryDistribution: [], weeklyCategoryDistribution: [] };
+
+    // Line chart (Revenue)
+    const months = (analytics.monthlyRevenue || []).map(m => m.month);
+    const revenues = (analytics.monthlyRevenue || []).map(m => Number(m.revenue || 0));
+
+    if (!months.length) {
+      const now = new Date();
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(d.toLocaleString('default', { month: 'short', year: 'numeric' }));
+        revenues.push(0);
+      }
+    }
+
+    const ctx = document.getElementById('salesLine').getContext('2d');
+    const style = getComputedStyle(document.body);
+    const accent = (style.getPropertyValue('--accent') || '#2F81F7').trim();
+    function accentToRgba(hex, alpha){
+      const h = hex.replace('#','');
+      const bigint = parseInt(h.length===3? h.split('').map(c=>c+c).join(''):h,16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+
+    const grad = ctx.createLinearGradient(0,0,0,600);
+    grad.addColorStop(0, accentToRgba(accent,0.32));
+    grad.addColorStop(0.5, accentToRgba(accent,0.12));
+    grad.addColorStop(1, accentToRgba(accent,0.04));
+
+    const lineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: [{
+          label: 'Revenue',
+          data: revenues,
+          borderColor: accent,
+          backgroundColor: grad,
+          tension: 0.36,
+          fill: true,
+          pointRadius: 6,
+          pointBackgroundColor: '#fff',
+          borderWidth: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: style.getPropertyValue('--text-secondary') || '#98A6B0' } },
+          y: { beginAtZero: true, ticks: { color: style.getPropertyValue('--text-secondary') || '#98A6B0', callback: v => '$' + Number(v).toLocaleString() }, grid: { color: 'rgba(255,255,255,0.02)' } }
+        }
+      }
+    });
+
+  const palette = ['#6366f1', '#818cf8', '#a5b4fc', '#60a5fa', '#34d399', '#f59e0b'];
+
+  // Monthly donut (categoryDistribution)
+  (function renderMonthlyDonut(){
+    const monthlyData = analytics.categoryDistribution || [];
+    const labels = monthlyData.map(m => m.category || 'No data');
+    const values = monthlyData.map(m => Number(m.total_sold || m.revenue || 0));
+    const ctxMonthly = document.getElementById('monthlyDonut');
+    if (!ctxMonthly) return;
+    const mCtx = ctxMonthly.getContext('2d');
+    new Chart(mCtx, {
+      type: 'doughnut',
+      data: { labels: labels.length ? labels : ['No data'], datasets: [{ data: values.length ? values : [1], backgroundColor: labels.map((_,i)=>palette[i%palette.length]), borderWidth: 2, borderColor: '#fff' }] },
+      options: { cutout: '70%', plugins: { legend: { display: false } } }
+    });
+
+    // monthly legend
+    const mLegend = document.getElementById('monthly-donut-legend');
+    if (mLegend) {
+      if (!monthlyData.length) { mLegend.innerHTML = '<div class="donut-legend">No data</div>'; }
+      const totalM = monthlyData.reduce((s,x)=>s+Number(x.total_sold||x.revenue||0),0)||1;
+      monthlyData.forEach((c,i)=>{
+        const color = palette[i % palette.length];
+        const val = Number(c.total_sold||c.revenue||0);
+        const pct = Math.round((val/totalM)*100);
+        const div = document.createElement('div'); div.className='donut-legend vertical';
+        div.innerHTML = `<span class="legend-dot" style="background:${color}"></span> ${c.category} ($${val.toLocaleString()}) • ${pct}%`;
+        mLegend.appendChild(div);
+      });
+    }
+  })();
+
+  // Weekly donut (weeklyCategoryDistribution)
+  (function renderWeeklyDonut(){
+    const weeklyData = analytics.weeklyCategoryDistribution && analytics.weeklyCategoryDistribution.length ? analytics.weeklyCategoryDistribution : (analytics.categoryDistribution || []);
+    const labels = weeklyData.map(m => m.category || 'No data');
+    const values = weeklyData.map(m => Number(m.revenue || m.total_sold || 0));
+    const ctxDonut = document.getElementById('salesDonut');
+    if (!ctxDonut) return;
+    const wCtx = ctxDonut.getContext('2d');
+    new Chart(wCtx, {
+      type: 'doughnut',
+      data: { labels: labels.length ? labels : ['No data'], datasets: [{ data: values.length ? values : [1], backgroundColor: labels.map((_,i)=>palette[i%palette.length]), borderWidth: 2, borderColor: '#fff' }] },
+      options: { cutout: '70%', plugins: { legend: { display: false } } }
+    });
+
+    // weekly legend
+    const legendRow = document.getElementById('sales-donut-legend');
+    if (legendRow) {
+      if (!weeklyData.length) { legendRow.innerHTML = '<div class="donut-legend">No data</div>'; }
+      const total = weeklyData.reduce((s,x)=>s+Number(x.revenue||x.total_sold||0),0)||1;
+      weeklyData.forEach((c,i)=>{
+        const color = palette[i % palette.length];
+        const val = Number(c.revenue||c.total_sold||0);
+        const pct = Math.round((val/total)*100);
+        const div = document.createElement('div'); div.className='donut-legend vertical';
+        div.innerHTML = `<span class="legend-dot" style="background:${color}"></span> ${c.category} ($${val.toLocaleString()}) • ${pct}%`;
+        legendRow.appendChild(div);
+      });
+    }
+  })();
+
+    // This Week small chart (multi-axis line chart)
+    (function renderThisWeekSmall(){
+      const weeklyEl = analytics.currentWeek || [];
+      const prevEl = analytics.previousWeek || [];
+      const labels = (weeklyEl.length ? weeklyEl : prevEl).map(x => x.day);
+      const curData = (weeklyEl.length ? weeklyEl : prevEl).map(x => Number(x.revenue || 0));
+      const prevData = (prevEl.length ? prevEl : weeklyEl).map(x => Number(x.revenue || 0));
+
+      const ctxSmall = document.getElementById('thisWeekChart');
+      if (!ctxSmall) return;
+
+      const data = {
+        labels: labels,
+        datasets: [
+          {
+            label: 'This Week',
+            data: curData,
+            borderColor: accent,
+            backgroundColor: accentToRgba(accent,0.24),
+            yAxisID: 'y',
+            tension: 0.3,
+            fill: false,
+            pointRadius: 3
+          },
+          {
+            label: 'Last Week',
+            data: prevData,
+            borderColor: 'rgba(99,102,241,0.9)',
+            backgroundColor: 'rgba(99,102,241,0.18)',
+            yAxisID: 'y1',
+            tension: 0.3,
+            fill: false,
+            pointRadius: 3
+          }
+        ]
+      };
+
+      const config = {
+        type: 'line',
+        data: data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          stacked: false,
+          plugins: {
+            legend: { position: 'top', labels: { color: style.getPropertyValue('--text-secondary') } },
+            title: {
+              display: false,
+              text: 'This Week vs Last Week'
+            }
+          },
+          scales: {
+            x: { ticks: { color: style.getPropertyValue('--text-secondary') }, grid: { display: false } },
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              ticks: { color: style.getPropertyValue('--text-secondary') },
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              ticks: { color: style.getPropertyValue('--text-secondary') }
+            }
+          }
+        }
+      };
+
+      const sCtx = ctxSmall.getContext('2d');
+      // destroy previous chart instance if any
+      if (ctxSmall._chartInstance) ctxSmall._chartInstance.destroy();
+      ctxSmall._chartInstance = new Chart(sCtx, config);
+    })();
+  </script>
+</body>
+</html>

@@ -162,6 +162,7 @@ app.get("/products", (req, res) => {
 // --------------------
 // Start server
 // --------------------
+const port = process.env.PORT || 3000; // fallback for local development
 app.listen(port, () => {
-  console.log(`Backend server is running on http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });

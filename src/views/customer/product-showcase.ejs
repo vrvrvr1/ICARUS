@@ -594,28 +594,42 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ----------------------
+  // ----------------------
+  // Shared UI helpers
+  // showErrorModal is used by multiple handlers (Add to Cart, Buy Now)
+  function showErrorModal(message, title){
+    const modalEl = document.getElementById('errorModal');
+    if (!modalEl || !window.bootstrap) { alert(message); return; }
+    const titleEl = modalEl.querySelector('#errorModalTitle');
+    const msgEl = modalEl.querySelector('#errorModalMsg');
+    if (titleEl) titleEl.textContent = title || 'Action required';
+    if (msgEl) msgEl.textContent = message;
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+  }
+
   // Add To Cart: Validation & Success Notification
   // ----------------------
   const addToCartForm = document.querySelector("form[action='/cart/add']");
   if (addToCartForm) {
     addToCartForm.addEventListener("submit", async function (e) {
       e.preventDefault();
+      // If user is banned, prevent adding to cart and show a modal
+      try {
+        const flagsEl = document.getElementById('appFlags');
+        const isBanned = flagsEl && flagsEl.getAttribute('data-banned') === 'true';
+        if (isBanned) {
+          showErrorModal('Your account has been banned. Contact support for help.', 'Account banned');
+          return;
+        }
+      } catch (_) {}
 
       const selectedColor = document.getElementById("selected-color")?.value;
       const selectedSize = document.getElementById("selected-size")?.value;
 
       qtyInput.value = quantity;
 
-      function showErrorModal(message, title){
-        const modalEl = document.getElementById('errorModal');
-        if (!modalEl || !window.bootstrap) { alert(message); return; }
-        const titleEl = modalEl.querySelector('#errorModalTitle');
-        const msgEl = modalEl.querySelector('#errorModalMsg');
-        if (titleEl) titleEl.textContent = title || 'Action required';
-        if (msgEl) msgEl.textContent = message;
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
-      }
+      
 
       if (!selectedColor || !selectedSize) {
         showErrorModal("Please select a color and a size before adding to cart!", "Choose options");
@@ -637,7 +651,7 @@ document.addEventListener('DOMContentLoaded', function () {
           })
         });
 
-        if (res.status === 200) {
+        if (res.ok) {
           showCartNotif("Item added to cart!");
           // bump header cart count without page refresh
           if (window.updateCartCount) window.updateCartCount();
@@ -652,6 +666,90 @@ document.addEventListener('DOMContentLoaded', function () {
           showErrorModal("Failed to add to cart. Please try again.", "Something went wrong");
         }
 
+      } catch (err) {
+        showErrorModal("Error adding to cart. Please try again.", "Network error");
+        console.error(err);
+      }
+    });
+  }
+
+  // ----------------------
+  // Buy Now: validate, add to cart, then go to checkout
+  // ----------------------
+  const buyNowBtnEl = document.querySelector('.buy-now-btn');
+  if (buyNowBtnEl) {
+    buyNowBtnEl.addEventListener('click', async function(e){
+      e.preventDefault();
+      // If user is banned, prevent action and show modal (reuse same modal logic)
+      try {
+        const flagsEl = document.getElementById('appFlags');
+        const isBanned = flagsEl && flagsEl.getAttribute('data-banned') === 'true';
+        if (isBanned) {
+          showErrorModal('Your account has been banned. Contact support for help.', 'Account banned');
+          return;
+        }
+      } catch (_) {}
+
+      const selColor = document.getElementById("selected-color")?.value;
+      const selSize = document.getElementById("selected-size")?.value;
+
+      qtyInput.value = quantity;
+
+      if (!selColor || !selSize) {
+        showErrorModal("Please select a color and a size before proceeding to checkout!", "Choose options");
+        return;
+      }
+
+      try {
+        const res = await fetch("/cart/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            product_id: document.querySelector("input[name='product_id']").value,
+            color: selColor,
+            size: selSize,
+            quantity: qtyInput.value
+          })
+        });
+
+        if (res.ok) {
+          // Prefer server-returned cart row id and redirect to checkout with items=<id>
+          const data = await res.json().catch(() => ({}));
+          try { if (window.updateCartCount) window.updateCartCount(); } catch(_){ }
+          const cartId = data && (data.cart_id || data.id || null);
+          if (cartId) {
+            // Direct checkout for that single cart row
+            window.location.href = '/checkout?items=' + encodeURIComponent(String(cartId)) + '&buy_now=1';
+            return;
+          }
+          // Fallback: keep previous behavior of passing selection in query
+          try {
+            const productId = document.querySelector("input[name='product_id']").value;
+            const params = new URLSearchParams({
+              buy_now: '1',
+              product_id: String(productId),
+              color: String(selColor),
+              size: String(selSize),
+              quantity: String(qtyInput.value || '1')
+            });
+            window.location.href = '/checkout?' + params.toString();
+            return;
+          } catch (err) {
+            window.location.href = '/checkout';
+            return;
+          }
+        } else if (res.status === 400) {
+          showErrorModal("Please select a color and a size before adding to cart!", "Choose options");
+          return;
+        } else if (res.status === 409) {
+          const data = await res.json().catch(() => ({}));
+          const avail = (data && typeof data.available === 'number') ? data.available : 0;
+          showErrorModal(`Not enough stock for this size. Available: ${avail}.`, "Not enough stock");
+          return;
+        } else {
+          showErrorModal("Failed to add to cart. Please try again.", "Something went wrong");
+          return;
+        }
       } catch (err) {
         showErrorModal("Error adding to cart. Please try again.", "Network error");
         console.error(err);

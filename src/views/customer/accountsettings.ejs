@@ -182,31 +182,7 @@
                 </div>
               </div>
 
-              <!-- 8) Announcements / Promotions -->
-              <div class="info-card">
-                <div class="ic-head"><h5 class="m-0">Announcements</h5></div>
-                <div class="ic-body">
-                  <% if (Array.isArray(announcements) && announcements.length) { %>
-                    <ul class="list-clean">
-                      <% announcements.forEach(a => { %>
-                        <li class="lo-item" style="cursor:default;">
-                          <div class="lo-main">
-                            <div class="lo-id"><%= a.title %></div>
-                            <% if (a.body) { %>
-                              <div class="lo-date"><%= a.body %></div>
-                            <% } %>
-                          </div>
-                          <div class="lo-side">
-                            <small class="text-muted"><%= new Date(a.created_at).toLocaleDateString() %></small>
-                          </div>
-                        </li>
-                      <% }) %>
-                    </ul>
-                  <% } else { %>
-                    <p class="empty">No announcements at the moment.</p>
-                  <% } %>
-                </div>
-              </div>
+              <!-- Announcements removed from account settings view -->
             </div>
           </section>
         </section>

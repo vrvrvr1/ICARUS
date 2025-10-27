@@ -18,7 +18,7 @@
     </div>
 
 <!-- Header -->
-<span id="appFlags" data-guest="<%= (typeof user !== 'undefined' && user && user.id) ? 'false' : 'true' %>" hidden></span>
+<span id="appFlags" data-guest="<%= (typeof user !== 'undefined' && user && user.id) ? 'false' : 'true' %>" data-banned="<%= (typeof user !== 'undefined' && user && user.is_banned) ? 'true' : 'false' %>" hidden></span>
 <header class="header">
   <div class="header-content">
     <nav class="top-nav">

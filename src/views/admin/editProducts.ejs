@@ -24,6 +24,7 @@
         <a href="/customers"><i class="bi bi-people"></i> Customers</a>
         <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
         
+        <a href="/admin/settings"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
       </nav>
     </div>
 
@@ -55,73 +56,115 @@
             <textarea class="search-input" id="short_description" name="short_description" rows="4" style="resize:vertical;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text-primary);"><%= product.short_description || '' %></textarea>
 
             <% 
-              // normalize product.colors (or product.color) to an array for use in the color chips
-              let selectedColors = [];
-              const rawColors = product.colors || product.color || null;
-              if (rawColors) {
-                if (Array.isArray(rawColors)) selectedColors = rawColors.map(c => String(c).toLowerCase());
-                else selectedColors = String(rawColors).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+              // Use server-provided `selectedColors` / `selectedSizes` when available (derived from product_variants).
+              // Otherwise fall back to parsing `product.colors` / `product.sizes`.
+
+              // Normalize colors into `selectedColorsFinal` (lowercase for class names, display will capitalize)
+              let selectedColorsFinal = [];
+              if (typeof selectedColors !== 'undefined' && selectedColors && selectedColors.length) {
+                // server provided an array (or truthy value)
+                if (Array.isArray(selectedColors)) selectedColorsFinal = selectedColors.map(c => String(c).toLowerCase());
+                else selectedColorsFinal = String(selectedColors).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+              } else {
+                const rawColors = product.colors || product.color || null;
+                if (rawColors) {
+                  if (Array.isArray(rawColors)) selectedColorsFinal = rawColors.map(c => String(c).toLowerCase());
+                  else selectedColorsFinal = String(rawColors).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+                }
               }
 
-              // normalize product.sizes to an array for use in the size chips
-              // Accepts product.sizes as an array or comma-separated string.
-              let selectedSizes = [];
-              const rawSizes = product.sizes || product.size || null;
-              if (rawSizes) {
-                if (Array.isArray(rawSizes)) selectedSizes = rawSizes.map(sz => String(sz).toUpperCase());
-                else selectedSizes = String(rawSizes).split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+              // Normalize sizes into `selectedSizesFinal` (uppercase for display)
+              let selectedSizesFinal = [];
+              if (typeof selectedSizes !== 'undefined' && selectedSizes && selectedSizes.length) {
+                if (Array.isArray(selectedSizes)) selectedSizesFinal = selectedSizes.map(sz => String(sz).toUpperCase());
+                else selectedSizesFinal = String(selectedSizes).split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+              } else {
+                const rawSizes = product.sizes || product.size || null;
+                if (rawSizes) {
+                  if (Array.isArray(rawSizes)) selectedSizesFinal = rawSizes.map(sz => String(sz).toUpperCase());
+                  else selectedSizesFinal = String(rawSizes).split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+                }
               }
             %>
 
-            <div style="display:flex;gap:0.75rem;margin-top:10px;">
-              <div style="flex:1">
+            <div style="display:flex;gap:0.75rem;margin-top:10px;align-items:flex-end;">
+              <div style="width:140px;">
                 <label class="attr-label" for="price">Price</label>
-                <input class="search-input" type="number" id="price" name="price" step="0.01" value="<%= product.price %>" required>
-
-                <label class="attr-label" style="margin-top:8px;display:block;">Sizes</label>
-                <div class="size-chips">
-                  <% const sizesList = ['S','M','L','XL']; %>
-                  <% sizesList.forEach(sz => { %>
-                    <label class="chip"><input type="checkbox" name="sizes[]" value="<%= sz %>" <%= selectedSizes.includes(sz) ? 'checked' : '' %> /><span class="swatch"><%= sz %></span></label>
-                  <% }) %>
-                </div>
+                <input class="search-input" type="number" id="price" name="price" step="0.01" value="<%= product.price %>" required style="width:100%;box-sizing:border-box;">
               </div>
-              <div style="width:180px">
-                <label class="attr-label">Colors</label>
-                <div class="size-chips">
-                  <% const colorsList = ['black','red','blue','green']; %>
-                  <% colorsList.forEach(c => { %>
-                    <label class="chip" aria-label="color-<%= c %>"><input type="checkbox" name="colors[]" value="<%= c %>" <%= selectedColors.includes(c) ? 'checked' : '' %> /><span class="swatch <%= c %>"><%= c.charAt(0).toUpperCase() + c.slice(1) %></span></label>
-                  <% }) %>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:0.75rem;margin-top:10px;">
-              <div style="flex:1">
-                <label class="attr-label" for="stock">Total Stock (fallback)</label>
-                <input class="search-input" type="number" id="stock" name="stock" value="<%= product.stock %>" required>
-                <div class="small text-secondary" style="margin-top:4px;">Used when per-size stocks are not configured.</div>
-              </div>
-              <div style="width:180px">
+              <div style="flex:1;">
                 <label class="attr-label" for="category">Category</label>
                 <input class="search-input" type="text" id="category" name="category" value="<%= product.category %>">
               </div>
             </div>
 
-            <% // Per-size stock editor (fetch passed-in sizeStock if available) %>
-            <% const __sizeStock = (typeof sizeStock !== 'undefined' && sizeStock) ? sizeStock : {}; %>
+            <div style="display:flex;gap:12px;margin-top:8px;align-items:center;">
+              <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" name="is_new" <%= product.is_new ? 'checked' : '' %> />
+                <span>Mark as NEW</span>
+              </label>
+            </div>
+
+            <% // Per-color & size stock editor. Expect server to pass `stockByCombination` as an object like { color: { size: qty } } or fallback to {} %>
+            <% const __stockMap = (typeof stockByCombination !== 'undefined' && stockByCombination) ? stockByCombination : {}; %>
+            <% // normalize stock map: lowercase colors -> uppercase sizes for reliable lookup in the template %>
+            <% const _normStockMap = {}; %>
+            <% try { %>
+              <% for (const rawC of Object.keys(__stockMap || {})) { %>
+                <% const cKey = String(rawC || '').trim().toLowerCase(); %>
+                <% _normStockMap[cKey] = _normStockMap[cKey] || {}; %>
+                <% const sizesObj = __stockMap[rawC] || {}; %>
+                <% for (const rawS of Object.keys(sizesObj)) { %>
+                  <% const sKey = String(rawS || '').trim().toUpperCase(); %>
+                  <% _normStockMap[cKey][sKey] = Number(sizesObj[rawS] || 0); %>
+                <% } %>
+              <% } %>
+            <% } catch(e) { /* ignore */ } %>
             <div class="dashboard-card" style="margin-top:12px;">
-              <label class="attr-label">Per-size stock</label>
-              <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
-                <% ['S','M','L','XL'].forEach(sz => { %>
-                  <div>
-                    <label class="small text-secondary">Size <%= sz %></label>
-                    <input class="search-input" type="number" name="size_stock[<%= sz %>]" min="0" value="<%= Number(__sizeStock[sz] || 0) %>">
-                  </div>
-                <% }) %>
+              <label class="attr-label">Stock by Color & Size</label>
+              <div style="overflow:auto; margin-top:8px;">
+                <% 
+                  // Prefer variants-derived sizes/colors (product_variants). If none, fall back to
+                  // product.sizes / product.colors. If still none, use sensible defaults.
+                  const defaultSizes = ['S','M','L','XL'];
+                  const defaultColors = ['black','red','blue','green'];
+
+                  const productSizes = (product && product.sizes) ? String(product.sizes).split(',').map(s=>s.trim().toUpperCase()).filter(Boolean) : [];
+                  const productColors = (product && product.colors) ? String(product.colors).split(',').map(c=>c.trim()).filter(Boolean) : [];
+
+                  // If variants are present (server-provided or product fields), use the normalized lists we prepared above.
+                  let _sizes = (selectedSizesFinal && selectedSizesFinal.length) ? (selectedSizesFinal.map(s=>String(s).toUpperCase())) : (productSizes && productSizes.length ? productSizes : defaultSizes);
+                  let _colors = (selectedColorsFinal && selectedColorsFinal.length) ? (selectedColorsFinal.map(c=>String(c).trim())) : (productColors && productColors.length ? productColors : defaultColors);
+                %>
+                <table class="table" style="min-width:480px;">
+                  <thead>
+                    <tr>
+                      <th style="width:160px;">Color \ Size</th>
+                      <% _sizes.forEach(sz => { %>
+                        <th style="text-align:center;"><%= sz %></th>
+                      <% }) %>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% _colors.forEach(color => { %>
+                      <tr>
+                        <td style="vertical-align:middle; text-transform:capitalize;"><%= color %></td>
+                        <% _sizes.forEach(sz => {
+                             // lookup in normalized stock map using lowercase color + uppercase size
+                             const colorKey = String(color || '').trim().toLowerCase();
+                             const sizeKey = String(sz || '').trim().toUpperCase();
+                             const v = (_normStockMap[colorKey] && typeof _normStockMap[colorKey][sizeKey] !== 'undefined') ? Number(_normStockMap[colorKey][sizeKey]) : '';
+                        %>
+                          <td style="text-align:center;">
+                            <input class="search-input" type="number" name="stock[<%= color %>][<%= sz %>]" min="0" value="<%= v %>" style="width:80px; margin:0 auto;">
+                          </td>
+                        <% }) %>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
               </div>
-              <div class="small text-secondary" style="margin-top:6px;">Overrides total stock for availability and cart limits when set.</div>
+              <div class="small text-secondary" style="margin-top:6px;">Set stock per color & size. Leave blank to fallback to total stock or per-size stock.</div>
             </div>
 
             <!-- category handled above in the left column; color chips moved under Short Description -->
@@ -162,35 +205,7 @@
               <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:6px;">You need to add at least 4 images. Pay attention to background and dimensions.</div>
             </div>
 
-            <div class="dashboard-card" style="margin-top:12px;">
-              <label class="attr-label" for="discounts">Discounts (optional)</label>
-              <div style="max-height:220px; overflow:auto; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:8px;">
-                <% if (typeof discounts !== 'undefined' && discounts.length) { %>
-                  <% discounts.forEach(d => { 
-                       const now = new Date();
-                       const expired = d.end_date && (new Date(d.end_date) < now);
-                       const disabled = !d.active || expired;
-                       const checked = (typeof productDiscountIds !== 'undefined' && productDiscountIds.has && productDiscountIds.has(Number(d.id))) ? 'checked' : '';
-                  %>
-                    <label style="display:flex; align-items:center; gap:8px; padding:6px 4px; border-bottom:1px solid rgba(255,255,255,0.04);">
-                      <input type="checkbox" name="discount_ids[]" value="<%= d.id %>" <%= checked %> />
-                      <span style="font-weight:700;"><%= d.code %></span>
-                      <span class="badge" style="margin-left:auto; background:rgba(37,99,235,0.15); color:#93c5fd; border-radius:999px; padding:2px 8px; font-size:12px;">
-                        <%= d.type === 'percent' ? (Number(d.value)+'%') : ('$'+Number(d.value).toFixed(2)) %>
-                      </span>
-                      <% if (disabled) { %>
-                        <span class="badge" style="background:rgba(239,68,68,0.15); color:#fecaca; border-radius:999px; padding:2px 8px; font-size:12px;">Disabled</span>
-                      <% } %>
-                    </label>
-                  <% }) %>
-                <% } else { %>
-                  <div class="text-secondary small">No discounts found. Create some in Admin → Discounts.</div>
-                <% } %>
-              </div>
-              <div class="small text-secondary" style="margin-top:6px;">
-                If a discount is selected here, it will only apply when the customer uses that code and this product is in the cart.
-              </div>
-            </div>
+            <!-- Discounts panel removed per request -->
 
             <div class="dashboard-card" style="margin-top:12px;">
               <label class="attr-label">Product Promo (auto-apply)</label>

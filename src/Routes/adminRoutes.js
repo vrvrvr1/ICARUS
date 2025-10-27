@@ -1,6 +1,7 @@
 import express from "express";
 import db from "../database/db.js"; // PostgreSQL connection
 import storeConfig from "../utils/storeConfig.js";
+import settingsStore from "../utils/settingsStore.js";
 import { requireAdmin } from "../Middleware/authMiddleware.js";
 import multer from "multer";
 import path from "path";
@@ -160,6 +161,9 @@ router.post("/addproduct", upload.fields([
 ]), async (req, res) => {
   try {
   const { name, price, stock, category } = req.body;
+  // parse new flags
+  const is_new_flag = (String(req.body.is_new || '').toLowerCase() === 'on') || String(req.body.is_new) === 'true';
+  const free_shipping_flag = (String(req.body.free_shipping || '').toLowerCase() === 'on') || String(req.body.free_shipping) === 'true';
 
   let colorsRaw = req.body['colors[]'] || req.body.colors || req.body.color;
   let colorsCsv = '';
@@ -179,11 +183,17 @@ router.post("/addproduct", upload.fields([
     const img2 = files.image2 && files.image2[0] ? `/uploads/${files.image2[0].filename}` : null;
     const img3 = files.image3 && files.image3[0] ? `/uploads/${files.image3[0].filename}` : null;
 
+    // ensure columns exist
+    try {
+      await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_new BOOLEAN DEFAULT false`);
+      await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS free_shipping BOOLEAN DEFAULT false`);
+    } catch(_) {}
+
     const ins = await db.query(
-      `INSERT INTO products (name, price, category, image_url, image_url_2, image_url_3, image_url_4, sizes, colors)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      `INSERT INTO products (name, price, category, image_url, image_url_2, image_url_3, image_url_4, sizes, colors, is_new, free_shipping)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING id`,
-      [name, priceInt, category, img0, img1, img2, img3, sizesCsv, colorsCsv]
+      [name, priceInt, category, img0, img1, img2, img3, sizesCsv, colorsCsv, is_new_flag, free_shipping_flag]
     );
 
     // Insert per-variant stock if provided: distribute per-size stock across all selected colors
@@ -224,15 +234,176 @@ router.post("/addproduct", upload.fields([
 });
 
 // ================== CUSTOMERS ==================
-router.get("/customers", async (req, res) => {
+router.get("/customers", requireAdmin, async (req, res) => {
   try {
-    const result = await db.query(
-      "SELECT id, email, first_name, last_name, role, profile_image FROM customers ORDER BY id DESC"
-    );
+    // Include a precomputed total_orders per customer so the template can display it without extra queries
+    const result = await db.query(`
+      SELECT c.id, c.email, c.first_name, c.last_name, c.role, c.profile_image,
+             COALESCE(o.total_orders, 0) AS total_orders
+      FROM customers c
+      LEFT JOIN (
+        SELECT customer_id, COUNT(*) AS total_orders
+        FROM orders
+        GROUP BY customer_id
+      ) o ON o.customer_id = c.id
+      ORDER BY c.id DESC
+    `);
     res.render("admin/customers", { customers: result.rows });
   } catch (err) {
     console.error("Error fetching customers:", err);
     res.status(500).send("Server Error");
+  }
+});
+
+// View single customer (admin)
+router.get('/customers/:id', requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).send('Invalid customer id');
+  try {
+    // check if `phone` column exists to avoid SQL errors on older schemas
+    const colRes = await db.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'customers' AND column_name = ANY($1)", [["phone"]]);
+    const havePhone = (colRes.rows || []).some(r => String(r.column_name) === 'phone');
+    const selectCols = `id, email, first_name, last_name, role, profile_image${havePhone ? ', phone' : ''}`;
+
+    const { rows } = await db.query(`SELECT ${selectCols} FROM customers WHERE id = $1`, [id]);
+    const customer = rows && rows[0] ? rows[0] : null;
+    if (!customer) return res.status(404).send('Customer not found');
+
+    // compute totals: orders count, total spent
+    const ordersRes = await db.query('SELECT COUNT(*) AS cnt, COALESCE(SUM(oi.quantity * oi.price),0) AS total_spent FROM orders o LEFT JOIN order_items oi ON o.id = oi.order_id WHERE o.customer_id = $1', [id]);
+    const ordersCount = Number(ordersRes.rows[0]?.cnt || 0);
+    const totalSpent = Number(ordersRes.rows[0]?.total_spent || 0);
+
+    // recent orders (minimal)
+    const recent = await db.query('SELECT id, order_date, status, COALESCE((SELECT SUM(quantity*price) FROM order_items WHERE order_id = orders.id),0) AS total_amount FROM orders WHERE customer_id = $1 ORDER BY order_date DESC LIMIT 10', [id]);
+
+    res.render('admin/customerView', { customer, ordersCount, totalSpent, recent: recent.rows });
+  } catch (e) {
+    console.error('Error loading customer:', e);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Edit customer form (admin)
+router.get('/customers/:id/edit', requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).send('Invalid customer id');
+  try {
+    // avoid selecting non-existent columns
+    const colRes = await db.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'customers' AND column_name = ANY($1)", [["phone"]]);
+    const havePhone = (colRes.rows || []).some(r => String(r.column_name) === 'phone');
+    const selectCols = `id, email, first_name, last_name, role, profile_image${havePhone ? ', phone' : ''}`;
+    const { rows } = await db.query(`SELECT ${selectCols} FROM customers WHERE id = $1`, [id]);
+    const customer = rows && rows[0] ? rows[0] : null;
+    if (!customer) return res.status(404).send('Customer not found');
+    res.render('admin/customerEdit', { customer });
+  } catch (e) {
+    console.error('Error loading customer for edit:', e);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Submit customer edit (admin)
+router.post('/customers/:id/edit', requireAdmin, upload.single('profile_image'), async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).send('Invalid customer id');
+  try {
+    const { first_name, last_name, email, role } = req.body || {};
+    // detect available columns to avoid updating missing ones (like phone)
+    const colRes = await db.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'customers' AND column_name = ANY($1)", [["phone"]]);
+    const havePhone = (colRes.rows || []).some(r => String(r.column_name) === 'phone');
+
+    const fields = [];
+    const vals = [];
+    let idx = 1;
+    if (typeof first_name !== 'undefined') { fields.push(`first_name = $${idx++}`); vals.push(first_name || null); }
+    if (typeof last_name !== 'undefined') { fields.push(`last_name = $${idx++}`); vals.push(last_name || null); }
+    if (typeof email !== 'undefined') { fields.push(`email = $${idx++}`); vals.push(email || null); }
+    if (typeof role !== 'undefined') { fields.push(`role = $${idx++}`); vals.push(role || null); }
+    if (havePhone && typeof req.body.phone !== 'undefined') { fields.push(`phone = $${idx++}`); vals.push(req.body.phone || null); }
+    // handle uploaded profile image
+    if (req.file && req.file.filename) {
+      const p = `/uploads/${req.file.filename}`;
+      fields.push(`profile_image = $${idx++}`); vals.push(p);
+    }
+    if (fields.length) {
+      vals.push(id);
+      await db.query(`UPDATE customers SET ${fields.join(', ')} WHERE id = $${idx}`, vals);
+    }
+    res.redirect(`/customers/${id}`);
+  } catch (e) {
+    console.error('Error saving customer edit:', e);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Toggle ban/unban customer
+router.post('/customers/:id/ban', requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid customer id' });
+  try {
+    // ensure column exists
+    try { await db.query("ALTER TABLE customers ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false"); } catch(_) {}
+    // flip flag
+    await db.query('UPDATE customers SET is_banned = NOT COALESCE(is_banned, false) WHERE id = $1', [id]);
+    const row = await db.query('SELECT COALESCE(is_banned,false) AS is_banned FROM customers WHERE id = $1', [id]);
+    const isBanned = !!(row.rows[0] && row.rows[0].is_banned);
+    return res.json({ success: true, is_banned: isBanned });
+  } catch (e) {
+    console.error('Error toggling ban:', e);
+    return res.status(500).json({ success: false });
+  }
+});
+
+// Suspend customer for N days (or clear suspension)
+router.post('/customers/:id/suspend', requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid customer id' });
+  try {
+    // ensure column exists
+    try { await db.query("ALTER TABLE customers ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMPTZ NULL"); } catch(_) {}
+    const days = Number(req.body.days || req.query.days || 0);
+    if (!Number.isFinite(days) || days < 0) return res.status(400).json({ success: false, error: 'Invalid days' });
+    if (days === 0) {
+      await db.query('UPDATE customers SET suspended_until = NULL WHERE id = $1', [id]);
+      return res.json({ success: true, suspended_until: null });
+    }
+    // set suspended_until to now + days
+    await db.query('UPDATE customers SET suspended_until = (NOW() + ($1 * INTERVAL \"1 day\")) WHERE id = $2', [days, id]);
+    const r = await db.query('SELECT suspended_until FROM customers WHERE id = $1', [id]);
+    return res.json({ success: true, suspended_until: r.rows[0] ? r.rows[0].suspended_until : null });
+  } catch (e) {
+    console.error('Error setting suspension:', e);
+    return res.status(500).json({ success: false });
+  }
+});
+
+// Delete customer (admin) - supports AJAX (JSON) and form fallback
+router.post('/customers/:id/delete', requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).send('Invalid customer id');
+  try {
+    // Best-effort cleanup of related data to avoid FK constraint failures
+    try {
+      await db.query('DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE customer_id = $1)', [id]);
+      await db.query('DELETE FROM orders WHERE customer_id = $1', [id]);
+      await db.query('DELETE FROM wishlist WHERE user_id = $1', [id]);
+      await db.query('DELETE FROM addresses WHERE customer_id = $1', [id]);
+      await db.query('DELETE FROM user_notifications WHERE user_id = $1', [id]);
+    } catch(e) {
+      // ignore cleanup errors
+      console.warn('Customer cleanup warning:', e.message);
+    }
+    await db.query('DELETE FROM customers WHERE id = $1', [id]);
+    // respond JSON for AJAX, otherwise redirect
+    const acceptsJson = String(req.get('Accept') || '').includes('application/json') || req.xhr;
+    if (acceptsJson) return res.json({ success: true });
+    res.redirect('/customers');
+  } catch (e) {
+    console.error('Error deleting customer:', e);
+    const acceptsJson = String(req.get('Accept') || '').includes('application/json') || req.xhr;
+    if (acceptsJson) return res.status(500).json({ success: false });
+    res.status(500).send('Server Error');
   }
 });
 
@@ -353,10 +524,28 @@ router.get("/adminproducts/:id/edit", async (req, res) => {
         const ss = await db.query('SELECT UPPER(size) AS size, COALESCE(SUM(stock),0) AS stock FROM product_variants WHERE product_id = $1 GROUP BY size', [productId]);
         for (const r of ss.rows || []) sizeStock[String(r.size).toUpperCase()] = Number(r.stock || 0);
       } catch(_) {}
-      res.render("admin/editProducts", { product, discounts: all.rows, productDiscountIds, sizeStock });
+
+      // Also fetch explicit product_variants so we can derive the available colors/sizes and per-variant stock
+      let selectedColors = [];
+      let selectedSizes = [];
+      const stockByCombination = {};
+      try {
+        const vr = await db.query('SELECT color, UPPER(size) AS size, stock FROM product_variants WHERE product_id = $1 ORDER BY color, size', [productId]);
+        for (const row of vr.rows || []) {
+          const color = String(row.color || '').trim();
+          const size = String(row.size || '').trim().toUpperCase();
+          if (!color) continue;
+          if (!selectedColors.includes(color)) selectedColors.push(color);
+          if (!selectedSizes.includes(size)) selectedSizes.push(size);
+          stockByCombination[color] = stockByCombination[color] || {};
+          stockByCombination[color][size] = Number(row.stock || 0);
+        }
+      } catch(_) {}
+
+      res.render("admin/editProducts", { product, discounts: all.rows, productDiscountIds, sizeStock, selectedColors, selectedSizes, stockByCombination });
     } catch (e) {
       // if discounts table missing, still render page
-      res.render("admin/editProducts", { product, discounts: [], productDiscountIds: new Set(), sizeStock: {} });
+      res.render("admin/editProducts", { product, discounts: [], productDiscountIds: new Set(), sizeStock: {}, selectedColors: [], selectedSizes: [], stockByCombination: {} });
     }
   } catch (err) {
     console.error("Error fetching product:", err);
@@ -374,24 +563,33 @@ router.post("/adminproducts/:id/edit", upload.fields([
   if (isNaN(productId)) return res.status(400).send("Invalid product ID");
 
   try {
+  // load existing product to preserve fields when form doesn't include them
+  const existingProductRes = await db.query('SELECT * FROM products WHERE id = $1', [productId]);
+  const product = existingProductRes.rows[0] || {};
+
   const { name, price, stock, category } = req.body;
+  // parse flags
+  const is_new_flag = (String(req.body.is_new || '').toLowerCase() === 'on') || String(req.body.is_new) === 'true';
+  const free_shipping_flag = (String(req.body.free_shipping || '').toLowerCase() === 'on') || String(req.body.free_shipping) === 'true';
   // parse per-product promo fields (optional)
   const promo_active = (String(req.body.promo_active || '').toLowerCase() === 'on') || String(req.body.promo_active).toLowerCase() === 'true';
   let promo_percent = Number(req.body.promo_percent || 0);
   if (!Number.isFinite(promo_percent) || promo_percent < 0) promo_percent = 0;
   if (promo_percent > 100) promo_percent = 100;
-    // accept colors[] (from multi-checkbox) or colors
-    let colorsRaw = req.body['colors[]'] || req.body.colors || req.body.color;
-    // normalize to CSV string for DB (empty string if none)
-    let colorsCsv = '';
-    if (Array.isArray(colorsRaw)) colorsCsv = colorsRaw.join(',');
-    else if (typeof colorsRaw === 'string' && colorsRaw.trim()) colorsCsv = colorsRaw;
+  // accept colors[] (from multi-checkbox) or colors; if not provided, preserve existing DB values
+  let colorsRaw = req.body['colors[]'] || req.body.colors || req.body.color;
+  // normalize to CSV string for DB (fall back to existing product.colors if omitted)
+  let colorsCsv = '';
+  if (Array.isArray(colorsRaw)) colorsCsv = colorsRaw.join(',');
+  else if (typeof colorsRaw === 'string' && colorsRaw.trim()) colorsCsv = colorsRaw;
+  else colorsCsv = (product && product.colors) ? product.colors : '';
 
-    // normalize sizes[] to CSV
-    let sizesRaw = req.body['sizes[]'] || req.body.sizes || req.body.size;
-    let sizesCsv = '';
-    if (Array.isArray(sizesRaw)) sizesCsv = sizesRaw.join(',');
-    else if (typeof sizesRaw === 'string' && sizesRaw.trim()) sizesCsv = sizesRaw;
+  // normalize sizes[] to CSV (fall back to existing product.sizes if omitted)
+  let sizesRaw = req.body['sizes[]'] || req.body.sizes || req.body.size;
+  let sizesCsv = '';
+  if (Array.isArray(sizesRaw)) sizesCsv = sizesRaw.join(',');
+  else if (typeof sizesRaw === 'string' && sizesRaw.trim()) sizesCsv = sizesRaw;
+  else sizesCsv = (product && product.sizes) ? product.sizes : '';
 
     const priceInt = Math.round(Number(price));
 
@@ -411,14 +609,20 @@ router.post("/adminproducts/:id/edit", upload.fields([
       const img2 = f2 || ex.image_url_3 || null;
       const img3 = f3 || ex.image_url_4 || null;
 
+      // ensure columns exist
+      try { await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_new BOOLEAN DEFAULT false`); } catch(_) {}
+      try { await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS free_shipping BOOLEAN DEFAULT false`); } catch(_) {}
+
       await db.query(
-        `UPDATE products SET name=$1, price=$2, category=$3, image_url=$4, image_url_2=$5, image_url_3=$6, image_url_4=$7, sizes=$8, colors=$9, promo_active=$10, promo_percent=$11 WHERE id=$12`,
-        [name, priceInt, category, img0, img1, img2, img3, sizesCsv, colorsCsv, promo_active, promo_percent, productId]
+        `UPDATE products SET name=$1, price=$2, category=$3, image_url=$4, image_url_2=$5, image_url_3=$6, image_url_4=$7, sizes=$8, colors=$9, is_new=$10, free_shipping=$11, promo_active=$12, promo_percent=$13 WHERE id=$14`,
+        [name, priceInt, category, img0, img1, img2, img3, sizesCsv, colorsCsv, is_new_flag, free_shipping_flag, promo_active, promo_percent, productId]
       );
     } else {
+      try { await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_new BOOLEAN DEFAULT false`); } catch(_) {}
+      try { await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS free_shipping BOOLEAN DEFAULT false`); } catch(_) {}
       await db.query(
-        `UPDATE products SET name=$1, price=$2, category=$3, sizes=$4, colors=$5, promo_active=$6, promo_percent=$7 WHERE id=$8`,
-        [name, priceInt, category, sizesCsv, colorsCsv, promo_active, promo_percent, productId]
+        `UPDATE products SET name=$1, price=$2, category=$3, sizes=$4, colors=$5, is_new=$6, free_shipping=$7, promo_active=$8, promo_percent=$9 WHERE id=$10`,
+        [name, priceInt, category, sizesCsv, colorsCsv, is_new_flag, free_shipping_flag, promo_active, promo_percent, productId]
       );
     }
 
@@ -441,7 +645,7 @@ router.post("/adminproducts/:id/edit", upload.fields([
     // Upsert per-variant stock if provided: distribute size stock across all current colors
     try {
       const sizeStock = req.body['size_stock'] || {};
-      const colorsList = (product && product.colors) ? String(product.colors).split(',').map(s=>s.trim()).filter(Boolean) : [];
+      const colorsList = colorsCsv ? String(colorsCsv).split(',').map(s=>s.trim()).filter(Boolean) : [];
       const allowedSizes = new Set(['S','M','L','XL']);
       if (sizeStock && typeof sizeStock === 'object') {
         for (const [sz, val] of Object.entries(sizeStock)) {
@@ -468,6 +672,38 @@ router.post("/adminproducts/:id/edit", upload.fields([
         }
       }
     } catch(_) { /* ignore if table missing */ }
+
+    // New: accept explicit per-variant stocks from `stock[color][size]` nested inputs
+    try {
+      const stockMap = req.body.stock || {};
+      if (stockMap && typeof stockMap === 'object') {
+        for (const rawColor of Object.keys(stockMap)) {
+          if (!Object.prototype.hasOwnProperty.call(stockMap, rawColor)) continue;
+          const row = stockMap[rawColor] || {};
+          for (const rawSize of Object.keys(row)) {
+            if (!Object.prototype.hasOwnProperty.call(row, rawSize)) continue;
+            const val = row[rawSize];
+            const qty = Number.parseInt(val);
+            if (Number.isNaN(qty)) continue;
+            const colorNorm = String(rawColor).trim();
+            const sizeNorm = String(rawSize).trim().toUpperCase();
+            // upsert
+            const upd = await db.query(
+              `UPDATE product_variants SET stock = $4 WHERE product_id = $1 AND LOWER(color) = LOWER($2) AND UPPER(size) = UPPER($3)`,
+              [productId, colorNorm, sizeNorm, qty]
+            );
+            if ((upd.rowCount || 0) === 0) {
+              await db.query(
+                `INSERT INTO product_variants (product_id, color, size, stock) VALUES ($1,$2,$3,$4)`,
+                [productId, colorNorm, sizeNorm, qty]
+              );
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Updating per-variant stock failed:', e.message);
+    }
 
     res.redirect("/adminproducts");
   } catch (err) {
@@ -712,6 +948,139 @@ router.get("/admin", requireAdmin, async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching admin data:", err);
     res.status(500).send("Server Error");
+  }
+});
+
+// ================== ADMIN SETTINGS ==================
+router.get('/admin/settings', requireAdmin, async (req, res) => {
+  try {
+    // Read persisted settings (if any) and merge with environment defaults for the template
+    const settings = await settingsStore.getAllSettings();
+    res.render('admin/settings', { store: storeConfig, settings: settings || {}, user: req.session.user });
+  } catch (err) {
+    console.error('Error rendering admin settings:', err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Persist currency selection (form POST)
+router.post('/admin/settings/currency', requireAdmin, async (req, res) => {
+  try {
+    const code = String(req.body.currency || req.body.currency_code || '').trim().toUpperCase();
+    if (!code || !/^[A-Z]{2,4}$/.test(code)) {
+      // simple validation: 2-4 uppercase letters
+      return res.status(400).send('Invalid currency code');
+    }
+    // determine previous currency (fallback to env store config)
+    const prev = (await settingsStore.getSetting('currency_code')) || (storeConfig && storeConfig.currency) || 'USD';
+    // persist new code first
+    const ok = await settingsStore.setSetting('currency_code', code);
+    if (!ok) return res.status(500).send('Failed to save setting');
+
+    // If currency actually changed, attempt best-effort conversion of product prices and fixed discounts.
+    if (prev !== code) {
+      // Basic in-memory rates (USD baseline). Map value = USD per 1 unit of currency.
+      const rates = {
+        USD: 1.0,
+        EUR: 1.08,
+        GBP: 1.25,
+        CAD: 0.74,
+        AUD: 0.67,
+        JPY: 0.0068,
+        CNY: 0.14,
+        INR: 0.012,
+        CHF: 1.11,
+        SGD: 0.73,
+        MXN: 0.054,
+        BRL: 0.19,
+        ZAR: 0.052,
+        SEK: 0.091,
+        NOK: 0.087,
+        DKK: 0.145,
+        NZD: 0.62,
+        HKD: 0.13
+      };
+
+      const havePrev = Object.prototype.hasOwnProperty.call(rates, prev);
+      const haveNew = Object.prototype.hasOwnProperty.call(rates, code);
+      if (!havePrev || !haveNew) {
+        // missing rate; record audit and skip conversion
+        try {
+          await ensureAuditLogsTable();
+          const uid = req.session && req.session.user ? req.session.user.id : null;
+          await db.query('INSERT INTO audit_logs (user_id, action, meta) VALUES ($1,$2,$3)', [uid, 'settings.update', JSON.stringify({ key: 'currency_code', value: code, conversion: 'skipped', reason: 'missing_rate', prev })]);
+        } catch(_) {}
+        return res.redirect('/admin/settings');
+      }
+
+      // factor = (rates[prev] / rates[new]) => new_amount = old_amount * factor
+      const factor = Number(rates[prev]) / Number(rates[code]);
+
+      try {
+        await db.query('BEGIN');
+        // Update products prices (round to 2 decimal places)
+        const prodUpd = await db.query(`UPDATE products SET price = ROUND((price::numeric * $1::numeric), 2) WHERE price IS NOT NULL RETURNING id` , [factor]);
+        // Update fixed-value discounts
+        const discUpd = await db.query(`UPDATE discounts SET value = ROUND((value::numeric * $1::numeric), 2) WHERE type = 'fixed' RETURNING id`, [factor]);
+        await db.query('COMMIT');
+
+        // audit
+        try {
+          await ensureAuditLogsTable();
+          const uid = req.session && req.session.user ? req.session.user.id : null;
+          await db.query('INSERT INTO audit_logs (user_id, action, meta) VALUES ($1,$2,$3)', [uid, 'settings.update', JSON.stringify({ key: 'currency_code', value: code, prev, converted_products: (prodUpd && prodUpd.rowCount) || 0, converted_discounts: (discUpd && discUpd.rowCount) || 0 })]);
+        } catch(_) {}
+      } catch (e) {
+        try { await db.query('ROLLBACK'); } catch(_) {}
+        console.error('Currency conversion failed:', e.message);
+        try {
+          await ensureAuditLogsTable();
+          const uid = req.session && req.session.user ? req.session.user.id : null;
+          await db.query('INSERT INTO audit_logs (user_id, action, meta) VALUES ($1,$2,$3)', [uid, 'settings.update', JSON.stringify({ key: 'currency_code', value: code, prev, conversion: 'failed', error: e.message })]);
+        } catch(_) {}
+        // continue: redirect back but inform admin via query param (or toast on client)
+        return res.redirect('/admin/settings');
+      }
+    } else {
+      // no change — just audit
+      try {
+        await ensureAuditLogsTable();
+        const uid = req.session && req.session.user ? req.session.user.id : null;
+        await db.query('INSERT INTO audit_logs (user_id, action, meta) VALUES ($1,$2,$3)', [uid, 'settings.update', JSON.stringify({ key: 'currency_code', value: code, prev })]);
+      } catch(_) {}
+    }
+
+    res.redirect('/admin/settings');
+  } catch (e) {
+    console.error('Error saving currency setting:', e);
+    res.status(500).send('Server Error');
+  }
+});
+
+// Generic settings save (accepts form fields, saves simple scalar keys)
+router.post('/admin/settings', requireAdmin, async (req, res) => {
+  try {
+    // Accept either JSON body or form-encoded fields. We'll iterate keys and persist simple scalars.
+    const payload = req.body || {};
+    const saved = [];
+    for (const [k, v] of Object.entries(payload)) {
+      if (k === '_method' || k === 'submit') continue;
+      const key = String(k).trim();
+      let val = v;
+      if (typeof val === 'string') val = val.trim();
+      // store only non-empty values; allow empty to clear
+      const ok = await settingsStore.setSetting(key, val === '' ? null : val);
+      if (ok) saved.push(key);
+    }
+    try {
+      await ensureAuditLogsTable();
+      const uid = req.session && req.session.user ? req.session.user.id : null;
+      await db.query('INSERT INTO audit_logs (user_id, action, meta) VALUES ($1,$2,$3)', [uid, 'settings.bulk_update', JSON.stringify({ keys: saved })]);
+    } catch(_) {}
+    res.redirect('/admin/settings');
+  } catch (e) {
+    console.error('Error saving settings:', e);
+    res.status(500).send('Server Error');
   }
 });
 
@@ -1360,14 +1729,100 @@ router.post('/admin/orders/:id/edit', requireAdmin, async (req, res) => {
 router.get('/admin/audit-logs', requireAdmin, async (req, res) => {
   try {
     await ensureAuditLogsTable();
-    const { rows } = await db.query(
-      `SELECT al.id, al.user_id, al.action, al.meta, al.created_at,
-              COALESCE(c.first_name || ' ' || c.last_name, 'Admin') AS user_name
-         FROM audit_logs al
-         LEFT JOIN customers c ON al.user_id = c.id
-        ORDER BY al.created_at DESC
-        LIMIT 200`);
-    res.render('admin/audit-logs', { items: rows });
+
+    // Supported filters (via query string): action, user (id or email), q (text), from, to, limit
+    const filters = {
+      action: req.query.action || '',
+      user: req.query.user || '',
+      q: req.query.q || '',
+      from: req.query.from || '',
+      to: req.query.to || '',
+      limit: req.query.limit || '',
+      range: req.query.range || ''
+    };
+
+    // If a human-friendly range is provided (e.g. '7', '30', '90', 'all')
+    // and explicit from/to were not supplied, derive from/to here so the
+    // existing date filters work as expected.
+    if (filters.range && !filters.from && !filters.to) {
+      const rv = String(filters.range).trim().toLowerCase();
+      if (rv !== 'all') {
+        const days = Number.parseInt(rv, 10);
+        if (!Number.isNaN(days) && days > 0) {
+          const now = new Date();
+          // compute UTC-based dates (YYYY-MM-DD)
+          const fromDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (days - 1)));
+          const toDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+          function fmt(d) { return d.toISOString().slice(0,10); }
+          filters.from = fmt(fromDate);
+          filters.to = fmt(toDate);
+        }
+      }
+    }
+
+    const where = [];
+    const params = [];
+
+    if (filters.action) {
+      params.push(String(filters.action));
+      where.push(`al.action = $${params.length}`);
+    }
+
+    if (filters.user) {
+      // allow either numeric user id or email lookup
+      const maybeId = Number(filters.user);
+      if (!Number.isNaN(maybeId) && String(filters.user).trim() !== '') {
+        params.push(maybeId);
+        where.push(`al.user_id = $${params.length}`);
+      } else {
+        // match by customer email via joinable condition; search for email in customer table
+        params.push('%' + String(filters.user) + '%');
+        where.push(`COALESCE(c.email, '') ILIKE $${params.length}`);
+      }
+    }
+
+    if (filters.q) {
+      // search in action, actor name/email, and the JSON meta blob text
+      const qv = '%' + String(filters.q) + '%';
+      params.push(qv);
+      where.push(`(
+        al.action ILIKE $${params.length}
+        OR al.meta::text ILIKE $${params.length}
+        OR COALESCE(c.first_name || ' ' || c.last_name, '') ILIKE $${params.length}
+        OR COALESCE(c.email, '') ILIKE $${params.length}
+      )`);
+    }
+
+    if (filters.from) {
+      // expect YYYY-MM-DD; cast to timestamptz for comparison
+      params.push(String(filters.from));
+      where.push(`al.created_at >= $${params.length}::timestamptz`);
+    }
+
+    if (filters.to) {
+      params.push(String(filters.to));
+      where.push(`al.created_at <= ($${params.length}::timestamptz + interval '1 day')`);
+    }
+
+    // limit (bounded integer)
+    let limit = 200;
+    if (filters.limit) {
+      const v = Number(filters.limit);
+      if (Number.isFinite(v) && v > 0) limit = Math.min(2000, Math.max(10, Math.trunc(v)));
+    }
+
+    const whereClause = where.length ? ('WHERE ' + where.join(' AND ')) : '';
+
+    const sql = `SELECT al.id, al.user_id, al.action, al.meta, al.created_at,
+                        COALESCE(c.first_name || ' ' || c.last_name, 'Admin') AS user_name, c.email
+                   FROM audit_logs al
+                   LEFT JOIN customers c ON al.user_id = c.id
+                   ${whereClause}
+                  ORDER BY al.created_at DESC
+                  LIMIT ${limit}`;
+
+    const { rows } = await db.query(sql, params);
+    res.render('admin/audit-logs', { items: rows, filters });
   } catch (err) {
     console.error('Error rendering audit logs:', err);
     res.status(500).send('Server Error');

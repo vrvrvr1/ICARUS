@@ -1,0 +1,103 @@
+<div class="cms-form">
+  <form id="footer-form" action="/admin/cms/footer/edit" method="POST" enctype="multipart/form-data" style="width:100%">
+    <div class="fields">
+      <div style="margin-bottom:12px;">
+        <label>Contact Email</label>
+        <input type="email" name="contact_email" value="<%= (page.data && page.data.contact_email) || '' %>" />
+      </div>
+
+      <div style="margin-bottom:12px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div>
+          <label>Phone</label>
+          <input type="text" name="phone" value="<%= (page.data && page.data.phone) || '' %>" />
+        </div>
+        <div>
+          <label>Address</label>
+          <input type="text" name="address" value="<%= (page.data && page.data.address) || '' %>" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label>Footer Logo (upload or URL)</label>
+        <% if (page.data && page.data.logo_url) { %>
+          <img src="<%= page.data.logo_url %>" alt="Logo" style="max-width:160px;display:block;margin-bottom:8px;" onerror="this.style.display='none'">
+        <% } %>
+        <input type="text" name="logo_url" placeholder="Image URL (or upload)" value="<%= (page.data && page.data.logo_url) || '' %>" style="width:100%;margin-bottom:8px;" />
+        <input type="file" name="logo_image" accept="image/*" />
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label>Copyright text</label>
+        <input type="text" name="copyright_text" value="<%= (page.data && page.data.copyright_text) || ('© ' + new Date().getFullYear() + ' Your Company') %>" />
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label>Footer Links</label>
+        <div id="footer-links-list">
+          <% (page.data && page.data.footer_links || []).forEach(function(l, i){ %>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+              <input type="text" name="footer_links[<%= i %>][label]" value="<%= l.label || '' %>" placeholder="Label" style="flex:1;" />
+              <input type="text" name="footer_links[<%= i %>][url]" value="<%= l.url || '' %>" placeholder="URL" style="width:260px;" />
+              <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>
+            </div>
+          <% }) %>
+        </div>
+        <button type="button" class="btn-outline btn-sm" onclick="addFooterLink()">Add Link</button>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label>Social Links</label>
+        <div id="footer-social-list">
+          <% (page.data && page.data.social_links || []).forEach(function(s, i){ %>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+              <input type="text" name="social_links[<%= i %>][platform]" value="<%= s.platform || '' %>" placeholder="Platform (e.g. twitter)" style="width:160px;" />
+              <input type="text" name="social_links[<%= i %>][url]" value="<%= s.url || '' %>" placeholder="URL" style="flex:1;" />
+              <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>
+            </div>
+          <% }) %>
+        </div>
+        <button type="button" class="btn-outline btn-sm" onclick="addSocialLink()">Add Social Link</button>
+      </div>
+
+      <div>
+        <button type="submit" class="btn-save">Save</button>
+      </div>
+    </div>
+
+    <aside class="hero-preview">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <% if (page.data && page.data.logo_url) { %>
+          <img src="<%= page.data.logo_url %>" alt="Logo" style="width:120px;height:60px;object-fit:contain;border-radius:6px;border:1px solid rgba(255,255,255,0.04);" onerror="this.style.display='none'">
+        <% } else { %>
+          <div style="width:120px;height:60px;background:#0b0b0d;border-radius:6px;border:1px dashed rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:#9ca3af">Logo</div>
+        <% } %>
+        <div>
+          <div style="color:#e5e7eb;font-weight:700;"><%= (page.data && page.data.contact_email) || '—' %></div>
+          <div style="color:#9ca3af;font-size:13px;"><%= (page.data && page.data.phone) || '—' %> · <%= (page.data && page.data.address) || '—' %></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;color:#9ca3af;">
+        <div><strong>Copyright:</strong> <%= (page.data && page.data.copyright_text) || ('© ' + new Date().getFullYear()) %></div>
+      </div>
+    </aside>
+  </form>
+</div>
+
+<script>
+function addFooterLink(){
+  var list = document.getElementById('footer-links-list');
+  var idx = list.children.length;
+  var d = document.createElement('div');
+  d.style.display='flex'; d.style.gap='8px'; d.style.alignItems='center'; d.style.marginBottom='6px';
+  d.innerHTML = '<input type="text" name="footer_links['+idx+'][label]" placeholder="Label" style="flex:1;" /> <input type="text" name="footer_links['+idx+'][url]" placeholder="URL" style="width:260px;" /> <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>';
+  list.appendChild(d);
+}
+function addSocialLink(){
+  var list = document.getElementById('footer-social-list');
+  var idx = list.children.length;
+  var d = document.createElement('div');
+  d.style.display='flex'; d.style.gap='8px'; d.style.alignItems='center'; d.style.marginBottom='6px';
+  d.innerHTML = '<input type="text" name="social_links['+idx+'][platform]" placeholder="Platform (e.g. twitter)" style="width:160px;" /> <input type="text" name="social_links['+idx+'][url]" placeholder="URL" style="flex:1;" /> <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>';
+  list.appendChild(d);
+}
+</script>

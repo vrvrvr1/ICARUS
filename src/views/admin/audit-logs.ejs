@@ -35,6 +35,7 @@
         <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
         <a href="/admin/announcements"><i class="bi bi-megaphone"></i> Announcements</a>
         <a href="/admin/audit-logs" class="active"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/settings"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
       </nav>
     </div>
 
@@ -59,11 +60,42 @@
         </div>
       </div>
 
+      <!-- Compact filter bar (search, range, action, limit, apply) -->
+      <% const f = (typeof filters !== 'undefined' && filters) ? filters : { action:'', q:'', range:'', limit:'' }; %>
+      <form method="get" action="/admin/audit-logs" style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+  <input name="q" value="<%= f.q %>" placeholder="Search by name, action, resource..." style="padding:8px 10px;border-radius:8px;border:1px solid #ddd;min-width:320px;flex:1;" />
+
+        <select name="range" style="padding:8px;border-radius:8px;border:1px solid #ddd;">
+          <option value="30" <%= f.range==='30' ? 'selected':'' %>>Last 30 days</option>
+          <option value="7" <%= f.range==='7' ? 'selected':'' %>>Last 7 days</option>
+          <option value="90" <%= f.range==='90' ? 'selected':'' %>>Last 90 days</option>
+          <option value="all" <%= (!f.range || f.range==='all') ? 'selected':'' %>>All time</option>
+        </select>
+
+        <select name="action" style="padding:8px;border-radius:8px;border:1px solid #ddd;min-width:170px;">
+          <option value="" <%= !f.action ? 'selected' : '' %>>All Actions</option>
+          <option value="cart.add" <%= f.action==='cart.add'? 'selected':'' %>>Added to cart</option>
+          <option value="cart.remove" <%= f.action==='cart.remove'? 'selected':'' %>>Removed from cart</option>
+          <option value="order.place" <%= f.action==='order.place'? 'selected':'' %>>Placed order</option>
+          <option value="order.checkout" <%= f.action==='order.checkout'? 'selected':'' %>>Checkout</option>
+          <option value="wishlist.add" <%= f.action==='wishlist.add'? 'selected':'' %>>Wishlist add</option>
+        </select>
+
+        <select name="limit" style="padding:8px;border-radius:8px;border:1px solid #ddd;min-width:90px;">
+          <option value="10" <%= f.limit==='10'? 'selected':'' %>>10</option>
+          <option value="25" <%= f.limit==='25'? 'selected':'' %>>25</option>
+          <option value="50" <%= f.limit==='50'? 'selected':'' %>>50</option>
+          <option value="100" <%= f.limit==='100'? 'selected':'' %>>100</option>
+        </select>
+
+  <button class="btn btn-primary" type="submit" style="display:inline-flex;align-items:center;justify-content:center;width:92px;height:36px;border-radius:8px;box-sizing:border-box;">Apply</button>
+  <a class="btn btn-outline" href="/admin/audit-logs" role="button" style="display:inline-flex;align-items:center;justify-content:center;width:92px;height:36px;border-radius:8px;box-sizing:border-box;">Reset</a>
+      </form>
+
       <div class="table-responsive">
         <table class="orders-table">
           <thead>
             <tr>
-              <th>ID</th>
               <th>User</th>
               <th>Action</th>
               <th>Meta</th>
@@ -72,13 +104,37 @@
           </thead>
           <tbody>
             <% if (!items || !items.length) { %>
-              <tr><td colspan="5" style="text-align:center;">No audit logs yet.</td></tr>
+              <tr><td colspan="4" style="text-align:center;">No audit logs yet.</td></tr>
             <% } else { %>
               <% items.forEach(row => { %>
                 <tr>
-                  <td>#<%= row.id %></td>
                   <td><%= row.user_name || ('User #' + (row.user_id || 'N/A')) %></td>
-                  <td><code><%= row.action %></code></td>
+                  <td>
+                    <% 
+                      // friendly action examples
+                      const _action = String(row.action || '');
+                      const _actionMap = {
+                        'cart.add': { label: 'Added to cart', icon: 'bi-cart-plus' },
+                        'cart.remove': { label: 'Removed from cart', icon: 'bi-cart-dash' },
+                        'order.place': { label: 'Placed order', icon: 'bi-bag-check' },
+                        'order.checkout': { label: 'Checkout / Placed order', icon: 'bi-credit-card' },
+                        'wishlist.add': { label: 'Added to wishlist', icon: 'bi-heart' },
+                        'wishlist.remove': { label: 'Removed from wishlist', icon: 'bi-heartbreak' }
+                      };
+                      const mapped = _actionMap[_action];
+                    %>
+                    <% if (mapped) { %>
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <i class="bi <%= mapped.icon %>" aria-hidden="true"></i>
+                        <div>
+                          <div style="font-weight:700"><%= mapped.label %></div>
+                          <div style="font-size:12px;color:#6b7280"><code><%= _action %></code></div>
+                        </div>
+                      </div>
+                    <% } else { %>
+                      <code><%= row.action %></code>
+                    <% } %>
+                  </td>
                   <td class="meta-cell">
                     <% let _meta = row.meta; try { if (typeof _meta === 'string') { _meta = JSON.parse(_meta); } } catch(e){} %>
                     <% if (_meta && typeof _meta === 'object') { %>

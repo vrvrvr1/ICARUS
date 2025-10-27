@@ -41,6 +41,7 @@ async function getCartItems(customerId) {
 function calculateCartTotal(cartItems, shippingAmount = 0, discountAmount = 0) {
   let subtotal = 0;
   cartItems.forEach(item => subtotal += item.price * item.quantity);
+  // shippingAmount is provided by caller or defaults; per-product free shipping is not handled here
   const discount = Math.min(Math.max(Number(discountAmount || 0), 0), subtotal);
   const discountedSubtotal = subtotal - discount;
   const tax = Math.round(discountedSubtotal * 0.12);

@@ -23,6 +23,7 @@
         <a href="/adminproducts" class="active"><i class="bi bi-box-seam"></i> Products</a>
         <a href="/customers"><i class="bi bi-people"></i> Customers</a>
         <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/settings"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
       </nav>
     </div>
 
@@ -53,53 +54,60 @@
             <label class="attr-label" for="short_description" style="margin-top:10px;">Short Description</label>
             <textarea class="search-input" id="short_description" name="short_description" rows="4" style="resize:vertical;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text-primary);"></textarea>
 
-            <div style="display:flex;gap:0.75rem;margin-top:10px;">
-              <div style="flex:1">
+            <div style="display:flex;gap:0.75rem;margin-top:10px;align-items:flex-end;">
+              <div style="width:140px;">
                 <label class="attr-label" for="price">Price</label>
-                <input class="search-input" type="number" id="price" name="price" step="0.01" required>
-
-                <label class="attr-label" style="margin-top:8px;display:block;">Sizes</label>
-                <div class="size-chips">
-                  <% const sizesList = ['S','M','L','XL']; %>
-                  <% sizesList.forEach(sz => { %>
-                    <label class="chip"><input type="checkbox" name="sizes[]" value="<%= sz %>" /><span class="swatch"><%= sz %></span></label>
-                  <% }) %>
-                </div>
+                <input class="search-input" type="number" id="price" name="price" step="0.01" required style="width:100%;box-sizing:border-box;">
               </div>
-              <div style="width:180px">
-                <label class="attr-label">Colors</label>
-                <div class="size-chips">
-                  <% const colorsList = ['black','red','blue','green']; %>
-                  <% colorsList.forEach(c => { %>
-                    <label class="chip" aria-label="color-<%= c %>"><input type="checkbox" name="colors[]" value="<%= c %>" /><span class="swatch <%= c %>"><%= c.charAt(0).toUpperCase() + c.slice(1) %></span></label>
-                  <% }) %>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:0.75rem;margin-top:10px;">
-              <div style="flex:1">
-                <label class="attr-label" for="stock">Total Stock (fallback)</label>
-                <input class="search-input" type="number" id="stock" name="stock" value="0" required>
-                <div class="small text-secondary" style="margin-top:4px;">Optional fallback if per-size stocks are not set.</div>
-              </div>
-              <div style="width:180px">
+              <div style="flex:1;">
                 <label class="attr-label" for="category">Category</label>
                 <input class="search-input" type="text" id="category" name="category">
               </div>
             </div>
 
+            <div style="display:flex;gap:12px;margin-top:8px;align-items:center;">
+              <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" name="is_new" />
+                <span>Mark as NEW</span>
+              </label>
+            </div>
+
+            <!-- Total stock removed; category moved beside price -->
+
+            <% // Per-color & size stock editor for Add Product. Use default sizes/colors and empty values. %>
             <div class="dashboard-card" style="margin-top:12px;">
-              <label class="attr-label">Per-size stock</label>
-              <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
-                <% ['S','M','L','XL'].forEach(sz => { %>
-                  <div>
-                    <label class="small text-secondary">Size <%= sz %></label>
-                    <input class="search-input" type="number" name="size_stock[<%= sz %>]" min="0" value="0">
-                  </div>
-                <% }) %>
+              <label class="attr-label">Stock by Color & Size</label>
+              <div style="overflow:auto; margin-top:8px;">
+                <% 
+                  const defaultSizes = ['S','M','L','XL'];
+                  const defaultColors = ['black','red','blue','green'];
+                  const _sizes = defaultSizes;
+                  const _colors = defaultColors;
+                %>
+                <table class="table" style="min-width:480px;">
+                  <thead>
+                    <tr>
+                      <th style="width:160px;">Color \ Size</th>
+                      <% _sizes.forEach(sz => { %>
+                        <th style="text-align:center;"><%= sz %></th>
+                      <% }) %>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% _colors.forEach(color => { %>
+                      <tr>
+                        <td style="vertical-align:middle; text-transform:capitalize;"><%= color %></td>
+                        <% _sizes.forEach(sz => { %>
+                          <td style="text-align:center;">
+                            <input class="search-input" type="number" name="stock[<%= color %>][<%= sz %>]" min="0" value="" style="width:80px; margin:0 auto;">
+                          </td>
+                        <% }) %>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
               </div>
-              <div class="small text-secondary" style="margin-top:6px;">If provided, these override the total stock for availability and cart limits.</div>
+              <div class="small text-secondary" style="margin-top:6px;">Set stock per color & size for this new product. Leave blank to use defaults.</div>
             </div>
 
             <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">

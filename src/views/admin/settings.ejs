@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings & Configuration</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
+        <a href="/admin/announcements"><i class="bi bi-megaphone"></i> Announcements</a>
+        <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/cms"><i class="bi bi-journal-text"></i> CMS</a>
+        <a href="/admin/settings" class="active"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
+      </nav>
+    </div>
+
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Settings & Configuration</div>
+        <div class="dashboard-title-sub">Manage platform-wide settings</div>
+      </div>
+    </div>
+
+    <section class="card">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div class="dashboard-card" style="flex:1;min-width:260px;">
+          <div class="card-label"><i class="bi bi-currency-dollar card-icon"></i> Currency</div>
+          <div class="small text-secondary">Set store currency and formatting.</div>
+          <div style="margin-top:8px;">
+            <% const curCode = (settings && settings.currency_code) ? settings.currency_code : ((settings && settings.currency) ? settings.currency : ((store && store.currency) ? store.currency : 'USD')); %>
+            <form method="post" action="/admin/settings/currency">
+              <label class="small text-secondary">Currency</label>
+              <select class="search-input" name="currency_code" aria-label="Select store currency">
+                <option value="USD" <%= curCode === 'USD' ? 'selected' : '' %>>USD — US Dollar</option>
+                <option value="EUR" <%= curCode === 'EUR' ? 'selected' : '' %>>EUR — Euro</option>
+                <option value="GBP" <%= curCode === 'GBP' ? 'selected' : '' %>>GBP — British Pound</option>
+                <option value="CAD" <%= curCode === 'CAD' ? 'selected' : '' %>>CAD — Canadian Dollar</option>
+                <option value="AUD" <%= curCode === 'AUD' ? 'selected' : '' %>>AUD — Australian Dollar</option>
+                <option value="JPY" <%= curCode === 'JPY' ? 'selected' : '' %>>JPY — Japanese Yen</option>
+                <option value="CNY" <%= curCode === 'CNY' ? 'selected' : '' %>>CNY — Chinese Yuan</option>
+                <option value="INR" <%= curCode === 'INR' ? 'selected' : '' %>>INR — Indian Rupee</option>
+                <option value="CHF" <%= curCode === 'CHF' ? 'selected' : '' %>>CHF — Swiss Franc</option>
+                <option value="SGD" <%= curCode === 'SGD' ? 'selected' : '' %>>SGD — Singapore Dollar</option>
+                <option value="MXN" <%= curCode === 'MXN' ? 'selected' : '' %>>MXN — Mexican Peso</option>
+                <option value="BRL" <%= curCode === 'BRL' ? 'selected' : '' %>>BRL — Brazilian Real</option>
+                <option value="ZAR" <%= curCode === 'ZAR' ? 'selected' : '' %>>ZAR — South African Rand</option>
+                <option value="SEK" <%= curCode === 'SEK' ? 'selected' : '' %>>SEK — Swedish Krona</option>
+                <option value="NOK" <%= curCode === 'NOK' ? 'selected' : '' %>>NOK — Norwegian Krone</option>
+                <option value="DKK" <%= curCode === 'DKK' ? 'selected' : '' %>>DKK — Danish Krone</option>
+                <option value="NZD" <%= curCode === 'NZD' ? 'selected' : '' %>>NZD — New Zealand Dollar</option>
+                <option value="HKD" <%= curCode === 'HKD' ? 'selected' : '' %>>HKD — Hong Kong Dollar</option>
+              </select>
+              <div style="margin-top:8px;display:flex;gap:8px;"><button class="btn">Save</button></div>
+            </form>
+          </div>
+        </div>
+
+        <div class="dashboard-card" style="flex:1;min-width:260px;">
+          <div class="card-label"><i class="bi bi-truck card-icon"></i> Shipping Options</div>
+          <div class="small text-secondary">Configure shipping methods and defaults.</div>
+          <div style="margin-top:8px;"><a href="/admin/shipping" class="btn btn-ghost">Manage shipping</a></div>
+        </div>
+
+        <div class="dashboard-card" style="flex:1;min-width:260px;">
+          <div class="card-label"><i class="bi bi-credit-card card-icon"></i> Payment Options</div>
+          <div class="small text-secondary">Configure payment gateways and credentials.</div>
+          <div style="margin-top:8px;"><a href="/admin/payments" class="btn btn-ghost">Manage payments</a></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <h4>Advanced</h4>
+        <div class="small text-secondary">Feature flags, integrations and platform-wide toggles.</div>
+        <div style="margin-top:8px;"><a href="/admin/integrations" class="btn btn-ghost">Integrations</a></div>
+      </div>
+    </section>
+  </main>
+  <!-- Toast / notification container -->
+  <div id="site-toast" aria-live="polite" style="position:fixed;right:18px;bottom:18px;z-index:1200;display:none;">
+    <div id="site-toast-inner" style="background:#111827;color:#fff;padding:12px 14px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.6);max-width:320px;"></div>
+  </div>
+
+  <script>
+    // Settings page helper functions
+    (function(){
+      function showToast(message, type){
+        try {
+          var cont = document.getElementById('site-toast');
+          var inner = document.getElementById('site-toast-inner');
+          if (!cont || !inner) return;
+          inner.textContent = message || '';
+          if (type === 'error') {
+            inner.style.background = '#8b1e1e';
+          } else if (type === 'success') {
+            inner.style.background = '#0f766e';
+          } else {
+            inner.style.background = '#111827';
+          }
+          cont.style.display = 'block';
+          // auto-hide after 3.5s
+          window.clearTimeout(cont._hideTimer);
+          cont._hideTimer = window.setTimeout(function(){ cont.style.display = 'none'; }, 3500);
+        } catch (e) {
+          console.warn('showToast error', e);
+        }
+      }
+
+      // Helper to POST form-like data and return { ok, status, text }
+      function postForm(url, data){
+        var body;
+        var headers = {};
+        if (data instanceof URLSearchParams) {
+          body = data.toString();
+          headers['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
+        } else if (typeof data === 'object') {
+          body = new URLSearchParams();
+          Object.keys(data).forEach(function(k){ if (data[k] != null) body.append(k, data[k]); });
+          body = body.toString();
+          headers['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
+        } else {
+          body = data;
+        }
+        return fetch(url, { method: 'POST', headers: headers, body: body, credentials: 'same-origin' })
+          .then(function(resp){
+            return resp.text().then(function(t){ return { ok: resp.ok, status: resp.status, text: t, redirected: resp.redirected }; });
+          });
+      }
+
+      // Currency form submit handler (AJAX with graceful fallback)
+      function handleCurrencySubmit(ev){
+        if (ev && ev.preventDefault) ev.preventDefault();
+        var form = ev && ev.target ? ev.target : document.querySelector('form[action="/admin/settings/currency"]');
+        if (!form) return;
+        var input = form.querySelector('input[name="currency_code"], input[name="currency"]');
+        if (!input) return form.submit();
+        var code = String(input.value || '').trim().toUpperCase();
+        if (!code) { showToast('Please enter a currency code.', 'error'); return; }
+        if (!/^[A-Z]{2,4}$/.test(code)) {
+          showToast('Currency code must be 2-4 letters (e.g., USD, EUR).', 'error');
+          return;
+        }
+        var btn = form.querySelector('button[type="submit"], button');
+        if (btn) btn.disabled = true;
+        var payload = new URLSearchParams(); payload.append('currency_code', code);
+        postForm('/admin/settings/currency', payload)
+          .then(function(r){
+            if (btn) btn.disabled = false;
+            if (r.ok) {
+              showToast('Currency saved.', 'success');
+              setTimeout(function(){ window.location.reload(); }, 700);
+            } else if (r.status === 400) {
+              showToast(r.text || 'Invalid currency code.', 'error');
+            } else {
+              showToast('Failed to save. Try again.', 'error');
+            }
+          })
+          .catch(function(err){ if (btn) btn.disabled = false; showToast('Network error saving setting.', 'error'); });
+      }
+
+      // Generic settings save - will POST form fields to /admin/settings
+      function saveSettings(form){
+        if (!form) return;
+        var data = new URLSearchParams();
+        var inputs = form.querySelectorAll('input[name], select[name], textarea[name]');
+        inputs.forEach(function(el){
+          var n = el.name;
+          if (!n) return;
+          if (el.type === 'checkbox') {
+            data.append(n, el.checked ? (el.value || 'on') : '');
+          } else {
+            data.append(n, el.value || '');
+          }
+        });
+        var submitBtn = form.querySelector('button[type="submit"], button');
+        if (submitBtn) submitBtn.disabled = true;
+        postForm('/admin/settings', data)
+          .then(function(r){ if (submitBtn) submitBtn.disabled = false; if (r.ok) { showToast('Settings saved', 'success'); setTimeout(function(){ window.location.reload(); }, 700); } else { showToast('Failed to save settings', 'error'); } })
+          .catch(function(){ if (submitBtn) submitBtn.disabled = false; showToast('Network error saving settings', 'error'); });
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        var cform = document.querySelector('form[action="/admin/settings/currency"]');
+        if (cform) cform.addEventListener('submit', handleCurrencySubmit);
+        var gen = document.querySelector('form[data-save-settings]');
+        if (gen) gen.addEventListener('submit', function(ev){ ev.preventDefault(); saveSettings(gen); });
+      });
+
+      window._settingsPage = { showToast: showToast, saveSettings: saveSettings };
+    })();
+  </script>
+
+</body>
+</html>

@@ -162,8 +162,24 @@ body {
   box-shadow: 0 8px 22px rgba(15,23,42,0.04);
   transition: transform .18s ease, box-shadow .18s ease;
 }
+.featured-products a.product-card { color: inherit; text-decoration: none; }
+
+/* Ensure product cards on homepage and products grid have a pure white background */
+.featured-products .product-card,
+.product-grid .product-card,
+.featured-products a.product-card,
+.product-grid a.product-card {
+  background: #fff !important;
+}
+.featured-products a.product-card { color: inherit; text-decoration: none; }
 .featured-products .product-card:hover{ transform: translateY(-8px); box-shadow: 0 18px 40px rgba(15,23,42,0.08); }
 .featured-products .product-card img { width:100%; height:200px; object-fit:cover; border-radius:10px; margin-bottom:12px }
+.featured-products .product-card .card-badge{ position:absolute; left:12px; top:12px; background:#ffedd5; color:#7c2d12; font-weight:700; padding:6px 8px; border-radius:8px; font-size:0.75rem; display:none }
+.featured-products .product-card.has-badge .card-badge{ display:block }
+.featured-products .product-card .card-actions{ position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; pointer-events:none }
+.featured-products .product-card .card-actions .buy-btn{ pointer-events:auto; margin-bottom:14px; opacity:0; transform:translateY(6px); transition: opacity .18s ease, transform .18s ease; }
+.featured-products .product-card:hover .card-actions .buy-btn{ opacity:1; transform:translateY(0) }
+.featured-products .product-card { position:relative; }
 .featured-products .product-card h5 { font-size:1rem; margin:6px 0 4px; color:#0b3948 }
 .featured-products .product-card .text-dark { color:#6b7280; font-size:0.85rem; margin:0 }
 .featured-products .product-card .price { font-weight:800; color:#111827; margin-top:8px; font-size:1.02rem }

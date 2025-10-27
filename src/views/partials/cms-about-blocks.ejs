@@ -81,7 +81,7 @@
               <img src="<%= previewImg %>" alt="thumb" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;" onerror="this.style.display='none'" />
               <input type="text" name="team[<%= i %>][name]" value="<%= nameVal %>" placeholder="Name" style="flex:1;min-width:160px;" />
               <input type="text" name="team[<%= i %>][role]" value="<%= roleVal %>" placeholder="Role" style="width:160px;" />
-              <input type="url" name="team[<%= i %>][image_url]" value="<%= imageVal %>" placeholder="Image URL (or upload)" style="width:260px;" />
+              <input type="text" name="team[<%= i %>][image_url]" value="<%= imageVal %>" placeholder="Image URL (or upload)" style="width:260px;" />
               <input type="file" name="team_image_<%= i %>" accept="image/*" style="width:160px;" />
               <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>
             </div>
@@ -112,7 +112,7 @@ function addTeamMember() {
   var d = document.createElement('div');
   d.style.display = 'flex'; d.style.alignItems = 'center'; d.style.marginBottom = '6px'; d.style.gap = '6px';
   var idx = document.querySelectorAll('#team-list > div').length;
-  d.innerHTML = '<input type="text" name="team['+idx+'][name]" placeholder="Name" style="flex:1;" /> <input type="text" name="team['+idx+'][role]" placeholder="Role" style="width:120px;" /> <input type="url" name="team['+idx+'][image_url]" placeholder="Image URL (optional)" style="width:220px;" /> <input type="file" name="team_image_'+idx+'" accept="image/*" style="width:180px;" /> <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>';
+  d.innerHTML = '<input type="text" name="team['+idx+'][name]" placeholder="Name" style="flex:1;" /> <input type="text" name="team['+idx+'][role]" placeholder="Role" style="width:120px;" /> <input type="text" name="team['+idx+'][image_url]" placeholder="Image URL (optional)" style="width:220px;" /> <input type="file" name="team_image_'+idx+'" accept="image/*" style="width:180px;" /> <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>';
   document.getElementById('team-list').appendChild(d);
 }
 </script>

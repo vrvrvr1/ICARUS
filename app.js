@@ -31,6 +31,7 @@ dotenv.config();
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+
 // --------------------
 // Session middleware
 // --------------------
@@ -69,7 +70,7 @@ passport.use(new GoogleStrategy(
   {
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL || "http://localhost:3000/auth/google/callback"
+    callbackURL: process.env.GOOGLE_CALLBACK_URL
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
@@ -172,6 +173,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// Load CMS footer data into res.locals for templates (best-effort per-request)
+app.use(async (req, res, next) => {
+  try {
+    // ensure cms_pages table exists (no-op if already present)
+    await db.query(`CREATE TABLE IF NOT EXISTS cms_pages (slug TEXT PRIMARY KEY, title TEXT NOT NULL, data JSONB NOT NULL DEFAULT '{}'::jsonb, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+    const r = await db.query("SELECT data FROM cms_pages WHERE slug = 'footer'");
+    res.locals.cmsFooter = (r.rows && r.rows[0] && r.rows[0].data) ? r.rows[0].data : null;
+  } catch (e) {
+    res.locals.cmsFooter = null;
+  }
+  next();
+});
+
 // --------------------
 // Routes
 // --------------------
@@ -215,29 +229,7 @@ app.get("/", async (req, res) => {
       total_sold: Number(r.total_sold || 0)
     }));
 
-  // Active announcements (best-effort)
-    let announcements = [];
-    try {
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS announcements (
-          id SERIAL PRIMARY KEY,
-          title TEXT NOT NULL,
-          body TEXT,
-          active BOOLEAN NOT NULL DEFAULT true,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `);
-      // Ensure ecommerce/placement columns exist even if admin page wasn't visited yet
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS link_url TEXT`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS button_text TEXT`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS image_url TEXT`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS coupon_code TEXT`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ NULL`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS ends_at TIMESTAMPTZ NULL`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS placement TEXT DEFAULT 'modal'`);
-      const ann = await db.query(`SELECT id, title, body, created_at, link_url, button_text, image_url, coupon_code, placement FROM announcements WHERE active = true ORDER BY created_at DESC LIMIT 5`);
-      announcements = ann.rows || [];
-    } catch (_) { announcements = []; }
+    // Announcements removed from public site (server no longer fetches/shows them)
 
     // CMS: homepage content (best-effort)
     let cmsHome = null;
@@ -260,7 +252,7 @@ app.get("/", async (req, res) => {
       cmsHome = (row.rows && row.rows[0] && row.rows[0].data) ? row.rows[0].data : null;
     } catch (_) { cmsHome = null; }
 
-    res.render("customer/homepage", { user: req.session.user, featuredProducts, announcements, cmsHome });
+  res.render("customer/homepage", { user: req.session.user, featuredProducts, cmsHome });
   } catch (err) {
     console.error('Error fetching featured products:', err);
     res.render("customer/homepage", { user: req.session.user, featuredProducts: [], announcements: [], cmsHome: null });
@@ -287,29 +279,7 @@ app.get("/homepage", async (req, res) => {
       total_sold: Number(r.total_sold || 0)
     }));
 
-  // Active announcements (best-effort)
-    let announcements = [];
-    try {
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS announcements (
-          id SERIAL PRIMARY KEY,
-          title TEXT NOT NULL,
-          body TEXT,
-          active BOOLEAN NOT NULL DEFAULT true,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `);
-      // Ensure ecommerce/placement columns exist even if admin page wasn't visited yet
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS link_url TEXT`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS button_text TEXT`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS image_url TEXT`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS coupon_code TEXT`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ NULL`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS ends_at TIMESTAMPTZ NULL`);
-      await db.query(`ALTER TABLE announcements ADD COLUMN IF NOT EXISTS placement TEXT DEFAULT 'modal'`);
-      const ann = await db.query(`SELECT id, title, body, created_at, link_url, button_text, image_url, coupon_code, placement FROM announcements WHERE active = true ORDER BY created_at DESC LIMIT 5`);
-      announcements = ann.rows || [];
-    } catch (_) { announcements = []; }
+    // Announcements removed from public site (server no longer fetches/shows them)
 
     // CMS: homepage content (best-effort)
     let cmsHome = null;
@@ -326,7 +296,7 @@ app.get("/homepage", async (req, res) => {
       cmsHome = (row.rows && row.rows[0] && row.rows[0].data) ? row.rows[0].data : null;
     } catch (_) { cmsHome = null; }
 
-    res.render("customer/homepage", { user: req.session.user, featuredProducts, announcements, cmsHome });
+  res.render("customer/homepage", { user: req.session.user, featuredProducts, cmsHome });
   } catch (err) {
     console.error('Error fetching featured products:', err);
     res.render("customer/homepage", { user: req.session.user, featuredProducts: [], announcements: [], cmsHome: null });

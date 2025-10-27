@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Customer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers" class="active"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/settings"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
+      </nav>
+    </div>
+
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Edit Customer</div>
+        <div class="dashboard-title-sub">Modify customer information</div>
+      </div>
+      <div class="dashboard-search">
+        <a href="/customers" class="btn btn-ghost">← Back to Customers</a>
+      </div>
+    </div>
+
+    <div class="dashboard-card">
+      <form action="/customers/<%= customer.id %>/edit" method="POST" enctype="multipart/form-data">
+        <!-- Compact, screenshot-style layout -->
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+          <div style="flex:1;min-width:320px;">
+            <div style="display:flex;gap:12px;">
+              <div style="flex:1;">
+                <label style="display:block;font-size:13px;margin-bottom:6px;font-weight:600">First Name</label>
+                <input name="first_name" value="<%= customer.first_name || '' %>" style="width:100%;max-width:320px;padding:10px;border-radius:10px;border:1px solid #e6e6e6;background:#fbfbfd" />
+              </div>
+              <div style="flex:1;">
+                <label style="display:block;font-size:13px;margin-bottom:6px;font-weight:600">Last Name</label>
+                <input name="last_name" value="<%= customer.last_name || '' %>" style="width:100%;max-width:320px;padding:10px;border-radius:10px;border:1px solid #e6e6e6;background:#fbfbfd" />
+              </div>
+            </div>
+
+            <div style="margin-top:12px;">
+              <label style="display:block;font-size:13px;margin-bottom:6px;font-weight:600">Email</label>
+              <input name="email" value="<%= customer.email || '' %>" style="width:100%;max-width:360px;padding:10px;border-radius:10px;border:1px solid #e6e6e6;background:#fbfbfd" />
+            </div>
+
+            <!-- Preserve role as a hidden field so server receives it, but keep UI clean like the screenshot -->
+            <input type="hidden" name="role" value="<%= customer.role || 'customer' %>" />
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+          <a href="/customers/<%= customer.id %>" class="btn btn-ghost">Cancel</a>
+          <button class="btn" type="submit">Save</button>
+        </div>
+
+        <!-- Profile image and admin actions (always visible) -->
+        <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
+          <div style="margin-bottom:8px;color:#666;font-weight:600">Profile & admin actions</div>
+          <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-top:8px;">
+            <div style="width:220px;">
+              <div style="margin-bottom:8px;font-size:13px;color:#666">Profile Image</div>
+              <div style="width:160px;height:160px;border-radius:6px;overflow:hidden;background:#f6f6f6;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+                <img id="preview" src="<%= customer.profile_image || '/image/profile1.png' %>" alt="preview" style="max-width:100%;max-height:100%;object-fit:cover;" onerror="this.src='/image/profile1.png'" />
+              </div>
+              <div>
+                <input type="file" name="profile_image" accept="image/*"
+                  data-default="<%= customer.profile_image || '/image/profile1.png' %>"
+                  onchange="document.getElementById('preview').src = (this.files && this.files[0]) ? URL.createObjectURL(this.files[0]) : this.dataset.default" />
+              </div>
+            </div>
+
+            <div style="flex:1;min-width:220px;">
+              <div style="margin-bottom:12px;font-weight:600">Admin actions</div>
+              <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+                <button id="banBtn" type="button" class="btn" style="background:#e74c3c;color:#fff;padding:8px 12px;border-radius:8px;border:none">Ban</button>
+                <button id="unbanBtn" type="button" class="btn" style="background:#6c757d;color:#fff;padding:8px 12px;border-radius:8px;border:none;display:none">Unban</button>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;margin-top:6px;">
+                <button id="suspendBtn" type="button" class="btn" style="background:#f39c12;color:#fff;padding:8px 12px;border-radius:8px;border:none">Suspend</button>
+                <input id="suspendDays" type="number" min="0" placeholder="Days" style="width:90px;padding:8px;border-radius:6px;border:1px solid #ccc" />
+              </div>
+              <div style="margin-top:8px;">
+                <button id="clearSuspendBtn" type="button" class="btn btn-ghost" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd">Lift suspension</button>
+              </div>
+              <div id="suspendStatus" style="margin-top:10px;color:#666;font-size:13px">
+                <% if (customer.suspended_until) { %>
+                  Suspended until <%= new Date(customer.suspended_until).toLocaleString() %>
+                <% } %>
+              </div>
+                <div id="auditLog" style="margin-top:10px;color:#444;font-size:13px">
+                  <!-- Audit entries will be appended here (client-side). Server audit logging not configured in this template. -->
+                </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Banned warning modal (lightweight, accessible) -->
+        <div id="bannedWarningModal" role="dialog" aria-modal="true" aria-labelledby="bannedModalTitle" style="display:none; position:fixed; inset:0; z-index:11000;">
+          <div style="position:absolute; inset:0; background:rgba(0,0,0,0.5);"></div>
+          <div style="max-width:520px; margin:80px auto; background:#fff; border-radius:12px; padding:20px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            <h2 id="bannedModalTitle" style="margin-top:0; font-size:18px;">User is banned</h2>
+            <p id="bannedModalMsg" style="color:#444;">This customer account has been banned and will not be able to make purchases or access the storefront. You can unban the account to restore access.</p>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+              <button id="bannedModalClose" type="button" style="background:#6c757d;color:#fff;padding:8px 12px;border-radius:8px;border:none">Close</button>
+              <button id="bannedModalUnban" type="button" style="background:#10b981;color:#fff;padding:8px 12px;border-radius:8px;border:none">Unban account</button>
+            </div>
+          </div>
+        </div>
+  <script>
+  (function(){
+  const customerId = "<%= customer.id %>";
+  const banBtn = document.getElementById('banBtn');
+      const unbanBtn = document.getElementById('unbanBtn');
+      const suspendBtn = document.getElementById('suspendBtn');
+      const clearSuspendBtn = document.getElementById('clearSuspendBtn');
+      const daysInput = document.getElementById('suspendDays');
+
+      // Setup initial ban/unban visibility if server provided is_banned
+      try {
+        const isBanned = "<%= customer.is_banned ? 'true' : 'false' %>";
+        if (isBanned === 'true') { if (banBtn) banBtn.style.display='none'; if (unbanBtn) unbanBtn.style.display='inline-block'; }
+      } catch(e) { /* ignore */ }
+
+      async function postJson(url, body) {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept':'application/json' }, body: JSON.stringify(body || {}) });
+        return res;
+      }
+
+      if (banBtn) banBtn.addEventListener('click', async function(){
+        banBtn.disabled = true;
+        const r = await postJson(`/customers/${customerId}/ban`);
+        if (r.ok) {
+          const j = await r.json();
+          if (j.is_banned) { banBtn.style.display='none'; if (unbanBtn) unbanBtn.style.display='inline-block'; }
+          // show admin warning modal about banned user
+          try { showBannedModal(); } catch(_) {}
+        } else alert('Failed to ban user');
+        banBtn.disabled = false;
+      });
+
+      if (unbanBtn) unbanBtn.addEventListener('click', async function(){
+        unbanBtn.disabled = true;
+        const r = await postJson(`/customers/${customerId}/ban`);
+        if (r.ok) {
+          const j = await r.json();
+          if (!j.is_banned) { if (banBtn) banBtn.style.display='inline-block'; unbanBtn.style.display='none'; }
+          // if the banned modal is open, hide it when user is unbanned
+          try { hideBannedModal(); } catch(_) {}
+        } else alert('Failed to unban user');
+        unbanBtn.disabled = false;
+      });
+
+      // Banned modal helpers
+      function showBannedModal() {
+        const modal = document.getElementById('bannedWarningModal');
+        if (!modal) return;
+        modal.style.display = 'block';
+        // focus trap: move focus to close button
+        const close = document.getElementById('bannedModalClose');
+        if (close) close.focus();
+      }
+      function hideBannedModal() {
+        const modal = document.getElementById('bannedWarningModal');
+        if (!modal) return;
+        modal.style.display = 'none';
+      }
+      const bannedClose = document.getElementById('bannedModalClose');
+      if (bannedClose) bannedClose.addEventListener('click', hideBannedModal);
+      const bannedUnban = document.getElementById('bannedModalUnban');
+      if (bannedUnban) bannedUnban.addEventListener('click', async function(){
+        // trigger unban then hide modal if success
+        bannedUnban.disabled = true;
+        const r = await postJson(`/customers/${customerId}/ban`);
+        if (r.ok) {
+          const j = await r.json();
+          if (!j.is_banned) {
+            if (banBtn) banBtn.style.display='inline-block';
+            if (unbanBtn) unbanBtn.style.display='none';
+            hideBannedModal();
+            addAuditEntry('Unbanned by you via modal');
+            showToast('User unbanned');
+          }
+        } else {
+          alert('Failed to unban user');
+        }
+        bannedUnban.disabled = false;
+      });
+
+      // If customer was already banned when page loaded, show the modal once
+      try {
+        const wasBanned = "<%= customer.is_banned ? 'true' : 'false' %>";
+        if (wasBanned === 'true') {
+          // small delay to allow UI to settle
+          setTimeout(() => { try { showBannedModal(); } catch(_) {} }, 250);
+        }
+      } catch(_) {}
+
+      function showToast(msg) {
+        let t = document.getElementById('toast');
+        if (!t) {
+          t = document.createElement('div');
+          t.id = 'toast';
+          t.style.position = 'fixed';
+          t.style.top = '20px';
+          t.style.right = '20px';
+          t.style.background = '#333';
+          t.style.color = '#fff';
+          t.style.padding = '8px 12px';
+          t.style.borderRadius = '6px';
+          t.style.zIndex = '9999';
+          t.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+          document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        t.style.display = 'block';
+        clearTimeout(t._hideTimeout);
+        t._hideTimeout = setTimeout(()=>{ t.style.display='none'; }, 3000);
+      }
+
+      function addAuditEntry(text) {
+        const log = document.getElementById('auditLog');
+        if (!log) return;
+        const el = document.createElement('div');
+        el.style.padding = '6px 0';
+        el.style.borderBottom = '1px dashed #eee';
+        el.textContent = text;
+        log.insertBefore(el, log.firstChild);
+      }
+
+      if (suspendBtn) suspendBtn.addEventListener('click', async function(){
+        const days = Number(daysInput.value || 0);
+        if (!Number.isFinite(days) || days < 0) return alert('Enter valid days');
+        suspendBtn.disabled = true;
+        const r = await postJson(`/customers/${customerId}/suspend`, { days });
+        if (r.ok) {
+          const j = await r.json();
+          const status = document.getElementById('suspendStatus');
+          if (j.suspended_until) {
+            const until = new Date(j.suspended_until).toLocaleString();
+            status.textContent = 'Suspended until ' + until;
+            showToast('Suspended until ' + until);
+            addAuditEntry('Suspended by you until ' + until);
+          } else {
+            status.textContent = '';
+            showToast('Suspension set');
+            addAuditEntry('Suspension set by you');
+          }
+        } else alert('Failed to suspend user');
+        suspendBtn.disabled = false;
+      });
+
+      if (clearSuspendBtn) clearSuspendBtn.addEventListener('click', async function(){
+        if (!confirm('Lift suspension for this user now?')) return;
+        clearSuspendBtn.disabled = true;
+        const r = await postJson(`/customers/${customerId}/suspend`, { days: 0 });
+        if (r.ok) {
+          const j = await r.json();
+          const status = document.getElementById('suspendStatus');
+          if (status) status.textContent = '';
+          daysInput.value = '';
+          const when = new Date().toLocaleString();
+          showToast('Suspension lifted');
+          addAuditEntry('Suspension lifted by you at ' + when);
+        } else {
+          alert('Failed to clear suspension');
+        }
+        clearSuspendBtn.disabled = false;
+      });
+    })();
+  </script>
+</body>
+</html>

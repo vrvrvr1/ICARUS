@@ -47,6 +47,7 @@
         <a href="/admin/announcements"><i class="bi bi-megaphone"></i> Announcements</a>
         <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
         <a href="/admin/cms" class="active"><i class="bi bi-journal-text"></i> CMS</a>
+        <a href="/admin/settings"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
       </nav>
     </div>
     <div>
@@ -106,33 +107,7 @@
             </aside>
           </div>
         <% } else if (page.slug === 'footer') { %>
-          <div class="cms-form">
-            <div class="fields">
-              <div>
-                <label for="contact_email">Contact Email</label>
-                <input type="email" id="contact_email" name="contact_email" value="<%= (page.data && page.data.contact_email) || '' %>">
-              </div>
-              <div>
-                <label for="phone">Phone</label>
-                <input type="text" id="phone" name="phone" value="<%= (page.data && page.data.phone) || '' %>">
-              </div>
-              <div>
-                <label for="address">Address</label>
-                <input type="text" id="address" name="address" value="<%= (page.data && page.data.address) || '' %>">
-              </div>
-              <div>
-                <button type="submit" class="btn-save">Save</button>
-              </div>
-            </div>
-            <aside class="hero-preview">
-              <div class="caption">Footer preview</div>
-              <div style="margin-top:8px;color:#e5e7eb;">
-                <div><strong>Email:</strong> <%= (page.data && page.data.contact_email) || '—' %></div>
-                <div><strong>Phone:</strong> <%= (page.data && page.data.phone) || '—' %></div>
-                <div><strong>Address:</strong> <%= (page.data && page.data.address) || '—' %></div>
-              </div>
-            </aside>
-          </div>
+          <%- include('../partials/cms-footer-blocks.ejs', { page: page }) %>
         <% } else if (page.slug === 'about') { %>
           <%- include('../partials/cms-about-blocks.ejs', { page: page }) %>
         <% } else { %>

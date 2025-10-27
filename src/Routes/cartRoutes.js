@@ -1,17 +1,10 @@
 import express from "express";
 import db from "../database/db.js";
+import { requireActiveUser } from "../Middleware/authMiddleware.js";
 const router = express.Router();
 
-// Middleware to check if user is logged in
-function isAuthenticated(req, res, next) {
-  if (!req.session.user) {
-    return res.redirect("/login");
-  }
-  next();
-}
-
 // ✅ View cart
-router.get("/", isAuthenticated, async (req, res) => {
+router.get("/", requireActiveUser, async (req, res) => {
   const customer_id = req.session.user.id;
   try {
     const cartItems = await db.query(
@@ -43,8 +36,15 @@ router.get("/", isAuthenticated, async (req, res) => {
 
 // ✅ Add to cart
 // ✅ Add to cart
-router.post("/add", isAuthenticated, async (req, res) => {
+router.post("/add", requireActiveUser, async (req, res) => {
   console.log("BODY RECEIVED:", req.body);
+
+  // Prevent banned users from adding to cart
+  try {
+    if (req.session && req.session.user && req.session.user.is_banned) {
+      return res.status(403).json({ error: 'account_banned', message: 'Your account is banned.' });
+    }
+  } catch(_) {}
 
   let { product_id, color, size, quantity } = req.body;
 
@@ -125,19 +125,28 @@ const existing = await db.query(
   [customer_id, product_id, color, size]
 );
 
-if (existing.rows.length > 0) {
-  await db.query(
-    "UPDATE cart SET quantity = quantity + $1 WHERE customer_id = $2 AND product_id = $3 AND color = $4 AND size = $5",
-    [quantity, customer_id, product_id, color, size]
-  );
-} else {
-  await db.query(
-    "INSERT INTO cart (customer_id, product_id, quantity, color, size) VALUES ($1, $2, $3, $4, $5)",
-    [customer_id, product_id, quantity, color, size]
-  );
-}
+  let cartId = null;
+  if (existing.rows.length > 0) {
+    const upd = await db.query(
+      "UPDATE cart SET quantity = quantity + $1 WHERE customer_id = $2 AND product_id = $3 AND color = $4 AND size = $5 RETURNING id",
+      [quantity, customer_id, product_id, color, size]
+    );
+    if (upd.rows && upd.rows[0]) cartId = upd.rows[0].id;
+  } else {
+    const ins = await db.query(
+      "INSERT INTO cart (customer_id, product_id, quantity, color, size) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+      [customer_id, product_id, quantity, color, size]
+    );
+    if (ins.rows && ins.rows[0]) cartId = ins.rows[0].id;
+  }
 
-    res.sendStatus(200);
+  // Return the cart row id for client-side flows (buy-now needs to know the specific cart item)
+  if (cartId) {
+    return res.json({ ok: true, cart_id: cartId });
+  } else {
+    // Fallback to generic success
+    return res.json({ ok: true });
+  }
   } catch (err) {
     console.error("Error adding to cart:", err);
     res.sendStatus(500);
@@ -162,7 +171,7 @@ router.get("/count", async (req, res) => {
 });
 
 // ✅ Remove item
-router.post("/remove", isAuthenticated, async (req, res) => {
+router.post("/remove", requireActiveUser, async (req, res) => {
   const { product_id, color, size } = req.body;
   const customer_id = req.session.user.id;
 
@@ -179,7 +188,7 @@ router.post("/remove", isAuthenticated, async (req, res) => {
 });
 
 // ✅ Update quantity
-router.post("/update", isAuthenticated, async (req, res) => {
+router.post("/update", requireActiveUser, async (req, res) => {
   const { product_id, quantity, action, color, size } = req.body;
   const customer_id = req.session.user.id;
   let newQty = parseInt(quantity);
@@ -221,7 +230,7 @@ router.post("/update", isAuthenticated, async (req, res) => {
 });
 
 // ✅ Clear cart
-router.post("/clear", isAuthenticated, async (req, res) => {
+router.post("/clear", requireActiveUser, async (req, res) => {
   const customer_id = req.session.user.id;
 
   try {

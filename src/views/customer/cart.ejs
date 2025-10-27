@@ -27,7 +27,8 @@
             
             <!-- Checkbox for selection -->
             <div class="select-item">
-              <input type="checkbox" name="checkoutItems" value="<%= item.product_id %>|<%= item.color %>|<%= item.size %>" checked>
+              <!-- value is cart row id so server can identify exact cart entries -->
+              <input type="checkbox" name="checkoutItems" value="<%= item.id %>" checked class="checkout-checkbox">
             </div>
 
             <!-- Product Info -->
@@ -95,6 +96,8 @@
   <!-- Order Summary / Checkout Form -->
   <% if (cartItems.length > 0) { %>
     <form id="checkout-form" action="/checkout" method="GET" class="order-summary">
+      <!-- hidden input to carry selected cart row ids to the checkout GET handler -->
+      <input type="hidden" name="items" id="checkout-items-input" value="">
       <h3>Order Summary</h3>
 
       <div class="summary-row">
@@ -104,19 +107,8 @@
         </span>
       </div>
 
-      <div class="shipping">
-        <p>Shipping</p>
-        <label>
-          <input type="radio" name="shipping" value="4.99" checked> Standard - $4.99
-        </label>
-        <label>
-          <input type="radio" name="shipping" value="12.99"> Express - $12.99
-        </label>
-        <label>
-          <input type="radio" name="shipping" value="0"> Free Shipping - $0.00
-        </label>
-      </div>
 
+      <!-- Removed shipping options: subtotal/total derived from selected items only -->
       <div class="summary-row">
         <span>Discount</span>
         <span id="discount">$0.00</span>
@@ -125,7 +117,7 @@
       <div class="summary-total">
         <span>Total</span>
         <span id="grand-total">
-          $<%= cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2) %>
+          $<span id="grand-total-value"><%= cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2) %></span>
         </span>
       </div>
 
@@ -139,10 +131,54 @@
 </div>
 
 <script>
-  // Update totals with shipping
-  const shippingOptions = document.querySelectorAll("input[name='shipping']");
+  // Totals: compute subtotal/total from selected items only
   const subtotalEl = document.getElementById("subtotal");
-  const grandTotalEl = document.getElementById("grand-total");
+  const grandTotalValueEl = document.getElementById('grand-total-value');
+
+  // Intercept checkout submit and include only checked items in the hidden input
+  const checkoutForm = document.getElementById('checkout-form');
+  if (checkoutForm) {
+    checkoutForm.addEventListener('submit', function(e){
+      const checkedBoxes = Array.from(document.querySelectorAll('.checkout-checkbox:checked'));
+      const checked = checkedBoxes.map(cb => cb.value);
+      if (checked.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one item to checkout.');
+        return;
+      }
+      // Put the selected ids into the hidden input (form method=GET will include it in the querystring)
+      const itemsParam = checked.join(',');
+      const hidden = document.getElementById('checkout-items-input');
+      if (hidden) hidden.value = itemsParam;
+      // Recalculate totals based on currently selected items and update UI before submit
+      recalcTotals();
+      // allow submit to continue
+    });
+  }
+
+  // Recalculate subtotal/total based on checked items and update DOM
+  function recalcTotals() {
+    const checkedBoxes = Array.from(document.querySelectorAll('.checkout-checkbox:checked'));
+    let subtotal = 0;
+    checkedBoxes.forEach(cb => {
+      const itemEl = cb.closest('.cart-item');
+      if (!itemEl) return;
+      const price = parseFloat(itemEl.getAttribute('data-price')) || 0;
+      // attempt to get quantity from the quantity span inside the item
+      const qtySpan = itemEl.querySelector('.quantity span');
+      const quantity = qtySpan ? parseInt(qtySpan.textContent) || 1 : 1;
+      subtotal += price * quantity;
+    });
+    subtotalEl.textContent = '$' + subtotal.toFixed(2);
+    grandTotalValueEl.textContent = subtotal.toFixed(2);
+  }
+
+  // Wire checkbox change events to recalc
+  const allCheckboxes = Array.from(document.querySelectorAll('.checkout-checkbox'));
+  allCheckboxes.forEach(cb => cb.addEventListener('change', recalcTotals));
+
+  // Also recalc on page load to ensure initial state matches checked items
+  recalcTotals();
 
   shippingOptions.forEach(opt => {
     opt.addEventListener("change", () => {

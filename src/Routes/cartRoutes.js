@@ -17,8 +17,15 @@ router.get("/", isAuthenticated, async (req, res) => {
     const cartItems = await db.query(
       `SELECT c.id, c.quantity, c.color, c.size,
               p.id AS product_id,
-              p.name AS product_name, 
-              p.price, 
+              p.name AS product_name,
+              -- effective price considers per-product promo if active
+              CASE WHEN COALESCE(p.promo_active, false) = true AND COALESCE(p.promo_percent, 0) > 0
+                   THEN ROUND(p.price * (1 - (p.promo_percent/100.0))::numeric, 2)
+                   ELSE p.price
+              END AS price,
+              p.price AS original_price,
+              COALESCE(p.promo_active, false) AS promo_active,
+              COALESCE(p.promo_percent, 0) AS promo_percent,
               p.image_url
        FROM cart c
        JOIN products p ON c.product_id = p.id
@@ -27,7 +34,7 @@ router.get("/", isAuthenticated, async (req, res) => {
       [customer_id]
     );
 
-    res.render("customer/cart", { cartItems: cartItems.rows });
+  res.render("customer/cart", { cartItems: cartItems.rows });
   } catch (err) {
     console.error(err);
     res.status(500).send("Error loading cart");
@@ -50,6 +57,69 @@ router.post("/add", isAuthenticated, async (req, res) => {
   }
 
   try {
+// Try to infer missing color/size from product_variants
+try {
+  const q = await db.query(`SELECT LOWER(color) AS color, UPPER(size) AS size, stock FROM product_variants WHERE product_id = $1`, [product_id]);
+  const rows = (q.rows || []).map(r => ({ color: String(r.color).toLowerCase(), size: String(r.size).toUpperCase(), stock: Number(r.stock || 0) }));
+  // If size missing but color provided
+  if (!size && color) {
+    const cand = rows.filter(r => r.color === String(color).toLowerCase());
+    const sufficient = cand.filter(r => r.stock >= quantity);
+    if (sufficient.length === 1) size = sufficient[0].size;
+    else if (cand.length === 1) size = cand[0].size;
+    else if (cand.length > 1 && !size) return res.status(400).json({ error: 'Size is required for this color' });
+  }
+  // If color missing but size provided
+  if (!color && size) {
+    const cand = rows.filter(r => r.size === String(size).toUpperCase());
+    const sufficient = cand.filter(r => r.stock >= quantity);
+    if (sufficient.length === 1) color = sufficient[0].color;
+    else if (cand.length === 1) color = cand[0].color;
+    else if (cand.length > 1 && !color) return res.status(400).json({ error: 'Color is required for this size' });
+  }
+  // If both missing
+  if (!color && !size) {
+    const sufficient = rows.filter(r => r.stock >= quantity);
+    if (sufficient.length === 1) { color = sufficient[0].color; size = sufficient[0].size; }
+    else if (rows.length === 1) { color = rows[0].color; size = rows[0].size; }
+  }
+} catch(_) {}
+// Validate stock for selected variant if exists
+let maxStock = null;
+try {
+  if (size && color) {
+    const ss = await db.query(
+      `SELECT stock FROM product_variants WHERE product_id = $1 AND UPPER(size) = UPPER($2) AND LOWER(color) = LOWER($3)`,
+      [product_id, size, color]
+    );
+    if (ss.rows.length) maxStock = Number(ss.rows[0].stock || 0);
+  }
+} catch (_) { /* ignore if table missing */ }
+
+// If no variant record, fallback to total variant stock sum
+if (maxStock === null) {
+  try {
+    const ps = await db.query(`SELECT COALESCE(SUM(stock),0) AS total FROM product_variants WHERE product_id = $1`, [product_id]);
+    if (ps.rows.length) maxStock = Number(ps.rows[0].total || 0);
+  } catch(_) {}
+}
+
+// Consider existing quantity in cart for same variant
+let existingQty = 0;
+try {
+  const ex = await db.query(
+    `SELECT quantity FROM cart WHERE customer_id=$1 AND product_id=$2 AND color = $3 AND size = $4`,
+    [customer_id, product_id, color, size]
+  );
+  if (ex.rows.length) existingQty = Number(ex.rows[0].quantity || 0);
+} catch(_) {}
+
+if (maxStock !== null && maxStock >= 0) {
+  if (existingQty + quantity > maxStock) {
+    return res.status(409).json({ error: "Not enough stock for selected size", available: Math.max(0, maxStock - existingQty) });
+  }
+}
+
 const existing = await db.query(
   "SELECT * FROM cart WHERE customer_id = $1 AND product_id = $2 AND color = $3 AND size = $4",
   [customer_id, product_id, color, size]
@@ -74,9 +144,12 @@ if (existing.rows.length > 0) {
   }
 });
 
-// ✅ Cart count for header
-router.get("/count", isAuthenticated, async (req, res) => {
+// ✅ Cart count for header (public: returns 0 for guests)
+router.get("/count", async (req, res) => {
   try {
+    if (!req.session || !req.session.user) {
+      return res.json({ count: 0 });
+    }
     const result = await db.query(
       "SELECT SUM(quantity) AS total FROM cart WHERE customer_id = $1",
       [req.session.user.id]
@@ -115,6 +188,27 @@ router.post("/update", isAuthenticated, async (req, res) => {
   if (action === "minus" && newQty > 1) newQty -= 1;
 
   try {
+    // Cap by per-variant stock if available
+    let maxStock = null;
+    try {
+      if (size && color) {
+        const ss = await db.query(
+          `SELECT stock FROM product_variants WHERE product_id = $1 AND UPPER(size) = UPPER($2) AND LOWER(color) = LOWER($3)`,
+          [product_id, size, color]
+        );
+        if (ss.rows.length) maxStock = Number(ss.rows[0].stock || 0);
+      }
+    } catch(_) {}
+    if (maxStock === null) {
+      try {
+        const ps = await db.query(`SELECT COALESCE(SUM(stock),0) AS total FROM product_variants WHERE product_id = $1`, [product_id]);
+        if (ps.rows.length) maxStock = Number(ps.rows[0].total || 0);
+      } catch(_) {}
+    }
+    if (maxStock !== null && maxStock >= 0) {
+      if (newQty > maxStock) newQty = maxStock;
+    }
+
     await db.query(
       "UPDATE cart SET quantity = $1 WHERE customer_id = $2 AND product_id = $3 AND color = $4 AND size = $5",
       [newQty, customer_id, product_id, color || null, size || null]

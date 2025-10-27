@@ -1,0 +1,118 @@
+<div class="cms-form">
+  <form id="about-blocks-form" action="/admin/cms/about/edit" method="POST" enctype="multipart/form-data" style="width:100%">
+    <div class="fields">
+      <!-- Main Title -->
+      <div style="margin-bottom:18px;">
+        <label>Main Title</label>
+        <input type="text" name="about_title" value="<%= (page.data && page.data.about_title) || 'Dedicated to Your Performance' %>" />
+      </div>
+      <!-- Subtitle -->
+      <div style="margin-bottom:18px;">
+        <label>Subtitle</label>
+        <input type="text" name="about_subtitle" value="<%= (page.data && page.data.about_subtitle) || 'We craft high-performance apparel that blends function with modern style. Trusted by athletes and everyday movers, our products are engineered to perform and built to last.' %>" />
+      </div>
+      <!-- Hero Image -->
+      <div style="margin-bottom:18px;">
+        <label>Hero Image</label>
+        <% if (page.data && page.data.about_image_url) { %>
+          <img src="<%= page.data.about_image_url %>" alt="About image" style="max-width:180px;display:block;margin-bottom:8px;">
+        <% } %>
+        <input type="file" name="about_image" accept="image/*" />
+      </div>
+      <!-- Features List -->
+      <div style="margin-bottom:18px;">
+        <label>Features</label>
+        <div id="features-list">
+          <% (page.data && page.data.features || ['Expert craftsmanship','Premium materials and construction','Reliable support','Fast shipping & responsive customer care','Smart integrations','App-friendly products and tracking']).forEach(function(f, i){ %>
+            <div style="display:flex;align-items:center;margin-bottom:6px;">
+              <input type="text" name="features[]" value="<%= f %>" style="flex:1;" />
+              <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>
+            </div>
+          <% }) %>
+        </div>
+        <button type="button" class="btn-outline btn-sm" onclick="addFeature()">Add Feature</button>
+      </div>
+      <!-- Why Choose Section -->
+      <div style="margin-bottom:18px;">
+        <label>Why Choose Title</label>
+        <input type="text" name="why_title" value="<%= (page.data && page.data.why_title) || 'Why Choose Icarus Wear?' %>" />
+      </div>
+      <div style="margin-bottom:18px;">
+        <label>Why Choose Body</label>
+        <textarea name="why_body" rows="3"><%= (page.data && page.data.why_body) || 'Our focus is simple: build apparel that performs, fits, and looks great. We combine research-driven materials with thoughtful design so you can focus on what matters.' %></textarea>
+      </div>
+      <!-- Key Features List -->
+      <div style="margin-bottom:18px;">
+        <label>Key Features</label>
+        <div id="key-features-list">
+          <% (page.data && page.data.key_features || ['Experienced design team','24/7 customer support','Advanced performance fabrics','Seamless online experience']).forEach(function(f, i){ %>
+            <div style="display:flex;align-items:center;margin-bottom:6px;">
+              <input type="text" name="key_features[]" value="<%= f %>" style="flex:1;" />
+              <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>
+            </div>
+          <% }) %>
+        </div>
+        <button type="button" class="btn-outline btn-sm" onclick="addKeyFeature()">Add Key Feature</button>
+      </div>
+      <!-- Team Section -->
+      <div style="margin-bottom:18px;">
+        <label>Team Title</label>
+        <input type="text" name="team_title" value="<%= (page.data && page.data.team_title) || 'KEY PEOPLE & CONTRIBUTORS' %>" />
+      </div>
+      <div style="margin-bottom:18px;">
+        <label>Team Subtitle</label>
+        <input type="text" name="team_subtitle" value="<%= (page.data && page.data.team_subtitle) || 'From our network of creative professionals.' %>" />
+      </div>
+      <div style="margin-bottom:18px;">
+        <label>Team Members</label>
+        <div id="team-list">
+          <% (page.data && page.data.team || [
+            {name:'Vincent Redd Ambong',role:'Co-Founder', image_url:'/image/m1.png'},
+            {name:'Lance Cedrick Fernandez',role:'Co-Founder', image_url:'/image/m2.png'},
+            {name:'Joshua Libag',role:'Co-Founder', image_url:'/image/m3.png'},
+            {name:'John Paul Penola',role:'Co-Founder', image_url:'/image/m4.png'},
+            {name:'Mark David Hernandez',role:'Co-Founder', image_url:'/image/m5.png'}
+          ]).forEach(function(m, i){ %>
+            <% var nameVal = (typeof m === 'string') ? m : (m && m.name ? m.name : ''); %>
+            <% var roleVal = (typeof m === 'string') ? '' : (m && m.role ? m.role : ''); %>
+            <% var imageVal = (m && m.image_url) ? m.image_url : ''; %>
+            <% var previewImg = imageVal || ('/image/m' + ((i % 5) + 1) + '.png'); %>
+            <div style="display:flex;align-items:center;margin-bottom:6px;gap:8px;">
+              <img src="<%= previewImg %>" alt="thumb" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;" onerror="this.style.display='none'" />
+              <input type="text" name="team[<%= i %>][name]" value="<%= nameVal %>" placeholder="Name" style="flex:1;min-width:160px;" />
+              <input type="text" name="team[<%= i %>][role]" value="<%= roleVal %>" placeholder="Role" style="width:160px;" />
+              <input type="url" name="team[<%= i %>][image_url]" value="<%= imageVal %>" placeholder="Image URL (or upload)" style="width:260px;" />
+              <input type="file" name="team_image_<%= i %>" accept="image/*" style="width:160px;" />
+              <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>
+            </div>
+          <% }) %>
+        </div>
+        <button type="button" class="btn-outline btn-sm" onclick="addTeamMember()">Add Team Member</button>
+      </div>
+      <div>
+        <button type="submit" class="btn-save">Save All</button>
+      </div>
+    </div>
+  </form>
+</div>
+<script>
+function addFeature() {
+  var d = document.createElement('div');
+  d.style.display = 'flex'; d.style.alignItems = 'center'; d.style.marginBottom = '6px';
+  d.innerHTML = '<input type="text" name="features[]" style="flex:1;" /> <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>';
+  document.getElementById('features-list').appendChild(d);
+}
+function addKeyFeature() {
+  var d = document.createElement('div');
+  d.style.display = 'flex'; d.style.alignItems = 'center'; d.style.marginBottom = '6px';
+  d.innerHTML = '<input type="text" name="key_features[]" style="flex:1;" /> <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>';
+  document.getElementById('key-features-list').appendChild(d);
+}
+function addTeamMember() {
+  var d = document.createElement('div');
+  d.style.display = 'flex'; d.style.alignItems = 'center'; d.style.marginBottom = '6px'; d.style.gap = '6px';
+  var idx = document.querySelectorAll('#team-list > div').length;
+  d.innerHTML = '<input type="text" name="team['+idx+'][name]" placeholder="Name" style="flex:1;" /> <input type="text" name="team['+idx+'][role]" placeholder="Role" style="width:120px;" /> <input type="url" name="team['+idx+'][image_url]" placeholder="Image URL (optional)" style="width:220px;" /> <input type="file" name="team_image_'+idx+'" accept="image/*" style="width:180px;" /> <button type="button" class="btn-outline btn-sm" onclick="this.parentNode.remove()">Remove</button>';
+  document.getElementById('team-list').appendChild(d);
+}
+</script>

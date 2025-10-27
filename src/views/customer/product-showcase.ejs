@@ -47,6 +47,9 @@
 
  <!-- Product Image Showcase -->
 <div class="product-image">
+  <% if (product && product.promo_active && Number(product.promo_percent || 0) > 0) { %>
+    <div class="sale-badge">-<%= Number(product.promo_percent) %>%</div>
+  <% } %>
   <!-- Main Image -->
   <img
     src="<%= (images && images.length) ? images[0] : '/image/default.png' %>"
@@ -68,12 +71,14 @@
   </div>
 </div>
 
+<!-- Reviews moved below product-container -->
+
   <!-- Product Details -->
   <div class="product-details">
     <div class="product-info">
-      <h1><%= product.name %></h1>
+  <h1><%= product.name %></h1>
 
-      <div class="product-rating">
+  <div class="product-rating">
         <%
           const fullStars = Math.floor(product.rating || 0);
           const partial = (product.rating || 0) - fullStars;
@@ -99,11 +104,36 @@
         <% } %>
 
         <span class="review-count">(<%= product.reviews || 0 %> Reviews)</span>
+        <span class="sold-count" style="margin-left:8px; color:#6b7280; font-size:13px;">Sold <%= Number(product.sold ?? 0).toLocaleString() %></span>
       </div>
 
-       <p class="product-price">
-  $<span id="product-price-value"><%= Number(product.price).toFixed(2) %></span>
-</p>
+      <div class="product-price">
+        <% 
+          const __price = Number(product.price || 0);
+          const __hasPromo = !!product.promo_active && Number(product.promo_percent || 0) > 0;
+          const __disc = __hasPromo ? (__price * (1 - (Number(product.promo_percent)/100))) : __price;
+        %>
+        <% if (__hasPromo) { %>
+          <span class="price-new">$<span id="product-price-value"><%= __disc.toFixed(2) %></span></span>
+          <span class="price-old">$<span id="product-price-original"><%= __price.toFixed(2) %></span></span>
+          <span class="price-save">Save <%= Math.round(Number(product.promo_percent)) %>%</span>
+        <% } else { %>
+          <span class="price-new">$<span id="product-price-value"><%= __price.toFixed(2) %></span></span>
+        <% } %>
+      </div>
+
+      <% const __stock = Number(product.stock || 0); const __lowStock = (__stock > 0 && __stock <= 5); %>
+      <div class="stock-status"
+           data-stock="<%= __stock %>"
+           style="margin-top:6px; font-size:13px; font-weight:600;">
+        <% if (__stock <= 0) { %>
+          <span style="color:#ef4444;">Out of stock</span>
+        <% } else if (__lowStock) { %>
+          <span style="color:#d97706;">Only <%= __stock %> left</span>
+        <% } else { %>
+          <span style="color:#10b981;">In stock: <%= __stock %></span>
+        <% } %>
+      </div>
 
       <% if (product.short_description) { %>
         <p class="product-short-description"><%= product.short_description %></p>
@@ -167,11 +197,11 @@
       <input type="hidden" name="size" id="selected-size">
       <input type="hidden" name="quantity" id="selected-qty" value="1">
 
-      <button type="submit" class="add-to-cart-btn">ADD TO CART</button>
+      <button type="submit" class="add-to-cart-btn" <%= __stock <= 0 ? 'disabled aria-disabled="true"' : '' %>>ADD TO CART</button>
     </form>
 
   <!-- Buy Now -->
-  <button class="buy-now-btn">BUY NOW</button>
+  <button class="buy-now-btn" <%= __stock <= 0 ? 'disabled aria-disabled="true"' : '' %>>BUY NOW</button>
 
   <!-- Wishlist -->
   <button class="wishlist-btn" data-id="<%= product.id %>">
@@ -183,6 +213,141 @@
   </button>
 </div>
 
+<!-- Close product-details and product-container -->
+</div>
+</div>
+
+<!-- Ratings & Reviews (now under the product container) -->
+<section id="reviews-section" class="container my-5">
+  <div class="row g-4">
+    <!-- Summary -->
+    <div class="col-12">
+      <div class="card p-3 p-md-4 shadow-sm">
+        <h2 class="h5 mb-3">Customer reviews</h2>
+        <% const _counts = (typeof reviewBreakdown !== 'undefined' && reviewBreakdown && reviewBreakdown.counts) ? reviewBreakdown.counts : {1:0,2:0,3:0,4:0,5:0}; %>
+        <% const _total = (typeof reviewBreakdown !== 'undefined' && reviewBreakdown) ? (reviewBreakdown.total || 0) : (product.reviews || 0) || 0; %>
+        <div class="row g-4 align-items-stretch">
+          <!-- Left: 5-to-1 breakdown -->
+          <div class="col-12 col-md-7">
+            <% for (let star = 5; star >= 1; star--) { const count = _counts[star] || 0; const pct = _total > 0 ? Math.round((count/_total)*100) : 0; %>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <div class="text-uppercase small fw-semibold" style="width:48px; color:#6b6b6b;">
+                  <%= (star===5?'Five':star===4?'Four':star===3?'Three':star===2?'Two':'One') %>
+                </div>
+                <i class="bi bi-star-fill" style="color:#f4b400; font-size:0.9rem;"></i>
+                <div class="progress flex-grow-1" style="height:8px; background:#f3f3f3;">
+                  <div class="progress-bar" style="background:#f4b400;" role="progressbar" data-pct="<%= pct %>" aria-valuenow="<%= pct %>" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="small text-muted" style="width:56px; text-align:right;">
+                  <% const _c = Number(count)||0; %>
+                  <% if (_c >= 1000) { %>
+                    <%= (_c/1000).toFixed(1).replace(/\.0$/, '') %>K
+                  <% } else { %>
+                    <%= _c.toLocaleString() %>
+                  <% } %>
+                </div>
+              </div>
+            <% } %>
+          </div>
+
+          <!-- Right: Rating panel -->
+          <div class="col-12 col-md-5">
+            <div class="p-4 rounded-3" style="background:#fff9e6; border:1px solid #fde9ae; height:100%; display:flex; align-items:center; justify-content:center;">
+              <div class="text-center">
+                <div class="display-6" style="font-weight:700; color:#4a4a4a;"><%= (Number(product.rating)||0).toFixed(1) %></div>
+                <div class="my-2" style="color:#f4b400; font-size:1.1rem;">
+                  <% const rFull2 = Math.floor(product.rating || 0); const rPart2 = (product.rating || 0) - rFull2; const rEmpty2 = 5 - rFull2 - (rPart2 > 0 ? 1 : 0); %>
+                  <% for (let i = 0; i < rFull2; i++) { %><i class="bi bi-star-fill"></i><% } %>
+                  <% if (rPart2 > 0) { %>
+                    <% if (rPart2 >= 0.75) { %><i class="bi bi-star-fill"></i><% } else if (rPart2 >= 0.25) { %><i class="bi bi-star-half"></i><% } else { %><i class="bi bi-star"></i><% } %>
+                  <% } %>
+                  <% for (let i = 0; i < rEmpty2; i++) { %><i class="bi bi-star"></i><% } %>
+                </div>
+                <div class="small text-muted"><%= _total.toLocaleString() %> Ratings</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reviews List -->
+    <div class="col-12 col-lg-5">
+      <div class="card p-3 p-md-4 shadow-sm" style="max-height: 360px; overflow:auto;">
+        <h3 class="h6 mb-3">Recent reviews</h3>
+        <% if (typeof reviews !== 'undefined' && reviews && reviews.length) { %>
+          <div class="list-group list-group-flush">
+            <% reviews.forEach(function(r){ %>
+              <div class="list-group-item py-3">
+                <div class="d-flex align-items-start gap-3">
+                  <img
+                    src="<%= (r.user_avatar || r.profile_pic || r.avatar_url || r.avatar || r.photo || '/image/default.png') %>"
+                    alt="<%= (r.user_name || r.reviewer || r.author || 'Anonymous') %> avatar"
+                    class="rounded-circle"
+                    style="width:66px; height:66px; object-fit:cover;"
+                  />
+                  <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <strong><%= r.user_name || r.reviewer || r.author || 'Anonymous' %></strong>
+                      <span class="text-muted small"><%= r.created_at ? new Date(r.created_at).toLocaleDateString() : '' %></span>
+                    </div>
+                    <div class="text-warning mb-1">
+                      <% const rr = Math.max(0, Math.min(5, Number(r.rating || 0))); %>
+                      <% for (let i = 0; i < Math.floor(rr); i++) { %><i class="bi bi-star-fill"></i><% } %>
+                      <% for (let i = Math.floor(rr); i < 5; i++) { %><i class="bi bi-star"></i><% } %>
+                    </div>
+                    <p class="mb-0"><%= r.comment || r.text || r.content || '' %></p>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <p class="text-muted mb-0">No reviews yet. Be the first to review this product.</p>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Add Review -->
+    <div class="col-12 col-lg-7" id="add-review">
+      <div class="card p-3 p-md-4 shadow-sm">
+        <h3 class="h6 mb-3">Write a review</h3>
+        <% if (typeof user !== 'undefined' && user) { %>
+          <form action="/products/<%= product.id %>/reviews" method="POST" id="review-form" class="d-grid gap-3">
+            <input type="hidden" name="product_id" value="<%= product.id %>">
+            <input type="hidden" name="rating" id="review-rating" value="5">
+
+            <div>
+              <label class="form-label">Your rating</label>
+              <div class="d-flex align-items-center gap-1" style="color:#f4b400;">
+                <% for (let s = 1; s <= 5; s++) { %>
+                  <button type="button" class="star-btn p-0 border-0 bg-transparent" style="color:#f4b400;" data-value="<%= s %>" aria-label="Rate <%= s %> out of 5">
+                    <i class="bi <%= s <= 5 ? 'bi-star-fill' : 'bi-star' %>"></i>
+                  </button>
+                <% } %>
+              </div>
+            </div>
+
+            <div>
+              <label for="review-comment" class="form-label">Your review</label>
+              <textarea id="review-comment" name="comment" class="form-control" rows="4" placeholder="Share details about the quality, fit, and comfort..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Submit review</button>
+            <div class="form-text">Submitting a review may require you to be signed in.</div>
+          </form>
+        <% } else { %>
+          <div class="text-center">
+            <p class="mb-3">Please log in to write a review.</p>
+            <a href="/login?redirect=/products/<%= product.id %>#add-review" class="btn btn-outline-primary">Log in</a>
+            <div class="form-text mt-2">Don't have an account? <a href="/signup?redirect=/products/<%= product.id %>#add-review">Sign up</a></div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</section>
+
 <div id="cart-notif" 
      style="display:none; position:fixed; top:20px; right:20px; 
             background:#4caf50; color:#fff; padding:12px 20px; 
@@ -191,8 +356,32 @@
   ✅ Item added to cart!
 </div>
 
+<!-- Error modal for cart and option validation -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body">
+        <div class="d-flex align-items-start gap-3">
+          <div class="text-danger fs-4"><i class="bi bi-exclamation-circle-fill"></i></div>
+          <div>
+            <h5 class="mb-1" id="errorModalTitle">Action required</h5>
+            <p class="mb-0" id="errorModalMsg">Please select a color and a size before adding to cart.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 <script src="js/filter.js"></script>
+<!-- Embedded per-variant stock JSON: { colorLower: { SIZE: count } } -->
+<script id="variant-stock-json" type="application/json"><%- JSON.stringify(typeof variantStock !== 'undefined' ? variantStock : {}) %></script>
+<!-- Embedded sizes JSON: ["S","M",...] derived server-side from product_variants -->
+<script id="sizes-json" type="application/json"><%- JSON.stringify(typeof sizes !== 'undefined' ? sizes : []) %></script>
 <script>
   
 document.addEventListener('DOMContentLoaded', function () {
@@ -221,15 +410,29 @@ document.addEventListener('DOMContentLoaded', function () {
   const minusBtn = document.querySelector(".qty-btn.minus");
   const plusBtn = document.querySelector(".qty-btn.plus");
   const priceElement = document.getElementById("product-price-value");
+  const originalPriceElement = document.getElementById("product-price-original");
   const qtyInput = document.getElementById("selected-qty");
 
   const basePrice = Number(priceElement.textContent);
+  const originalBasePrice = originalPriceElement ? Number(originalPriceElement.textContent) : basePrice;
   let quantity = parseInt(qtyInput.value) || 1;
+  // Per-variant stock map provided by server: { colorLower: { SIZE: count } }
+  const variantStock = Object.freeze(JSON.parse(document.getElementById('variant-stock-json')?.textContent || '{}'));
+  let selectedColor = null;
+  let selectedSize = null;
+  let maxStock = Number(document.querySelector('.stock-status')?.getAttribute('data-stock') || '0');
 
   function updateQuantityDisplay() {
     qtyValue.textContent = quantity;
     qtyInput.value = quantity;
     priceElement.textContent = (basePrice * quantity).toFixed(2);
+    if (originalPriceElement) {
+      originalPriceElement.textContent = (originalBasePrice * quantity).toFixed(2);
+    }
+    // Toggle plus button if hitting stock cap
+    if (maxStock > 0) {
+      plusBtn.disabled = quantity >= maxStock;
+    }
   }
 
   minusBtn.addEventListener("click", e => {
@@ -242,6 +445,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   plusBtn.addEventListener("click", e => {
     e.preventDefault();
+    if (maxStock > 0 && quantity >= maxStock) return;
     quantity++;
     updateQuantityDisplay();
   });
@@ -251,17 +455,91 @@ document.addEventListener('DOMContentLoaded', function () {
   // ----------------------
   // Handle Color & Size
   // ----------------------
+  // Make server sizes available to JS (parse from JSON tag to avoid EJS eval issues)
+  const sizes = JSON.parse(document.getElementById('sizes-json')?.textContent || '[]');
+
+  function updateSizesForColor(color){
+    const cKey = String(color || '').toLowerCase();
+    const sizeMap = (variantStock && variantStock[cKey]) ? variantStock[cKey] : {};
+    ["S","M","L","XL"].forEach(sz => {
+      const input = document.getElementById('size-' + sz);
+      const label = document.querySelector('label[for="size-' + sz + '"]');
+      if (!input || !label) return;
+      const cnt = Number(sizeMap[sz] || 0);
+      // Enable based solely on per-color stock
+      const enabled = cnt > 0;
+      input.disabled = !enabled;
+      label.classList.toggle('disabled', !enabled);
+      // update count span
+      let span = label.querySelector('.size-count');
+      if (!span) {
+        span = document.createElement('span');
+        span.className = 'size-count';
+        span.style.cssText = 'font-size:11px; color:#6b7280; margin-left:4px;';
+        label.appendChild(span);
+      }
+      span.textContent = enabled ? '(' + cnt + ')' : '';
+    });
+  }
+
   document.querySelectorAll("input[name='color']").forEach(radio => {
     radio.addEventListener("change", () => {
-      document.getElementById("selected-color").value = radio.value;
+      selectedColor = radio.value;
+      document.getElementById("selected-color").value = selectedColor;
+      updateSizesForColor(selectedColor);
+      // reset size selection when color changes
+      selectedSize = null;
+      const checked = document.querySelector("input[name='size']:checked");
+      if (checked) { checked.checked = false; }
+      document.getElementById("selected-size").value = '';
+      if (stockStatusEl) stockStatusEl.innerHTML = '<span style="color:#6b7280;">Select a size to see availability</span>';
+      maxStock = 0;
+      updateQuantityDisplay();
     });
   });
 
+  // Update selected size + derive available stock for this size
+  const stockStatusEl = document.querySelector('.stock-status');
+  function refreshStockForVariant(color, sz){
+    const cKey = String(color || '').toLowerCase();
+    const sizeMap = (variantStock && variantStock[cKey]) ? variantStock[cKey] : {};
+    const avail = Number(sizeMap[sz] || 0);
+    maxStock = avail;
+    // Clamp quantity if exceeds
+    if (maxStock > 0 && quantity > maxStock) {
+      quantity = maxStock;
+    }
+    // Update messaging
+    if (stockStatusEl){
+      stockStatusEl.setAttribute('data-stock', String(avail));
+      if (avail <= 0) {
+        stockStatusEl.innerHTML = '<span style="color:#ef4444;">Out of stock for ' + (color || '') + ' / ' + sz + '</span>';
+      } else if (avail <= 5) {
+        stockStatusEl.innerHTML = '<span style="color:#d97706;">Only ' + avail + ' left for ' + (color || '') + ' / ' + sz + '</span>';
+      } else {
+        stockStatusEl.innerHTML = '<span style="color:#10b981;">In stock: ' + avail + ' for ' + (color || '') + ' / ' + sz + '</span>';
+      }
+    }
+    // Toggle purchase buttons based on availability for selected size
+    const addBtn = document.querySelector('.add-to-cart-btn');
+    const buyBtn = document.querySelector('.buy-now-btn');
+    const disable = avail <= 0;
+    if (addBtn) addBtn.disabled = disable;
+    if (buyBtn) buyBtn.disabled = disable;
+    updateQuantityDisplay();
+  }
   document.querySelectorAll("input[name='size']").forEach(radio => {
     radio.addEventListener("change", () => {
-      document.getElementById("selected-size").value = radio.value;
+      selectedSize = radio.value;
+      document.getElementById("selected-size").value = selectedSize;
+      refreshStockForVariant(selectedColor, selectedSize);
     });
   });
+
+  // Cue user to select color and size for availability when variants present
+  if (variantStock && Object.keys(variantStock).length && stockStatusEl) {
+    stockStatusEl.innerHTML = '<span style="color:#6b7280;">Select a color and size to see availability</span>';
+  }
 
   // ----------------------
   // Wishlist Button
@@ -328,8 +606,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
       qtyInput.value = quantity;
 
+      function showErrorModal(message, title){
+        const modalEl = document.getElementById('errorModal');
+        if (!modalEl || !window.bootstrap) { alert(message); return; }
+        const titleEl = modalEl.querySelector('#errorModalTitle');
+        const msgEl = modalEl.querySelector('#errorModalMsg');
+        if (titleEl) titleEl.textContent = title || 'Action required';
+        if (msgEl) msgEl.textContent = message;
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+      }
+
       if (!selectedColor || !selectedSize) {
-        alert("Please select a color and a size before adding to cart!");
+        showErrorModal("Please select a color and a size before adding to cart!", "Choose options");
         return;
       }
 
@@ -350,14 +639,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (res.status === 200) {
           showCartNotif("Item added to cart!");
+          // bump header cart count without page refresh
+          if (window.updateCartCount) window.updateCartCount();
+          try { localStorage.setItem('cart-tick', String(Date.now())); } catch(_) {}
         } else if (res.status === 400) {
-          alert("Please select a color and a size before adding to cart!");
+          showErrorModal("Please select a color and a size before adding to cart!", "Choose options");
+        } else if (res.status === 409) {
+          const data = await res.json().catch(() => ({}));
+          const avail = (data && typeof data.available === 'number') ? data.available : 0;
+          showErrorModal(`Not enough stock for this size. Available: ${avail}.`, "Not enough stock");
         } else {
-          alert("Failed to add to cart. Please try again.");
+          showErrorModal("Failed to add to cart. Please try again.", "Something went wrong");
         }
 
       } catch (err) {
-        alert("Error adding to cart.");
+        showErrorModal("Error adding to cart. Please try again.", "Network error");
         console.error(err);
       }
     });
@@ -383,6 +679,38 @@ document.addEventListener('DOMContentLoaded', function () {
     notif.style.display = "block";
     setTimeout(() => { notif.style.display = "none"; }, 2500);
   }
+  
+  // ----------------------
+  // Review stars selector
+  // ----------------------
+  const reviewForm = document.getElementById('review-form');
+  if (reviewForm) {
+    const ratingInput = document.getElementById('review-rating');
+    const starBtns = Array.from(reviewForm.querySelectorAll('.star-btn'));
+    function refreshStars(val){
+      starBtns.forEach(btn => {
+        const v = Number(btn.getAttribute('data-value'));
+        const icon = btn.querySelector('i');
+        icon.classList.toggle('bi-star-fill', v <= val);
+        icon.classList.toggle('bi-star', v > val);
+      });
+    }
+    starBtns.forEach(btn => btn.addEventListener('click', () => {
+      const val = Number(btn.getAttribute('data-value')) || 5;
+      ratingInput.value = String(val);
+      refreshStars(val);
+    }));
+    refreshStars(Number(ratingInput.value || 5));
+  }
+
+  // ----------------------
+  // Set progress widths for review breakdown
+  // ----------------------
+  document.querySelectorAll('#reviews-section .progress-bar[data-pct]')
+    .forEach(el => {
+      const pct = Math.max(0, Math.min(100, Number(el.getAttribute('data-pct') || 0)));
+      el.style.width = pct + '%';
+    });
 });
 
 

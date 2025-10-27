@@ -15,7 +15,77 @@
 
 
   <!-- CSS -->
-  <link rel="stylesheet" href="css/homepage.css">
+  <link rel="stylesheet" href="/css/homepage.css">
+
+  <!-- Critical inline fixes (temporary) to ensure "Shop by" layout renders even if external CSS is cached/not loaded -->
+  <style>
+    /* full-bleed shop banner (temporary inline to ensure immediate effect) */
+    /* Visual polish: compact vertical rhythm, card styling, prominent imagery and refined CTAs */
+    .shop-banner{display:flex !important;flex-direction:column !important;gap:12px;width:100vw !important;max-width:100vw !important;margin:12px calc(50% - 50vw) 20px !important;padding:0 !important}
+
+    /* Card base: remove gray backgrounds and shadows for a cleaner look */
+    .shop-col{
+      width:100% !important;
+      height:260px !important;
+      display:flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      text-decoration:none !important;
+      padding:8px 0 !important;
+      background:transparent; /* removed white/gray card */
+      border-radius:12px;
+      overflow:hidden;
+      box-shadow:none; /* removed gray shadow */
+      transition:none;
+      position:relative;
+    }
+  /* Hover effects removed — keep card static */
+  .shop-col:hover{transform:none;box-shadow:none}
+
+  /* Make the image panel larger so visuals grab attention; ensure images fill their panel but do not crop */
+      /* Slight permanent zoom so images read larger without hover behavior */
+      .shop-col .shop-img{transition:transform .36s ease, opacity .36s ease;display:block;width:100%;height:100%;transform:scale(1.06);transform-origin:center center}
+      .shop-col:hover .shop-img{transform:scale(1.06)}
+
+    /* Text block vertically centered and tuned typography */
+    .shop-col .col-content{height:100%;display:flex;flex-direction:column;justify-content:center;text-align:center !important;padding:0 16px !important}
+  .shop-col .col-content h3{font-size:1.7rem;margin:0 0 6px;color:#000;font-weight:600}
+  /* Use pure black for subtitle and content text */
+  .shop-col .col-content{color:#000}
+  .shop-col .shop-subtitle{color:#000;font-size:0.98rem;margin-bottom:10px}
+
+  /* Explore link styles moved to external CSS for easier maintenance */
+
+    /* image panels — larger and positioned left/right per section */
+    .shop-col--men{background:none !important}
+  .shop-col--men .shop-img{position:absolute;left:0;top:0;bottom:0;width:64%;height:100%;object-fit:contain;object-position:center center;background-color:transparent;border-radius:12px 0 0 12px;z-index:1}
+  .shop-col--men .overlay{position:absolute;left:0;top:0;bottom:0;width:56%;background:transparent;border-radius:12px 0 0 12px;z-index:2;pointer-events:none}
+  .shop-col--men .col-content{position:relative !important;z-index:3;margin-left:64% !important;text-align:left !important;padding:0 32px !important}
+
+    .shop-col--women{background:none !important}
+  .shop-col--women .shop-img{position:absolute;right:0;top:0;bottom:0;width:64%;height:100%;object-fit:contain;object-position:center center;background-color:transparent;border-radius:0 12px 12px 0;z-index:1}
+  .shop-col--women .overlay{position:absolute;right:0;top:0;bottom:0;width:56%;background:transparent;border-radius:0 12px 12px 0;z-index:2;pointer-events:none}
+  .shop-col--women .col-content{position:relative !important;z-index:3;margin-right:64% !important;text-align:left !important;padding:0 32px !important}
+
+    .shop-col--unisex{background:none !important}
+  .shop-col--unisex .shop-img{position:absolute;left:0;top:0;bottom:0;width:64%;height:100%;object-fit:contain;object-position:center center;background-color:transparent;border-radius:12px 0 0 12px;z-index:1}
+  .shop-col--unisex .overlay{position:absolute;left:0;top:0;bottom:0;width:56%;background:transparent;border-radius:12px 0 0 12px;z-index:2;pointer-events:none}
+  .shop-col--unisex .col-content{position:relative !important;z-index:3;margin-left:64% !important;text-align:left !important;padding:0 32px !important}
+
+    /* Responsive behaviour: hide image panels on very small screens and tighten heights */
+    @media (max-width:1000px){
+      .shop-col{height:220px !important}
+      .shop-col--men .shop-img,.shop-col--women .shop-img,.shop-col--unisex .shop-img{width:60%}
+      .shop-col--men .col-content,.shop-col--women .col-content,.shop-col--unisex .col-content{margin-left:60% !important;margin-right:60% !important;padding:0 18px !important}
+    }
+    @media (max-width:640px){
+      .shop-banner{flex-direction:column !important}
+      .shop-col{width:100% !important;height:140px !important;padding:6px 0 !important}
+      .shop-col--men .shop-img,.shop-col--women .shop-img,.shop-col--unisex .shop-img{display:none}
+      .shop-col .col-content{margin:0 !important;text-align:center !important;padding:0 12px !important}
+      .shop-col .col-content h3{font-size:1.25rem}
+    }
+  </style>
 
 </head>
 <body>
@@ -24,34 +94,73 @@
     <%- include ("../partials/header.ejs") %>
     </nav>
 
+<!-- Centered Announcement Banner (for banner/both placements) -->
+<div id="annBannerContainer" class="container my-3" style="display:none;">
+  <div class="p-4 rounded text-center shadow-sm position-relative" style="background:linear-gradient(135deg,#f8fafc,#eef2ff); border:1px solid #e5e7eb;">
+    <button type="button" class="btn-close position-absolute end-0 top-0 m-3" id="annBannerClose" aria-label="Close"></button>
+    <div id="annBannerImageWrap" class="mb-2" style="display:none;">
+      <img id="annBannerImage" src="" alt="Announcement" style="max-height:140px; width:auto; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb;" onerror="this.parentElement.style.display='none'" />
+    </div>
+    <h4 id="annBannerTitle" class="mb-1"></h4>
+    <p id="annBannerBody" class="text-muted mb-3" style="margin:0 auto; max-width:680px;"></p>
+    <div id="annBannerCouponWrap" class="d-flex align-items-center justify-content-center gap-2 mb-3" style="display:none;">
+      <span id="annBannerCoupon" class="badge text-bg-warning"></span>
+      <button class="btn btn-sm btn-outline-secondary" id="annBannerCopyBtn" type="button">Copy</button>
+    </div>
+    <div id="annBannerCtaWrap" style="display:none;">
+      <a id="annBannerCta" href="#" class="btn btn-primary"></a>
+    </div>
+  </div>
+  <input type="hidden" id="annBannerCurrentId" value="" />
+  <input type="hidden" id="annBannerQueue" value="" />
+  <input type="hidden" id="annBannerIndex" value="0" />
+  <div class="text-center mt-2" id="annBannerNextWrap" style="display:none;">
+    <button id="annBannerNext" class="btn btn-sm btn-outline-secondary">Show next announcement</button>
+  </div>
+  
+</div>
+
 <!-- Image -->
-    <section class="hero">
+  <section class="hero"<% if (cmsHome && cmsHome.hero_image_url) { %> style="background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(255,107,107,0.3)), url('<%= cmsHome.hero_image_url %>'); background-size: cover; background-position: center; background-repeat: no-repeat;"<% } %>>
         <div class="hero-content">
-            <h1 class="hero-title">Rise beyond <span class="highlight">limits</span></h1>
-            <p class="hero-subtitle">Because limits are meant to be broken.</p>
-            <a href="/products" class="cta-button">Shop the Collection</a>
+        <h1 class="hero-title"><%- (cmsHome && cmsHome.hero_title) ? cmsHome.hero_title.replace('limits', "<span class='highlight'>limits</span>") : 'Rise beyond <span class=\'highlight\'>limits</span>' %></h1>
+      <p class="hero-subtitle"><%= (cmsHome && cmsHome.hero_subtitle) || 'Because limits are meant to be broken.' %></p>
+      <a href="<%= (cmsHome && cmsHome.cta_href) || '/products' %>" class="cta-button"><%= (cmsHome && cmsHome.cta_text) || 'Shop the Collection' %></a>
         </div>
     </section>
 
 <!-- Shop by Section -->
+<!-- Shop by Section (Full-width banner with three columns) -->
 <section class="shop-by-section">
-<div class="shop-by-container">
-  <h2 class="shop-by-title">Shop by Gym Activewear</h2>
-  <div class="shop-by-grid">
-      <a href="/products#mens" class="shop-by-item">
-          <img src="image/men.png" alt="Gym Activewear" class="shop-by-image">
-          <span class="shop-by-text">Men's Apparel</span>
-      </a>
-      <a href="/products?category=women" class="shop-by-item">
-          <img src="image/women.png" alt="Gym Accessories" class="shop-by-image">
-          <span class="shop-by-text">Women's Apparel</span>
-      </a>
-       <a href="/products?category=unisex" class="shop-by-item">
-          <img src="image/unisex.png" alt="Outdoor and Athleisure Apparel" class="shop-by-image">
-          <span class="shop-by-text">Unisex</span>
-      </a>
+  <div class="shop-banner">
+  <a href="/products#mens" class="shop-col shop-col--men" aria-label="Men's Apparel">
+      <img class="shop-img" src="/image/men.png" alt="Men's apparel" loading="lazy" onerror="this.onerror=null;this.src='/image/men.svg'" />
+      <div class="overlay"></div>
+      <div class="col-content">
+        <h3>Men's Apparel</h3>
+        <div class="shop-subtitle">Performance-driven gym staples built to move with you.</div>
+        <div class="shop-link">Explore Men's</div>
+      </div>
+    </a>
+  <a href="/products?category=women" class="shop-col shop-col--women" aria-label="Women's Apparel">
+      <img class="shop-img" src="/image/women.png" alt="Women's apparel" loading="lazy" onerror="this.onerror=null;this.src='/image/women.svg'" />
+      <div class="overlay"></div>
+      <div class="col-content">
+        <h3>Women's Apparel</h3>
+        <div class="shop-subtitle">Engineered fits and fabrics for confidence and comfort.</div>
+        <div class="shop-link">Explore Women's</div>
+      </div>
+    </a>
+  <a href="/products?category=unisex" class="shop-col shop-col--unisex" aria-label="Unisex Apparel">
+      <img class="shop-img" src="/image/unisex.png" alt="Unisex apparel" loading="lazy" onerror="this.onerror=null;this.src='/image/unisex.svg'" />
+      <div class="overlay"></div>
+      <div class="col-content">
+        <h3>Unisex</h3>
+        <div class="shop-subtitle">Flexible, everyday activewear for every body.</div>
+        <div class="shop-link">Explore Unisex</div>
+      </div>
+    </a>
   </div>
-</div>
 </section>
 
 <h2>STYLE THAT PERFORMS</h2>
@@ -98,75 +207,84 @@
   <div class="underline"></div>
 
   <div class="row g-4">
-    <!-- Product 1 -->
-    <div class="col-6 col-md-3">
-      <div class="product-card text-center">
-        <img src="image/fp1.png" alt="Product 1" class="img-fluid mb-3">
-        <h5 class="fw-semibold">Product Name 1</h5>
-        <p class="text-dark">WOMEN</p>
-        <p class="text-muted">$49.99</p>
-          <div class="rating">
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star"></i>
-          <i class="bi bi-star"></i>
+    <% if (typeof featuredProducts !== 'undefined' && featuredProducts.length > 0) { %>
+      <% featuredProducts.forEach(p => { %>
+        <div class="col-6 col-md-3">
+          <div class="product-card text-center">
+            <img src="<%= p.image %>" alt="<%= p.name %>" class="img-fluid mb-3">
+            <h5 class="fw-semibold"><%= p.name %></h5>
+            <p class="text-dark"><%= p.category || '' %></p>
+            <p class="price">$<%= p.price %></p>
+            <div class="rating">
+              <i class="bi bi-star-fill"></i>
+              <i class="bi bi-star-fill"></i>
+              <i class="bi bi-star-fill"></i>
+              <i class="bi bi-star"></i>
+              <i class="bi bi-star"></i>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <!-- Fallback to static placeholders when no featuredProducts provided -->
+      <div class="col-6 col-md-3">
+        <div class="product-card text-center">
+          <img src="image/fp1.png" alt="Product 1" class="img-fluid mb-3">
+          <h5 class="fw-semibold">Product Name 1</h5>
+          <p class="text-dark">WOMEN</p>
+          <p class="price">$49.99</p>
         </div>
       </div>
-    </div>
-
-    <!-- Product 2 -->
-    <div class="col-6 col-md-3">
-      <div class="product-card text-center">
-        <img src="image/fp2.png" alt="Product 2" class="img-fluid mb-3">
-        <h5 class="fw-semibold">Product Name 2</h5>
-        <p class="text-dark">MEN</p>
-        <p class="text-muted">$234</p>
-          <div class="rating">
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star"></i>
-          <i class="bi bi-star"></i>
+      <div class="col-6 col-md-3">
+        <div class="product-card text-center">
+          <img src="image/fp2.png" alt="Product 2" class="img-fluid mb-3">
+          <h5 class="fw-semibold">Product Name 2</h5>
+          <p class="text-dark">MEN</p>
+          <p class="price">$234</p>
         </div>
       </div>
-    </div>
-
-    <!-- Product 3 -->
-    <div class="col-6 col-md-3">
-      <div class="product-card text-center">
-        <img src="image/fp3.png" alt="Product 3" class="img-fluid mb-3">
-        <h5 class="fw-semibold">Product Name 3</h5>
-        <p class="text-dark">WOMEN</p>
-        <p class="text-muted">$120</p>
-          <div class="rating">
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star"></i>
-          <i class="bi bi-star"></i>
+      <div class="col-6 col-md-3">
+        <div class="product-card text-center">
+          <img src="image/fp3.png" alt="Product 3" class="img-fluid mb-3">
+          <h5 class="fw-semibold">Product Name 3</h5>
+          <p class="text-dark">WOMEN</p>
+          <p class="price">$120</p>
         </div>
       </div>
-    </div>
-
-    <!-- Product 4 -->
-    <div class="col-6 col-md-3">
-      <div class="product-card text-center">
-        <img src="image/fp4.png" alt="Product 4" class="img-fluid mb-3">
-        <h5 class="fw-semibold">Product Name 4</h5>
-        <p class="text-dark">MEN</p>
-        <p class="text-muted">$124</p>
-          <div class="rating">
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star-fill"></i>
-          <i class="bi bi-star"></i>
-          <i class="bi bi-star"></i>
+      <div class="col-6 col-md-3">
+        <div class="product-card text-center">
+          <img src="image/fp4.png" alt="Product 4" class="img-fluid mb-3">
+          <h5 class="fw-semibold">Product Name 4</h5>
+          <p class="text-dark">MEN</p>
+          <p class="price">$124</p>
         </div>
       </div>
-    </div>
+    <% } %>
   </div>
 </section>
+
+<!-- Announcements (if any) -->
+<% if (Array.isArray(announcements) && announcements.length) { %>
+  <section class="container my-4">
+    <h2>Announcements</h2>
+    <div class="underline"></div>
+    <ul class="list-group" style="margin-top:12px;">
+      <% announcements.forEach(a => { %>
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold"><%= a.title %></div>
+              <% if (a.body) { %>
+                <div class="text-muted"><%= a.body %></div>
+              <% } %>
+            </div>
+            <small class="text-secondary"><%= new Date(a.created_at).toLocaleDateString() %></small>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+<% } %>
 
 
     <!-- Dynamic Content Section -->
@@ -204,6 +322,70 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<!-- Announcements data for modal -->
+<script id="ann-data" type="application/json"><%- JSON.stringify(announcements || []) %></script>
+<!-- Announcement Modal with Carousel -->
+<div class="modal fade" id="annModal" tabindex="-1" aria-labelledby="annModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-body p-0">
+        <button type="button" class="btn-close position-absolute end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div id="annCarousel" class="carousel slide" data-bs-ride="carousel">
+          <div class="carousel-inner" id="annCarouselInner">
+            <% if (Array.isArray(announcements) && announcements.length) { %>
+              <% const _modalAnns = (announcements || []).filter(a => String((a.placement || 'modal')).toLowerCase() !== 'banner'); %>
+              <% _modalAnns.forEach((a, idx) => { %>
+                <div class="carousel-item <%= idx === 0 ? 'active' : '' %>" data-ann-id="<%= a.id %>">
+                  <div class="row g-0 align-items-stretch">
+                    <% if (a.image_url) { %>
+                      <div class="col-12 col-md-5" style="background:#f8fafc;">
+                        <img src="<%= a.image_url %>" alt="Announcement" class="img-fluid w-100 h-100" style="object-fit:cover;">
+                      </div>
+                      <div class="col-12 col-md-7 p-4">
+                    <% } else { %>
+                      <div class="col-12 p-4">
+                    <% } %>
+                        <h4 class="mb-2"><%= a.title %></h4>
+                        <% if (a.body) { %>
+                          <p class="text-muted"><%= a.body %></p>
+                        <% } %>
+                        <% if (a.coupon_code) { %>
+                          <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge text-bg-warning"><%= a.coupon_code %></span>
+                            <button class="btn btn-sm btn-outline-secondary annCopyBtn" type="button" data-code="<%= a.coupon_code %>">Copy</button>
+                          </div>
+                        <% } %>
+                                        <div>
+                                          <% if (a.link_url && a.button_text) { %>
+                                            <a href="<%= a.link_url %>" class="btn btn-primary"><%= a.button_text %></a>
+                                          <% } %>
+                                        </div>
+                      </div>
+                  </div>
+                </div>
+              <% }) %>
+            <% } %>
+          </div>
+          <button class="carousel-control-prev" type="button" data-bs-target="#annCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#annCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
+        </div>
+        <div class="px-4 pb-3 d-flex align-items-center justify-content-between mt-2">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="1" id="annDontShow">
+            <label class="form-check-label" for="annDontShow">Don't show again</label>
+          </div>
+          <button type="button" class="btn btn-outline-secondary" id="annGotIt" data-bs-dismiss="modal">Maybe later</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <script type="text/javascript">
 var swiper = new Swiper(".swiper", {
   effect: "coverflow",
@@ -243,6 +425,200 @@ var swiper = new Swiper(".swiper", {
 });
 
 
+</script>
+
+<script>
+  // Make .shop-cta spans behave like links (click + keyboard Enter)
+  document.addEventListener('click', function(e){
+    const s = e.target.closest('.shop-cta');
+    if (!s) return;
+    const href = s.getAttribute('data-href');
+    if (href) {
+      window.location.href = href;
+    }
+  });
+
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Enter') return;
+    const active = document.activeElement;
+    if (active && active.classList && active.classList.contains('shop-cta')) {
+      const href = active.getAttribute('data-href');
+      if (href) window.location.href = href;
+    }
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    try {
+      const el = document.getElementById('ann-data');
+      const list = el ? JSON.parse(el.textContent || '[]') : [];
+      if (!Array.isArray(list) || list.length === 0) return;
+
+      const placementOf = (a) => String((a && a.placement) || 'modal').toLowerCase();
+      const isSeen = (id) => !!localStorage.getItem('ann-seen-' + id);
+
+      // -------- Banner (centered) handling --------
+      const bannerContainer = document.getElementById('annBannerContainer');
+      const bannerQueue = list.filter(a => ['banner','both'].includes(placementOf(a)) && !isSeen(a.id));
+
+      function escapeHtml(s){
+        return String(s || '')
+          .replaceAll('&','&amp;')
+          .replaceAll('<','&lt;')
+          .replaceAll('>','&gt;')
+          .replaceAll('"','&quot;')
+          .replaceAll("'",'&#039;');
+      }
+
+      function renderBannerAt(idx){
+        if (!bannerContainer) return;
+        if (!Array.isArray(bannerQueue) || bannerQueue.length === 0 || idx < 0 || idx >= bannerQueue.length) {
+          bannerContainer.style.display = 'none';
+          return;
+        }
+        const a = bannerQueue[idx];
+        bannerContainer.style.display = '';
+        document.getElementById('annBannerCurrentId').value = String(a.id);
+        document.getElementById('annBannerIndex').value = String(idx);
+        document.getElementById('annBannerQueue').value = bannerQueue.map(x=>x.id).join(',');
+
+        const imgWrap = document.getElementById('annBannerImageWrap');
+        const img = document.getElementById('annBannerImage');
+        if (a.image_url) {
+          img.src = a.image_url;
+          imgWrap.style.display = '';
+        } else {
+          imgWrap.style.display = 'none';
+        }
+        const titleEl = document.getElementById('annBannerTitle');
+        const bodyEl = document.getElementById('annBannerBody');
+        titleEl.textContent = a.title || '';
+        bodyEl.textContent = a.body || '';
+
+        const coupWrap = document.getElementById('annBannerCouponWrap');
+        const coup = document.getElementById('annBannerCoupon');
+        const copyBtn = document.getElementById('annBannerCopyBtn');
+        if (a.coupon_code) {
+          coup.textContent = a.coupon_code;
+          coupWrap.style.display = 'flex';
+          copyBtn.onclick = () => {
+            try {
+              navigator.clipboard.writeText(a.coupon_code);
+              const old = copyBtn.textContent; copyBtn.textContent = 'Copied!';
+              setTimeout(()=>copyBtn.textContent = old || 'Copy', 1200);
+            } catch(_){ }
+          };
+        } else {
+          coupWrap.style.display = 'none';
+        }
+
+        const ctaWrap = document.getElementById('annBannerCtaWrap');
+        const cta = document.getElementById('annBannerCta');
+        // Only show the banner CTA if both link and explicit button text are provided
+        if (a.link_url && a.button_text) {
+          cta.href = a.link_url;
+          cta.textContent = a.button_text;
+          ctaWrap.style.display = '';
+        } else {
+          ctaWrap.style.display = 'none';
+        }
+
+        const nextWrap = document.getElementById('annBannerNextWrap');
+        const nextBtn = document.getElementById('annBannerNext');
+        if (bannerQueue.length > 1) {
+          nextWrap.style.display = '';
+          nextBtn.onclick = () => {
+            const cur = Number(document.getElementById('annBannerIndex').value || '0');
+            const nxt = (cur + 1) % bannerQueue.length;
+            renderBannerAt(nxt);
+          };
+        } else {
+          nextWrap.style.display = 'none';
+        }
+
+        const closeBtn = document.getElementById('annBannerClose');
+        closeBtn.onclick = () => {
+          try { localStorage.setItem('ann-seen-' + a.id, '1'); } catch(_){ }
+          // move to next unseen banner if available
+          const remaining = bannerQueue.filter(x => !isSeen(x.id));
+          if (remaining.length) {
+            const nextIdx = remaining.length > 1 ? 1 : 0;
+            bannerQueue.splice(0, bannerQueue.length, ...remaining);
+            renderBannerAt(Math.min(nextIdx, bannerQueue.length - 1));
+          } else {
+            bannerContainer.style.display = 'none';
+          }
+        };
+      }
+
+      if (bannerContainer && bannerQueue.length > 0) {
+        renderBannerAt(0);
+      }
+
+      // -------- Modal (carousel) handling --------
+      const modalEligible = list.filter(a => ['modal','both'].includes(placementOf(a)));
+      const inner = document.getElementById('annCarouselInner');
+      if (inner) {
+        // Filter out announcements the user chose to hide
+        const unseenSet = new Set(modalEligible.filter(a => !isSeen(a.id)).map(a => String(a.id)));
+        // Remove seen slides from DOM
+        Array.from(inner.querySelectorAll('.carousel-item')).forEach(item => {
+          const id = item.getAttribute('data-ann-id');
+          if (!unseenSet.has(String(id))) item.remove();
+        });
+        // If slides remain, initialize and show modal
+        if (inner.querySelector('.carousel-item')) {
+          if (!inner.querySelector('.carousel-item.active')) {
+            const first = inner.querySelector('.carousel-item');
+            if (first) first.classList.add('active');
+          }
+
+          // Copy to clipboard for coupon buttons (event delegation)
+          document.addEventListener('click', function(e){
+            const btn = e.target.closest('.annCopyBtn');
+            if (!btn) return;
+            const code = btn.getAttribute('data-code');
+            if (!code) return;
+            try {
+              navigator.clipboard.writeText(code);
+              const old = btn.textContent;
+              btn.textContent = 'Copied!';
+              setTimeout(()=>btn.textContent = old || 'Copy', 1200);
+            } catch(_){}
+          });
+
+          // Track current announcement id for 'Don't show again'
+          const carouselEl = document.getElementById('annCarousel');
+          const modalEl = document.getElementById('annModal');
+          if (carouselEl && modalEl && window.bootstrap) {
+            const carousel = new bootstrap.Carousel(carouselEl, { interval: 5000 });
+            let currentId = (inner.querySelector('.carousel-item.active') || inner.querySelector('.carousel-item'))?.getAttribute('data-ann-id');
+            carouselEl.addEventListener('slid.bs.carousel', () => {
+              const active = inner.querySelector('.carousel-item.active');
+              if (active) currentId = active.getAttribute('data-ann-id');
+            });
+
+            // Wire 'Maybe later' + Don't show again
+            const gotIt = document.getElementById('annGotIt');
+            const dontShow = document.getElementById('annDontShow');
+            if (gotIt) {
+              gotIt.addEventListener('click', function(){
+                if (dontShow && dontShow.checked && currentId) {
+                  try { localStorage.setItem('ann-seen-' + currentId, '1'); } catch(_){ }
+                }
+              });
+            }
+
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Announcement init failed:', e);
+    }
+  });
 </script>
 
 </body>

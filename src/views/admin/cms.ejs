@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMS</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
+        <a href="/admin/announcements"><i class="bi bi-megaphone"></i> Announcements</a>
+        <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/cms" class="active"><i class="bi bi-journal-text"></i> CMS</a>
+      </nav>
+    </div>
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Content Management</div>
+        <div class="dashboard-title-sub">Manage pages and static content</div>
+      </div>
+    </div>
+
+    <section class="card">
+      <h4 style="margin-top:0;">Pages</h4>
+      <div class="table-responsive">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Page</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!pages || !pages.length) { %>
+              <tr><td colspan="3" style="text-align:center;">No pages found.</td></tr>
+            <% } else { %>
+              <% pages.forEach(p => { %>
+                <tr>
+                  <td><strong><%= p.title %></strong> <small class="text-secondary">(<%= p.slug %>)</small></td>
+                  <td><%= p.updated_at ? new Date(p.updated_at).toLocaleString() : '' %></td>
+                  <td>
+                    <a class="btn" href="/admin/cms/<%= p.slug %>/edit">Edit</a>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

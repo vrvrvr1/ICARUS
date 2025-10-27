@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audit Logs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    .meta-cell { max-width: 680px; white-space: normal; overflow: hidden; }
+    .meta-list { display: grid; grid-template-columns: 1fr; gap: 2px; }
+    .meta-list .meta-key { font-weight: 600; color: var(--text-secondary); margin-right: 6px; }
+    .meta-raw { margin-top: 6px; }
+    .meta-raw pre { margin: 6px 0 0 0; background: #0b1620; color: #e5e7eb; padding: 8px; border-radius: 6px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+    .time-cell { white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
+        <a href="/admin/announcements"><i class="bi bi-megaphone"></i> Announcements</a>
+        <a href="/admin/audit-logs" class="active"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+      </nav>
+    </div>
+
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Audit Logs</div>
+        <div class="dashboard-title-sub">Recent admin actions and system events</div>
+      </div>
+    </div>
+
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="margin:0">Recent Activity</h3>
+        <div>
+          <button class="btn" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>User</th>
+              <th>Action</th>
+              <th>Meta</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!items || !items.length) { %>
+              <tr><td colspan="5" style="text-align:center;">No audit logs yet.</td></tr>
+            <% } else { %>
+              <% items.forEach(row => { %>
+                <tr>
+                  <td>#<%= row.id %></td>
+                  <td><%= row.user_name || ('User #' + (row.user_id || 'N/A')) %></td>
+                  <td><code><%= row.action %></code></td>
+                  <td class="meta-cell">
+                    <% let _meta = row.meta; try { if (typeof _meta === 'string') { _meta = JSON.parse(_meta); } } catch(e){} %>
+                    <% if (_meta && typeof _meta === 'object') { %>
+                      <% const _keys = Object.keys(_meta); const _known = ['method','email','ip','ua']; %>
+                      <div class="meta-list">
+                        <% if (_meta.method) { %>
+                          <div><span class="meta-key">Method:</span> <span class="meta-value"><%= _meta.method %></span></div>
+                        <% } %>
+                        <% if (_meta.email) { %>
+                          <div><span class="meta-key">Email:</span> <span class="meta-value"><%= _meta.email %></span></div>
+                        <% } %>
+                        <% if (_meta.ip) { %>
+                          <div><span class="meta-key">IP:</span> <span class="meta-value"><%= _meta.ip %></span></div>
+                        <% } %>
+                        <% if (_meta.ua) { %>
+                          <div><span class="meta-key">UA:</span> <span class="meta-value"><%= _meta.ua %></span></div>
+                        <% } %>
+                        <% _keys.filter(k => !_known.includes(k)).forEach(k => { %>
+                          <div><span class="meta-key"><%= k %>:</span> <span class="meta-value"><%= String(_meta[k]) %></span></div>
+                        <% }) %>
+                      </div>
+                      <details class="meta-raw"><summary>Raw</summary><pre><%= JSON.stringify(_meta, null, 2) %></pre></details>
+                    <% } else { %>
+                      <code><%= row.meta ? (typeof row.meta === 'string' ? row.meta : JSON.stringify(row.meta)) : '' %></code>
+                    <% } %>
+                  </td>
+                  <td class="time-cell"><%= row.created_at ? new Date(row.created_at).toLocaleString() : '' %></td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit Announcement</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    .thumb { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
+        <a href="/admin/announcements" class="active"><i class="bi bi-megaphone"></i> Announcements</a>
+        <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/cms"><i class="bi bi-journal-text"></i> CMS</a>
+      </nav>
+    </div>
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Edit Announcement</div>
+        <div class="dashboard-title-sub">Update content, placement, and image</div>
+      </div>
+      <div>
+        <a href="/admin/announcements" class="btn btn-ghost">← Back</a>
+      </div>
+    </div>
+
+    <section class="card" style="margin-bottom:16px;">
+      <form action="/admin/announcements/<%= item.id %>/edit" method="POST" enctype="multipart/form-data" class="info-row" style="display:flex; flex-direction:column; gap:8px;">
+        <div>
+          <label for="title">Title</label>
+          <input type="text" id="title" name="title" value="<%= item.title %>" required />
+        </div>
+        <div>
+          <label for="body">Message</label>
+          <textarea id="body" name="body" rows="3"><%= item.body || '' %></textarea>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label for="link_url">Link URL (optional)</label>
+            <input type="url" id="link_url" name="link_url" value="<%= item.link_url || '' %>" />
+          </div>
+          <div>
+            <label for="button_text">Button text (optional)</label>
+            <input type="text" id="button_text" name="button_text" value="<%= item.button_text || '' %>" />
+          </div>
+          <div>
+            <label for="image_url">Image URL (optional)</label>
+            <input type="url" id="image_url" name="image_url" value="<%= item.image_url || '' %>" />
+          </div>
+          <div>
+            <label for="image">Or upload new image</label>
+            <input type="file" id="image" name="image" accept="image/*" />
+            <% if (item.image_url) { %>
+              <div style="margin-top:6px;display:flex;align-items:center;gap:10px;">
+                <img src="<%= item.image_url %>" class="thumb" onerror="this.style.display='none'" alt="current image" />
+                <small>Current image</small>
+              </div>
+            <% } %>
+          </div>
+          <div>
+            <label for="placement">Placement</label>
+            <select id="placement" name="placement">
+              <option value="modal" <%= (item.placement||'modal')==='modal' ? 'selected' : '' %>>Modal</option>
+              <option value="banner" <%= (item.placement||'modal')==='banner' ? 'selected' : '' %>>Banner</option>
+              <option value="both" <%= (item.placement||'modal')==='both' ? 'selected' : '' %>>Both</option>
+            </select>
+          </div>
+          <div>
+            <label for="coupon_code">Coupon code (optional)</label>
+            <input type="text" id="coupon_code" name="coupon_code" value="<%= item.coupon_code || '' %>" />
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="active" name="active" <%= item.active ? 'checked' : '' %> />
+          <label for="active" class="toggle-label">Active</label>
+        </div>
+        <div>
+          <button type="submit" class="btn-outline">Save Changes</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

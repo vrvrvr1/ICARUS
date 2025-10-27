@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Announcements</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
+        <a href="/admin/announcements" class="active"><i class="bi bi-megaphone"></i> Announcements</a>
+        <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/cms"><i class="bi bi-journal-text"></i> CMS</a>
+      </nav>
+    </div>
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Announcements</div>
+        <div class="dashboard-title-sub">Create and manage store announcements</div>
+      </div>
+    </div>
+
+    <section class="card" style="margin-bottom:16px;">
+      <h4 style="margin-top:0;">Create Announcement</h4>
+  <form action="/admin/announcements" method="POST" enctype="multipart/form-data" class="info-row" style="display:flex; flex-direction:column; gap:8px;">
+        <div>
+          <label for="title">Title</label>
+          <input type="text" id="title" name="title" placeholder="Title" required />
+        </div>
+        <div>
+          <label for="body">Message</label>
+          <textarea id="body" name="body" rows="3" placeholder="Write a short message..."></textarea>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label for="link_url">Link URL (optional)</label>
+            <input type="url" id="link_url" name="link_url" placeholder="https://example.com/products" />
+          </div>
+          <div>
+            <label for="button_text">Button text (optional)</label>
+            <input type="text" id="button_text" name="button_text" placeholder="Shop now" />
+          </div>
+          <div>
+            <label for="image_url">Image URL (optional)</label>
+            <input type="url" id="image_url" name="image_url" placeholder="/uploads/hero.jpg" />
+          </div>
+          <div>
+            <label for="image">Or upload image</label>
+            <input type="file" id="image" name="image" accept="image/*" />
+          </div>
+          <div>
+            <label for="placement">Placement</label>
+            <select id="placement" name="placement">
+              <option value="modal" selected>Modal</option>
+              <option value="banner">Banner</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
+          <div>
+            <label for="coupon_code">Coupon code (optional)</label>
+            <input type="text" id="coupon_code" name="coupon_code" placeholder="WELCOME10" />
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="active" name="active" checked />
+          <label for="active" class="toggle-label">Active</label>
+        </div>
+        <div>
+          <button type="submit" class="btn-outline">Publish</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h4 style="margin-top:0;">Recent Announcements</h4>
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Message</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (Array.isArray(items) && items.length) { %>
+            <% items.forEach(a => { %>
+              <tr>
+                <td><strong><%= a.title %></strong></td>
+                <td>
+                  <div><%= a.body || '' %></div>
+                  <% if (a.link_url) { %>
+                    <div><small>Link: <a href="<%= a.link_url %>" target="_blank"><%= a.link_url %></a></small></div>
+                  <% } %>
+                  <% if (a.button_text) { %>
+                    <div><small>Button: <%= a.button_text %></small></div>
+                  <% } %>
+                  <div><small>Placement: <code><%= a.placement || 'modal' %></code></small></div>
+                  <% if (a.coupon_code) { %>
+                    <div><small>Coupon: <code><%= a.coupon_code %></code></small></div>
+                  <% } %>
+                  <% if (a.image_url) { %>
+                    <div class="d-flex align-items-center gap-2">
+                      <img src="<%= a.image_url %>" alt="thumb" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb" onerror="this.style.display='none'" />
+                      <small><%= a.image_url %></small>
+                    </div>
+                  <% } %>
+                </td>
+                <td>
+                  <span class="order-status <%= a.active ? 'completed' : 'pending' %>"><%= a.active ? 'Active' : 'Inactive' %></span>
+                </td>
+                <td><%= a.created_at ? new Date(a.created_at).toLocaleString() : '' %></td>
+                <td style="display:flex; gap:8px;">
+                  <a href="/admin/announcements/<%= a.id %>/edit" class="btn-outline" title="Edit">Edit</a>
+                  <form action="/admin/announcements/<%= a.id %>/toggle" method="POST">
+                    <button type="submit" class="btn-outline"><%= a.active ? 'Deactivate' : 'Activate' %></button>
+                  </form>
+                  <form action="/admin/announcements/<%= a.id %>/delete" method="POST" onsubmit="return confirm('Delete this announcement?');">
+                    <button type="submit" class="btn-outline danger">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr><td colspan="5" style="text-align:center;">No announcements yet.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order #<%= order.id %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/image/profile1.png" alt="Admin" class="sidebar-avatar" onerror="this.onerror=null;this.src='/image/profile1.png';" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders" class="active"><i class="bi bi-bag-check"></i> Orders</a>
+        
+      </nav>
+    </div>
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Order ID : TXNID<%= String(order.id).padStart(6,'0') %></div>
+        <div class="dashboard-title-sub">Let’s boost your sales with powerful insights and effective strategies today</div>
+      </div>
+      <div>
+        <a class="analytics-btn" href="/orders">Back to Orders</a>
+        <a class="analytics-btn" href="/admin/orders/<%= order.id %>/edit"><i class="bi bi-pencil"></i> Edit</a>
+      </div>
+    </div>
+
+   <% const st2 = (order.status || '').toLowerCase();
+     const stepIndex2 = (st2.includes('delivered') || st2.includes('completed')) ? 3
+                : ((st2.includes('en route') || st2.includes('courier') || st2.includes('out')) ? 2
+                : (st2.includes('shipped') ? 1 : 0)); %>
+    <div class="dl-card">
+      <div class="dl-title">Delivery timeline</div>
+      <div class="dl-track-wrap">
+        <div class="dl-track-bar" data-step="<%= stepIndex2 %>"></div>
+      </div>
+      <div class="dl-steps">
+        <div class="dl-step <%= stepIndex2 >= 0 ? 'done' : '' %>">
+          <div class="dl-dot"></div>
+          <div class="dl-icon"><i class="bi bi-journal-check"></i></div>
+          <div class="dl-label">Order Placed</div>
+        </div>
+        <div class="dl-step <%= stepIndex2 >= 2 ? 'done' : '' %>">
+          <div class="dl-dot"></div>
+          <div class="dl-icon"><i class="bi bi-box-seam"></i></div>
+          <div class="dl-label">Order Shipped</div>
+        </div>
+        <div class="dl-step <%= stepIndex2 >= 2 ? 'done' : '' %>">
+          <div class="dl-dot"></div>
+          <div class="dl-icon"><i class="bi bi-truck"></i></div>
+          <div class="dl-label">Order En Route</div>
+        </div>
+        <div class="dl-step <%= stepIndex2 >= 3 ? 'done' : '' %>">
+          <div class="dl-dot"></div>
+          <div class="dl-icon"><i class="bi bi-house"></i></div>
+          <div class="dl-label">Order Arrived</div>
+        </div>
+      </div>
+      <% 
+        const es = order.estimated_delivery_start ? new Date(order.estimated_delivery_start) : null;
+        const ee = order.estimated_delivery_end ? new Date(order.estimated_delivery_end) : null;
+        const single = order.estimated_delivery ? new Date(order.estimated_delivery) : null;
+        function fmtDate(d){ return d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''; }
+        function fmtDateFull(d){ return d ? d.toLocaleDateString() : ''; }
+        let etaLabel = '';
+        if (es && ee){
+          if (es.toDateString() === ee.toDateString()) etaLabel = fmtDateFull(es);
+          else if (es.getFullYear() === ee.getFullYear() && es.getMonth() === ee.getMonth()) etaLabel = `${fmtDate(es)} – ${ee.getDate()}`;
+          else etaLabel = `${fmtDate(es)} – ${fmtDate(ee)}`;
+        } else if (es || ee){
+          etaLabel = fmtDateFull(es || ee);
+        } else if (single){
+          etaLabel = fmtDateFull(single);
+        }
+      %>
+      <% if (etaLabel) { %>
+        <div class="text-secondary small" style="margin-top:6px;">Estimated delivery: <strong><%= etaLabel %></strong></div>
+      <% } %>
+    </div>
+
+    <!-- Status stepper and tracking -->
+    <section class="order-stepper-card">
+      <div class="stepper">
+      <% const s = (order.status || '').toLowerCase();
+        const pmRaw = (order.payment_method || '');
+        const pmUpper = pmRaw.toUpperCase();
+        const pmLabel = pmUpper === 'COD' ? 'Cash on Delivery' : (pmUpper === 'PAYPAL' ? 'PayPal' : (pmRaw || '—'));
+        const isCOD = pmUpper === 'COD';
+        const isPayPal = pmUpper === 'PAYPAL';
+        const paid = !!order.payment_completed; // payment flag from DB
+        const shipped = /ship|out/.test(s);
+        const delivered = /deliver|complete/.test(s);
+        const paymentDone = isPayPal || (paid && !isCOD); // PayPal shows as paid; COD never auto-done
+      %>
+        <div class="step <%= s ? 'done' : '' %>">
+          <div class="icon"><i class="bi bi-receipt"></i></div>
+          <div class="label">Order made</div>
+          <div class="hint">Create order</div>
+        </div>
+        <div class="step <%= paymentDone ? 'done' : 'danger' %>">
+          <div class="icon"><i class="bi bi-credit-card"></i></div>
+          <% const pendingLabel = 'Payment Pending'; %>
+          <div class="label"><%= paymentDone ? 'Order Paid' : pendingLabel %></div>
+          <% if (!isPayPal) { %>
+            <div class="hint"><%= paymentDone ? 'Customer payment' : 'Awaiting payment' %></div>
+          <% } %>
+        </div>
+        <div class="step <%= shipped || delivered ? 'active' : '' %>">
+          <div class="icon"><i class="bi bi-truck"></i></div>
+          <div class="label">Shipped</div>
+          <% const inTransit = (s.includes('en route') || s.includes('courier') || s.includes('out')); %>
+          <div class="hint">
+            <%= delivered ? 'Delivered' : (inTransit ? 'On delivery' : (shipped ? 'Shipped' : (s.includes('process') ? 'Preparing' : 'Pending'))) %>
+          </div>
+        </div>
+        <div class="step <%= delivered ? 'done' : 'danger' %>">
+          <div class="icon"><i class="bi bi-bag-check"></i></div>
+          <div class="label">Completed</div>
+          <div class="hint"><%= delivered ? 'Order completed' : 'Not completed' %></div>
+        </div>
+      </div>
+      <div class="resi">Tracking No: <strong><%= order.paypal_order_id || '—' %></strong></div>
+    </section>
+
+    <!-- Addresses -->
+    <section class="order-addresses">
+      <div class="addr-col">
+        <div class="addr-title">Shipping Address (Seller)</div>
+        <div class="addr-body">
+          <div class="addr-name"><%= store?.name || 'Icarus Store' %></div>
+          <div class="addr-line"><%= store?.address || 'Manila, Philippines' %></div>
+        </div>
+      </div>
+      <div class="addr-col">
+        <div class="addr-title">Shipping Address (Buyer)</div>
+        <div class="addr-body">
+          <div class="addr-name"><%= order.ship_first_name || '' %> <%= order.ship_last_name || '' %></div>
+          <div class="addr-line"><%= order.ship_address %><% if (order.ship_city) { %>, <%= order.ship_city %><% } %><% if (order.ship_province) { %>, <%= order.ship_province %><% } %><% if (order.ship_zipcode) { %>, <%= order.ship_zipcode %><% } %></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Items and Summary -->
+    <section class="order-layout">
+      <div class="order-items">
+        <div class="section-title">Order Item</div>
+        <ul class="item-list">
+          <% (items || []).forEach(it => { %>
+            <li class="item-row">
+              <img class="item-thumb" src="<%= it.image_url || '/image/placeholder.png' %>" alt="thumb" onerror="this.src='/image/placeholder.png'" />
+              <div class="item-info">
+                <div class="item-name"><%= it.product_name %></div>
+                <div class="item-attrs">Qty: <%= it.quantity %></div>
+              </div>
+              <div class="item-price">$<%= Number(it.price || 0).toLocaleString() %></div>
+              <div class="item-subtotal">$<%= Number(it.subtotal || 0).toLocaleString() %></div>
+            </li>
+          <% }) %>
+        </ul>
+      </div>
+      <aside class="order-summary">
+        <div class="section-title">Order Summary</div>
+        <div class="sum-row"><span>Subtotal</span><span>$<%= Number(order.subtotal || 0).toLocaleString() %></span></div>
+        <div class="sum-row"><span>Tax</span><span>$<%= Number(order.tax || 0).toLocaleString() %></span></div>
+        <div class="sum-row"><span>Shipping</span><span>$<%= Number(order.shipping || 0).toLocaleString() %></span></div>
+        <div class="sum-total"><span>Total</span><span>$<%= Number(order.total || order.total_amount || 0).toLocaleString() %></span></div>
+  <div class="sum-row small muted" style="margin-top:8px;">Payment: <%= order.payment_completed ? pmLabel : 'Pending' %></div>
+      </aside>
+    </section>
+  </main>
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      function setBarToIndex(wrap){
+        var bar = wrap.querySelector('.dl-track-bar');
+        if (!bar) return;
+        var idx = parseInt(bar.getAttribute('data-step'), 10);
+        if (isNaN(idx)) idx = 0;
+        var steps = wrap.parentElement.querySelectorAll('.dl-steps .dl-step');
+        if (!steps || !steps.length) return;
+        var i = Math.min(Math.max(idx, 0), steps.length - 1);
+        var dot = steps[i].querySelector('.dl-dot');
+        if (!dot) return;
+        var wrapRect = wrap.getBoundingClientRect();
+        var dotRect = dot.getBoundingClientRect();
+        var centerX = dotRect.left + (dotRect.width/2);
+        var widthPx = Math.max(0, Math.min(centerX - wrapRect.left, wrap.clientWidth));
+        bar.style.width = widthPx + 'px';
+      }
+      document.querySelectorAll('.dl-track-wrap').forEach(function(wrap){ setBarToIndex(wrap); });
+      window.addEventListener('resize', function(){
+        document.querySelectorAll('.dl-track-wrap').forEach(function(wrap){ setBarToIndex(wrap); });
+      });
+    });
+  </script>
+</body>
+</html>

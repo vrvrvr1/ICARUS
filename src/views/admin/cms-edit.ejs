@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit <%= page.title %> - CMS</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    /* CMS edit small UI polish */
+    .cms-form {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 28px;
+      align-items: start;
+    }
+    .cms-form .fields { display:flex; flex-direction:column; gap:14px; }
+    .cms-form label { display:block; font-weight:600; margin-bottom:6px; color: #d1d5db; }
+    .cms-form input[type="text"], .cms-form input[type="email"], .cms-form input[type="url"], .cms-form textarea {
+      width:100%; padding:10px 12px; border-radius:6px; border:1px solid #2b2b2b; background:#0b0b0d; color:#e5e7eb;
+    }
+    .cms-form input[type="file"] { color:#e5e7eb; }
+    .hero-preview { background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.05)); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.03);} 
+    .hero-preview img { width:100%; height:180px; object-fit:cover; border-radius:8px; border:1px solid rgba(0,0,0,0.6); display:block; }
+    .hero-preview .caption { color:#9ca3af; font-size:13px; margin-top:8px; }
+    .btn-save { background: linear-gradient(90deg,#ffb347,#ff6b6b); color:#111827; padding:10px 18px; border-radius:999px; border:none; font-weight:700; cursor:pointer; }
+    @media (max-width:900px){ .cms-form { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
+        <a href="/admin/announcements"><i class="bi bi-megaphone"></i> Announcements</a>
+        <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/cms" class="active"><i class="bi bi-journal-text"></i> CMS</a>
+      </nav>
+    </div>
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Edit: <%= page.title %></div>
+        <div class="dashboard-title-sub">Update content for <code><%= page.slug %></code></div>
+      </div>
+      <div>
+        <a href="/admin/cms" class="btn btn-ghost">← Back</a>
+      </div>
+    </div>
+
+    <section class="card">
+      <form action="/admin/cms/<%= page.slug %>/edit" method="POST" enctype="multipart/form-data" class="info-row">
+        <% if (page.slug === 'homepage') { %>
+          <div class="cms-form">
+            <div class="fields">
+              <div>
+                <label for="hero_title">Hero Title</label>
+                <input type="text" id="hero_title" name="hero_title" value="<%= (page.data && page.data.hero_title) || '' %>">
+              </div>
+              <div>
+                <label for="hero_subtitle">Hero Subtitle</label>
+                <input type="text" id="hero_subtitle" name="hero_subtitle" value="<%= (page.data && page.data.hero_subtitle) || '' %>">
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                  <label for="cta_text">CTA Text</label>
+                  <input type="text" id="cta_text" name="cta_text" value="<%= (page.data && page.data.cta_text) || '' %>">
+                </div>
+                <div>
+                  <label for="cta_href">CTA Link</label>
+                  <input type="text" id="cta_href" name="cta_href" value="<%= (page.data && page.data.cta_href) || '' %>">
+                </div>
+              </div>
+              <div>
+                <label for="hero_image">Hero Image</label>
+                <input type="file" id="hero_image" name="hero_image" accept="image/*">
+              </div>
+              <div>
+                <button type="submit" class="btn-save">Save</button>
+              </div>
+            </div>
+            <aside class="hero-preview">
+              <% if (page.data && page.data.hero_image_url) { %>
+                <img src="<%= page.data.hero_image_url %>" alt="Hero preview" onerror="this.style.display='none'">
+                <div class="caption">Current hero image</div>
+              <% } else { %>
+                <div class="caption">No hero image set</div>
+              <% } %>
+            </aside>
+          </div>
+        <% } else if (page.slug === 'footer') { %>
+          <div class="cms-form">
+            <div class="fields">
+              <div>
+                <label for="contact_email">Contact Email</label>
+                <input type="email" id="contact_email" name="contact_email" value="<%= (page.data && page.data.contact_email) || '' %>">
+              </div>
+              <div>
+                <label for="phone">Phone</label>
+                <input type="text" id="phone" name="phone" value="<%= (page.data && page.data.phone) || '' %>">
+              </div>
+              <div>
+                <label for="address">Address</label>
+                <input type="text" id="address" name="address" value="<%= (page.data && page.data.address) || '' %>">
+              </div>
+              <div>
+                <button type="submit" class="btn-save">Save</button>
+              </div>
+            </div>
+            <aside class="hero-preview">
+              <div class="caption">Footer preview</div>
+              <div style="margin-top:8px;color:#e5e7eb;">
+                <div><strong>Email:</strong> <%= (page.data && page.data.contact_email) || '—' %></div>
+                <div><strong>Phone:</strong> <%= (page.data && page.data.phone) || '—' %></div>
+                <div><strong>Address:</strong> <%= (page.data && page.data.address) || '—' %></div>
+              </div>
+            </aside>
+          </div>
+        <% } else if (page.slug === 'about') { %>
+          <%- include('../partials/cms-about-blocks.ejs', { page: page }) %>
+        <% } else { %>
+          <div>
+            <p>This page uses a generic schema. Add fields as needed.</p>
+          </div>
+        <% } %>
+        <% if (page.slug !== 'homepage' && page.slug !== 'footer' && page.slug !== 'about') { %>
+          <div>
+            <button type="submit" class="btn-outline">Save</button>
+          </div>
+        <% } %>
+      </form>
+    </section>
+  </main>
+  <script>
+    // About page: toggle rendered editor and sync content to textarea and preview
+    (function(){
+  const toggle = document.getElementById('toggleAboutView');
+  const textarea = document.getElementById('about_html');
+  const rendered = document.getElementById('about_rendered');
+  const previewInner = document.getElementById('about_preview_inner');
+  const btnBold = document.getElementById('about_bold');
+  const btnItalic = document.getElementById('about_italic');
+  const btnLink = document.getElementById('about_link');
+      if (!toggle || !textarea || !rendered) return;
+      // Initialize rendered content
+      rendered.innerHTML = textarea.value || '';
+  function syncToPreview(){ previewInner.innerHTML = textarea.value || rendered.innerHTML || '<p>No preview available</p>'; }
+      // Toggle behavior
+      toggle.addEventListener('click', () => {
+        const showingSource = textarea.style.display !== 'none';
+        if (showingSource) {
+          // switch to rendered editable
+          textarea.style.display = 'none';
+          rendered.style.display = 'block';
+          rendered.focus();
+          toggle.textContent = 'Edit Source';
+        } else {
+          // switch to source textarea, copy rendered content back
+          textarea.value = rendered.innerHTML;
+          textarea.style.display = 'block';
+          rendered.style.display = 'none';
+          toggle.textContent = 'Toggle Rendered';
+          syncToPreview();
+        }
+      });
+      // Keep preview in sync while typing in either field
+      textarea.addEventListener('input', syncToPreview);
+      rendered.addEventListener('input', () => { textarea.value = rendered.innerHTML; syncToPreview(); });
+      // Allow editing directly in the preview pane
+      if (previewInner) {
+        previewInner.addEventListener('input', () => { textarea.value = previewInner.innerHTML; rendered.innerHTML = previewInner.innerHTML; syncToPreview(); });
+      }
+      // Basic formatting via execCommand for the preview area
+      function execInPreview(command, value=null){
+        try { document.execCommand(command, false, value); previewInner.focus(); textarea.value = previewInner.innerHTML; syncToPreview(); } catch(e){}
+      }
+      if (btnBold) btnBold.addEventListener('click', () => execInPreview('bold'));
+      if (btnItalic) btnItalic.addEventListener('click', () => execInPreview('italic'));
+      if (btnLink) btnLink.addEventListener('click', () => {
+        const url = prompt('Enter URL (https://...)'); if (!url) return; execInPreview('createLink', url);
+      });
+      // On form submit ensure textarea has up-to-date content
+      const form = textarea.closest('form');
+      if (form) form.addEventListener('submit', () => { if (rendered.style.display !== 'none') textarea.value = rendered.innerHTML; });
+      // initial sync
+      syncToPreview();
+    })();
+  </script>
+</body>
+</html>

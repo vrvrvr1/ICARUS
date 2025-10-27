@@ -15,6 +15,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const colorSpans = document.querySelectorAll('.colors span');
   const sizeButtons = document.querySelectorAll('.sizes button');
   const applyBtn = document.getElementById('applyFilter');
+  const tabs = document.querySelectorAll('.tab-link');
+  const activeTabId = () => (document.querySelector('.tab-link.active')?.dataset?.tab) || 'mens';
+  const tabToCategory = {
+    mens: 'Mens',
+    womens: 'Womens',
+    unisex: 'Unisex',
+    accessories: 'Accessories',
+    bags: 'Bags',
+    outdoor: 'Outdoor & Athleisure',
+    everyday: 'Everyday Athleisure',
+    seasonal: 'Seasonal Performance Wear'
+  };
   // Select the product grid inside the currently active tab; fallback to any .product-grid
   const getProductGrid = () => document.querySelector('.tab-content.active .product-grid') || document.querySelector('.product-grid');
 
@@ -123,6 +135,7 @@ applyBtn.addEventListener('click', async () => {
     maxPrice: maxRange.value || 50,
     minRating: minRating.value || 1,
     maxRating: maxRating.value || 5,
+    category: tabToCategory[activeTabId()] || '',
     colors: selectedColors.join(','),
     sizes: selectedSizes.join(',')
   });
@@ -142,9 +155,11 @@ applyBtn.addEventListener('click', async () => {
 
     if (data.length > 0) {
       data.forEach(p => {
-        const colorsHTML = (p.colors || "")
-          .split(",")
-          .map(c => `<span style="display:inline-block;width:15px;height:15px;margin-right:3px;border:1px solid #ccc;background:${c.trim()}"></span>`)
+        const colorsArr = Array.isArray(p.variant_colors) && p.variant_colors.length
+          ? p.variant_colors
+          : (p.colors || "").split(",").map(c => c.trim().toLowerCase()).filter(Boolean);
+        const colorsHTML = colorsArr
+          .map(c => `<span style="display:inline-block;width:15px;height:15px;margin-right:3px;border:1px solid #ccc;background:${c}"></span>`)
           .join("");
 
         productGrid.innerHTML += `
@@ -154,7 +169,7 @@ applyBtn.addEventListener('click', async () => {
     <img src="${p.image_url}" alt="${p.name}">
 
     <!-- Price & Name -->
-    <div class="product-price">$${p.price}</div>
+    <div class="product-price">$${Number(p.price || 0).toFixed(2)}</div>
     <div class="product-name">${p.name}</div>
 
     <!-- Colors -->
@@ -166,8 +181,8 @@ applyBtn.addEventListener('click', async () => {
     <div class="bottom-row">
       <div class="rating">
         <i class="bi bi-star-fill" style="color: black;"></i>
-        <span class="rating-value">${p.rating}</span>
-        <span class="review-count">(${p.reviews})</span>
+        <span class="rating-value">${Number(p.rating || 0).toFixed(1)}</span>
+        <span class="review-count">(${p.reviews || 0})</span>
       </div>
   </a>
 

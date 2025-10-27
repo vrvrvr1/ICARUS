@@ -58,7 +58,7 @@
     Added to cart!
   </div>
     
-     <nav class="navbar">
+     <nav class="navbar d-none">
     <ul>
       <li><a href="#" class="tab-link active" data-tab="mens">Mens Apparel</a></li>
       <li><a href="#" class="tab-link" data-tab="womens">Womens Apparel</a></li>
@@ -133,24 +133,36 @@
       <% products.filter(p => p.category === "Mens").forEach(p => { %>
         <div class="product-card">
           <a href="/products/<%= p.id %>" class="card-link">
+            <% if (p.promo_active && Number(p.promo_percent || 0) > 0) { %>
+              <div class="discount-badge">-<%= Number(p.promo_percent) %>%</div>
+            <% } %>
             <!-- Product Image -->
             <img src="<%= p.image_url %>" alt="<%= p.name %>">
 
             <!-- Price & Name -->
-            <div class="product-price">$<%= p.price %></div>
+            <div class="product-price">
+              <% const __p = Number(p.price || 0); const __pp = Number(p.promo_percent || 0); const __on = !!p.promo_active && __pp > 0; const __pd = __on ? (__p * (1 - (__pp/100))) : __p; %>
+              <% if (__on) { %>
+                <span class="price-new">$<%= __pd.toFixed(2) %></span>
+                <span class="price-old">$<%= __p.toFixed(2) %></span>
+              <% } else { %>
+                <span class="price-new">$<%= __p.toFixed(2) %></span>
+              <% } %>
+            </div>
             <div class="product-name"><%= p.name %></div>
+            <div class="sold-count">Sold <%= Number(p.sold || 0).toLocaleString() %></div>
+            
 
             <!-- Colors -->
             <div class="colors">
-              <% if (p.colors) { 
-                   const colorArray = p.colors.split(',').map(c => c.trim()).filter(c => c);
-                   let colorSpans = '';
-                   colorArray.forEach(color => {
-                     colorSpans += '<span style="background-color:' + color + ';"></span>';
-                   });
+              <% 
+                const colorArray = Array.isArray(p.variant_colors) && p.variant_colors.length
+                  ? p.variant_colors
+                  : (p.colors ? p.colors.split(',').map(c => c.trim().toLowerCase()).filter(Boolean) : []);
+                let colorSpans = '';
+                colorArray.forEach(color => { colorSpans += '<span style="background-color:' + color + ';"></span>'; });
               %>
-                <%- colorSpans %>
-              <% } %>
+              <%- colorSpans %>
             </div>
 
             <!-- Bottom row (rating + wishlist) -->
@@ -228,27 +240,7 @@ tabs.forEach(tab => {
   });
 });
 
-// ------------------
-// Cart Badge Update
-// ------------------
-async function updateCartCount() {
-  try {
-    const res = await fetch('/cart/count');
-    const data = await res.json();
-    const badge = document.getElementById('cart-count');
-
-    if (data.count > 0) {
-      badge.innerText = data.count;
-      badge.style.display = 'inline-block';
-      badge.classList.add('animate');
-      setTimeout(() => badge.classList.remove('animate'), 300);
-    } else {
-      badge.style.display = 'none';
-    }
-  } catch (err) {
-    console.error(err);
-  }
-}
+// Header already defines window.updateCartCount; avoid redefining here
 
 // ------------------
 // Add-to-cart forms
@@ -263,7 +255,8 @@ document.querySelectorAll('.add-to-cart-form').forEach(form => {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(data)
       });
-      updateCartCount();
+  if (window.updateCartCount) window.updateCartCount();
+  try { localStorage.setItem('cart-tick', String(Date.now())); } catch(_) {}
       const notif = document.getElementById('cart-notification');
       notif.innerText = `${data.product_name} added to cart!`;
       notif.style.display = 'block';
@@ -279,6 +272,10 @@ document.querySelectorAll('.add-to-cart-form').forEach(form => {
 // ------------------
 
 </script>
+
+<style>
+  .sold-count{ color:#6b7280; font-size:12px; margin-top:2px; }
+</style>
 
 </body>
 </html>

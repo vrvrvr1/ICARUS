@@ -6,20 +6,34 @@
   <title>Account Settings</title>
   <link rel="stylesheet" href="/css/accountsettings.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
 </head>
 <body>
-  <div class="container">
-    <div class="settings-box">
+  <nav>
+    <%- include ("../partials/header.ejs") %>
+  </nav>
 
-      <!-- Sidebar -->
-      <div class="sidebar">
-        <h3>Settings</h3>
+  <% if (typeof notice !== 'undefined' && notice) { %>
+    <div class="alert <%= notice.type === 'error' ? 'alert-danger' : 'alert-success' %>" role="alert" style="margin:16px auto; max-width:1120px;">
+      <%= notice.message %>
+    </div>
+  <% } %>
+
+  <div class="container">
+    <div class="settings-box" role="region" aria-label="Account settings">
+      <!-- Sidebar left -->
+      <aside class="sidebar" aria-label="Settings navigation">
+        <h3>My Account</h3>
         <ul>
-          <li class="active" data-section="account">Account</li>
-          <li data-section="wishlist">Wishlist</li>
-          <li data-section="privacy">Privacy</li>
-          <li data-section="languages">Languages</li>
-          <li data-section="help">Help</li>
+          <li class="active" data-section="general"><i class="fa-regular fa-circle"></i> Overview</li>
+          <li data-section="account"><i class="fa-solid fa-user"></i> Profile</li>
+          <li data-section="orders"><i class="fa-solid fa-box"></i> Orders</li>
+          <li data-section="wishlist"><i class="fa-regular fa-heart"></i> Wishlist</li>
+          <li data-section="languages"><i class="fa-solid fa-language"></i> Language</li>
+          <li data-section="privacy"><i class="fa-solid fa-shield-halved"></i> Privacy</li>
+          <li data-section="help"><i class="fa-regular fa-circle-question"></i> Help</li>
           <li>
             <form action="/logout" method="GET" style="margin:0; padding:0;">
               <button type="submit" class="logout-btn">
@@ -28,178 +42,732 @@
             </form>
           </li>
         </ul>
-      </div>
+      </aside>
 
       <!-- Main Content -->
       <div class="content">
 
-        <!-- Account Section -->
-        <div class="section active" id="account">
-          <h3>Account Settings</h3>
-          <div class="profile-pic">
-            <img src="<%= user.profile_image || '/image/default-profile.png' %>" alt="Profile Picture">
-            <div>
-              <form action="/accountsettings/upload" method="POST" enctype="multipart/form-data">
-                <input type="file" name="profile_pic" required>
-                <button type="submit">Upload</button>
+        <!-- Overview Section -->
+        <section class="section active" id="general" aria-labelledby="overview-title">
+          <div class="account-header">
+            <div class="avatar-wrap">
+              <img src="<%= user.profile_pic || user.profile_image || '/image/profile1.png' %>" alt="Profile picture" id="profilePreview">
+              <div class="account-meta">
+                <% const firstName = user.first_name || (user.email ? user.email.split('@')[0] : 'friend');
+                   const cartCount = Number(typeof cartItemCount !== 'undefined' ? cartItemCount : 0);
+                %>
+                <h3 id="overview-title">Hey <%= firstName %>, great to see you again — your cart is waiting<%= cartCount > 0 ? (' (' + cartCount + ' item' + (cartCount===1 ? '' : 's') + ')') : '' %>!</h3>
+               
+              </div>
+            </div>
+          </div>
+
+          
+
+          <!-- Overview grid with user info, recent orders, wishlist, notifications, announcements -->
+          <section class="overview-grid" aria-label="Overview widgets">
+            <div class="ov-col">
+              <!-- 1) User Information Card -->
+              <div class="info-card">
+                <div class="ic-head">
+                  <h5 class="m-0">User Information</h5>
+                </div>
+                <div class="ic-body">
+                  <div class="ic-row">
+                    <span class="ic-label">Name</span>
+                    <span class="ic-value"><%= (user.first_name || '') + (user.last_name ? ' ' + user.last_name : (user.first_name ? '' : user.email)) %></span>
+                  </div>
+                  <div class="ic-row">
+                    <span class="ic-label">Email</span>
+                    <span class="ic-value"><%= user.email %></span>
+                  </div>
+                  <div class="ic-row">
+                    
+                  </div>
+                </div>
+                <div class="ic-foot">
+                  <a href="#" class="view-link" onclick="event.preventDefault(); document.querySelector('[data-section=\'account\']').click();">Manage profile</a>
+                </div>
+              </div>
+
+              <!-- 2) Recent Orders / Activities -->
+              <div class="info-card">
+                <div class="ic-head d-flex">
+                  <h5 class="m-0">Recent orders</h5>
+                  <a href="/accountsettings?tab=orders" class="view-link">See all</a>
+                </div>
+                <div class="ic-body">
+                  <% const recent = (myOrders || []).slice(0,5); %>
+                  <% if (recent.length) { %>
+                    <ul class="list-clean">
+                      <% recent.forEach(o => { %>
+                        <li class="lo-item" onclick="window.location.href='/orders/<%= o.id %>/track'" role="button" tabindex="0">
+                          <div class="lo-main">
+                            <div class="lo-id">Order #<%= o.id %></div>
+                            <div class="lo-date"><%= o.order_date ? new Date(o.order_date).toLocaleString() : '' %></div>
+                          </div>
+                          <div class="lo-side">
+                            <% const __s = String(o.status||'').toLowerCase();
+                               const __cls = (__s.includes('deliver') || __s.includes('complete')) ? 'done'
+                                             : (__s.includes('process') ? 'processing'
+                                               : (/ship|en route|courier|out/.test(__s) ? 'intransit' : ''));
+                            %>
+                            <span class="status-text <%= __cls %>"><%= o.status || 'Pending' %></span>
+                            <div class="lo-total">$<%= Number(o.total_amount || 0).toLocaleString() %></div>
+                          </div>
+                        </li>
+                      <% }) %>
+                    </ul>
+                  <% } else { %>
+                    <p class="empty">No recent orders.</p>
+                  <% } %>
+                </div>
+              </div>
+
+              <!-- 3) Wishlist preview -->
+              <div class="info-card">
+                <div class="ic-head d-flex">
+                  <h5 class="m-0">Wishlist</h5>
+                  <a href="/accountsettings?tab=wishlist" class="view-link">Manage</a>
+                </div>
+                <div class="ic-body">
+                  <% const wl = (wishlistItems || []).slice(0,3); %>
+                  <% if (wl.length) { %>
+                    <ul class="list-clean">
+                      <% wl.forEach(w => { %>
+                        <li class="wl-item">
+                          <img src="<%= w.image_url %>" alt="<%= w.product_name %>" class="wl-thumb" />
+                          <div class="wl-main">
+                            <div class="wl-name"><%= w.product_name %></div>
+                            <div class="wl-price">$<%= Number(w.price || 0).toLocaleString() %></div>
+                          </div>
+                        </li>
+                      <% }) %>
+                    </ul>
+                  <% } else { %>
+                    <p class="empty">Your wishlist is empty.</p>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+            <div class="ov-col">
+              <!-- 6) Notifications / Alerts -->
+              <div class="info-card">
+                <div class="ic-head d-flex">
+                  <h5 class="m-0">Notifications</h5>
+                  <a href="/notifications" class="view-link">View all</a>
+                </div>
+                <div class="ic-body">
+                  <% if (Array.isArray(notifications) && notifications.length) { %>
+                    <ul class="list-clean">
+                      <% notifications.forEach(n => { %>
+                        <li class="lo-item" role="button" tabindex="0" <% if (n.link) { %>onclick="window.location.href='<%= n.link %>'"<% } %>>
+                          <div class="lo-main">
+                            <div class="lo-id"><%= n.title %></div>
+                            <div class="lo-date"><%= new Date(n.created_at).toLocaleString() %></div>
+                          </div>
+                          <div class="lo-side">
+                            <% if (!n.is_read) { %>
+                              <span class="status-text processing">New</span>
+                            <% } %>
+                          </div>
+                        </li>
+                      <% }) %>
+                    </ul>
+                  <% } else if (typeof notice !== 'undefined' && notice) { %>
+                    <div class="notif <%= notice.type === 'error' ? 'error' : 'ok' %>"><%= notice.message %></div>
+                  <% } else { %>
+                    <p class="empty">No new notifications.</p>
+                  <% } %>
+                </div>
+              </div>
+
+              <!-- 8) Announcements / Promotions -->
+              <div class="info-card">
+                <div class="ic-head"><h5 class="m-0">Announcements</h5></div>
+                <div class="ic-body">
+                  <% if (Array.isArray(announcements) && announcements.length) { %>
+                    <ul class="list-clean">
+                      <% announcements.forEach(a => { %>
+                        <li class="lo-item" style="cursor:default;">
+                          <div class="lo-main">
+                            <div class="lo-id"><%= a.title %></div>
+                            <% if (a.body) { %>
+                              <div class="lo-date"><%= a.body %></div>
+                            <% } %>
+                          </div>
+                          <div class="lo-side">
+                            <small class="text-muted"><%= new Date(a.created_at).toLocaleDateString() %></small>
+                          </div>
+                        </li>
+                      <% }) %>
+                    </ul>
+                  <% } else { %>
+                    <p class="empty">No announcements at the moment.</p>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <!-- Profile Section -->
+        <section class="section" id="account" aria-labelledby="profile-title">
+          <div class="account-header">
+            <div class="avatar-wrap">
+              <img src="<%= user.profile_pic || user.profile_image || '/image/profile1.png' %>" alt="Profile picture" id="profilePreview2">
+              <form action="/accountsettings/upload" method="POST" enctype="multipart/form-data" class="inline-form" style="margin-left:12px;">
+                <label class="btn-secondary" for="profileInput2">
+                  <i class="fa-solid fa-camera"></i> Change photo
+                </label>
+                <input type="file" name="profile_pic" id="profileInput2" accept="image/*" hidden>
+                <button type="submit" class="btn-primary small" aria-label="Upload new profile photo">Upload</button>
               </form>
+            </div>
+            <div class="account-meta">
+              <h3 id="profile-title">Profile & Security</h3>
+              <p class="muted">Manage your personal info and password</p>
             </div>
           </div>
 
           <!-- Basic Info -->
           <div class="info-section">
             <h4>Basic Info</h4>
-            <form action="/accountsettings/update-email" method="POST" class="info-row">
-              <span>Email:</span>
+            <form action="/accountsettings/update-profile" method="POST" class="info-row" aria-label="Edit first name">
+              <span>First name</span>
+              <input type="text" name="first_name" value="<%= user.first_name || '' %>" readonly>
+              <button type="submit" class="save-btn" style="display:none;">Save</button>
+              <i class="fa-solid fa-pen edit-icon" aria-hidden="true" title="Edit"></i>
+            </form>
+
+            <form action="/accountsettings/update-profile" method="POST" class="info-row" aria-label="Edit last name">
+              <span>Last name</span>
+              <input type="text" name="last_name" value="<%= user.last_name || '' %>" readonly>
+              <button type="submit" class="save-btn" style="display:none;">Save</button>
+              <i class="fa-solid fa-pen edit-icon" aria-hidden="true" title="Edit"></i>
+            </form>
+
+            <form action="/accountsettings/update-email" method="POST" class="info-row" aria-label="Edit email">
+              <span>Email</span>
               <input type="email" name="email" value="<%= user.email %>" readonly>
               <button type="submit" class="save-btn" style="display:none;">Save</button>
-              <i class="fa-solid fa-angle-right edit-icon"></i>
-            </form>
-
-            <form action="/accountsettings/update-username" method="POST" class="info-row">
-              <span>Username:</span>
-              <input type="text" name="username" value="<%= user.username %>" readonly>
-              <button type="submit" class="save-btn" style="display:none;">Save</button>
-              <i class="fa-solid fa-angle-right edit-icon"></i>
+              <i class="fa-solid fa-pen edit-icon" aria-hidden="true" title="Edit"></i>
             </form>
           </div>
 
-          <!-- Account Info -->
+          <!-- Security -->
           <div class="info-section">
-            <h4>Account Info</h4>
-            <div class="info-row">
-              <span>Role: <%= user.role %></span>
-            </div>
-
-            <form action="/accountsettings/change-password" method="POST" class="info-row">
+            <h4>Security</h4>
+            <!-- Collapsed row -->
+            <div class="info-row" id="pw-collapsed" aria-label="Password settings summary">
               <span>Password</span>
-              <input type="password" name="password" placeholder="••••••" readonly>
-              <button type="submit" class="save-btn" style="display:none;">Save</button>
-              <i class="fa-solid fa-angle-right edit-icon"></i>
+              <span class="dots" aria-hidden="true">••••••••</span>
+              <a href="#" class="view-link" id="pw-change-link"><%= user.has_password ? 'Change' : 'Set password' %></a>
+            </div>
+            <!-- Expanded form -->
+            <form action="/accountsettings/update-password" method="POST" class="info-row hidden" id="pw-expanded" aria-label="Update password" data-require-current="<%= user.has_password ? 'true' : 'false' %>">
+              <span>Password</span>
+              <div class="pw-fields">
+                <!-- Current/Old password -->
+                <div class="pw-field">
+                  <input id="curPw" type="password" name="current_password" placeholder="<%= user.has_password ? 'Current password' : 'Current password (not required if none)' %>" autocomplete="current-password" <%= user.has_password ? 'required' : '' %>>
+                  <button type="button" class="pw-eye" data-target="curPw" aria-label="Toggle current password visibility"><i class="fa-regular fa-eye"></i></button>
+                  <span id="curPwStatus" class="pw-status" aria-live="polite"></span>
+                </div>
+
+                <!-- New password -->
+                <div class="pw-field">
+                  <input id="newPw" type="password" name="new_password" placeholder="New password (min 12, A/a/1/! )" autocomplete="new-password" required>
+                  <button type="button" class="pw-eye" data-target="newPw" aria-label="Toggle new password visibility"><i class="fa-regular fa-eye"></i></button>
+                </div>
+
+                <!-- Strength checklist -->
+                <div class="pw-strength" aria-live="polite">
+                  <p class="pw-guidance">Please add all necessary characters to create a safe password.</p>
+                  <ul class="pw-reqs">
+                    <li data-req="min">Minimum characters 12</li>
+                    <li data-req="upper">One uppercase character</li>
+                    <li data-req="lower">One lowercase character</li>
+                    <li data-req="special">One special character</li>
+                    <li data-req="number">One number</li>
+                  </ul>
+                </div>
+
+                <!-- Confirm new password -->
+                <div class="pw-field">
+                  <input id="cfmPw" type="password" name="confirm_password" placeholder="Confirm new password" autocomplete="new-password" required>
+                  <button type="button" class="pw-eye" data-target="cfmPw" aria-label="Toggle confirm password visibility"><i class="fa-regular fa-eye"></i></button>
+                  <span id="cfmPwStatus" class="pw-status" aria-live="polite"></span>
+                </div>
+
+                <div class="pw-actions">
+                  <button type="button" class="btn-outline small" id="pw-cancel">Cancel</button>
+                  <button type="submit" class="save-btn" id="pw-save" disabled>Change Password</button>
+                </div>
+              </div>
             </form>
           </div>
-        </div>
+        </section>
+
+        <!-- Orders Section -->
+        <section class="section" id="orders" aria-labelledby="orders-title">
+          <h3 id="orders-title">My Orders</h3>
+          <div class="orders-tabs" role="tablist" aria-label="Orders filters">
+            <button type="button" class="orders-tab active" data-filter="ship" aria-selected="true"><i class="fa-solid fa-box"></i> To ship <span class="badge" id="cnt-ship">0</span></button>
+            <button type="button" class="orders-tab" data-filter="receive" aria-selected="false"><i class="fa-solid fa-truck-fast"></i> To receive <span class="badge" id="cnt-receive">0</span></button>
+            <button type="button" class="orders-tab" data-filter="review" aria-selected="false"><i class="fa-regular fa-star"></i> To review <span class="badge" id="cnt-review">0</span></button>
+          </div>
+          <div class="orders-cards">
+            <% if (myOrders && myOrders.length) { %>
+              <% myOrders.forEach(o => { %>
+                <% 
+                  const _s = (o.status || '').toLowerCase();
+                  const _group = (_s.includes('deliver') || _s.includes('complete')) ? 'review'
+                                : ((_s.includes('ship') || _s.includes('en route') || _s.includes('courier') || _s.includes('out')) ? 'receive' : 'ship');
+                  const d = o.order_date ? new Date(o.order_date) : new Date();
+                  const start = new Date(d.getTime() + 2*24*60*60*1000);
+                  const end = new Date(d.getTime() + 5*24*60*60*1000);
+                  const fmt = (dt) => dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                  const first = (o.items && o.items[0]) || null;
+                  const eta = o.estimated_delivery ? new Date(o.estimated_delivery) : null;
+                  const etaStart = o.estimated_delivery_start ? new Date(o.estimated_delivery_start) : null;
+                  const etaEnd = o.estimated_delivery_end ? new Date(o.estimated_delivery_end) : null;
+                  let etaWindow = '';
+                  if (etaStart && etaEnd){
+                    if (etaStart.toDateString() === etaEnd.toDateString()) etaWindow = etaStart.toLocaleDateString();
+                    else if (etaStart.getFullYear() === etaEnd.getFullYear() && etaStart.getMonth() === etaEnd.getMonth()) etaWindow = `${fmt(etaStart)} - ${etaEnd.getDate()}`;
+                    else etaWindow = `${fmt(etaStart)} - ${fmt(etaEnd)}`;
+                  } else if (etaStart || etaEnd){
+                    etaWindow = (etaStart || etaEnd).toLocaleDateString();
+                  } else if (eta){
+                    etaWindow = eta.toLocaleDateString();
+                  } else {
+                    etaWindow = fmt(start) + ' - ' + fmt(end);
+                  }
+                %>
+                <article class="order-card" data-group="<%= _group %>" data-id="<%= o.id %>" tabindex="0" role="button" aria-label="Open tracking for order #<%= o.id %>">
+                  <header class="oc-head">
+                    <div class="left">
+                      <span class="mall-badge">Mall</span>
+                      <span class="shop-name">Order #<%= o.id %></span>
+                    </div>
+                    <div class="right">
+                      <% const __sg = (o.status||'').toLowerCase();
+                         const statusClass = (__sg.includes('deliver') || __sg.includes('complete')) ? 'done'
+                                           : (__sg.includes('process') ? 'processing'
+                                             : (/ship|en route|courier|out/.test(__sg) ? 'intransit' : ''));
+                      %>
+                      <span class="status-text <%= statusClass %>"><%= o.status || 'Pending' %></span>
+                    </div>
+                  </header>
+                  <div class="oc-estimate">
+                    <i class="fa-solid fa-truck-fast"></i>
+                    <span>Estimated delivery :</span>
+                    <strong class="est-window"><%= etaWindow %></strong>
+                  </div>
+                  <div class="oc-item">
+                    <img class="item-thumb" src="<%= (first && first.image_url) || '/image/profile1.png' %>" alt="Product image">
+                    <div class="item-main">
+                      <h4 class="item-title"><%= (first && first.product_name) || 'Item' %></h4>
+                      <div class="item-sub">x<%= (first && first.quantity) || 1 %></div>
+                    </div>
+                    <div class="item-price">$<%= (first && Number(first.price).toLocaleString()) || '0.00' %></div>
+                  </div>
+                  <% if (o.items && o.items.length > 1) { %>
+                    <div class="oc-more">+<%= o.items.length - 1 %> more item<%= o.items.length - 1 > 1 ? 's' : '' %></div>
+                  <% } %>
+                  <footer class="oc-foot">
+                    <div class="total">Total: <strong>$<%= Number(o.total_amount || 0).toLocaleString() %></strong></div>
+                    <div class="actions">
+                      <% if (_group !== 'review') { %>
+                        <button type="button" class="btn-outline danger small btn-cancel" data-id="<%= o.id %>">Cancel order</button>
+                      <% } %>
+                    </div>
+                  </footer>
+                </article>
+              <% }) %>
+            <% } else { %>
+              <p class="empty">You have no orders yet.</p>
+            <% } %>
+          </div>
+        </section>
 
         <!-- Wishlist Section -->
-<!-- Wishlist Section -->
-<div class="section" id="wishlist">
-  <h3>My Wishlist</h3>
-  <div class="info-section">
-    <% if (wishlistItems && wishlistItems.length > 0) { %>
-      <% wishlistItems.forEach(item => { %>
-        <div class="info-row wishlist-item" data-id="<%= item.wishlist_id %>">
-          <img src="<%= item.image_url %>" alt="<%= item.product_name %>" class="wishlist-img" />
-          <div class="wishlist-details">
-            <h4><%= item.product_name %></h4>
-            <p>$<%= item.price %></p>
+        <section class="section" id="wishlist" aria-labelledby="wishlist-title">
+          <h3 id="wishlist-title">My Wishlist</h3>
+          <div class="info-section">
+            <% if (wishlistItems && wishlistItems.length > 0) { %>
+              <% wishlistItems.forEach(item => { %>
+                <div class="info-row wishlist-item" data-id="<%= item.wishlist_id %>">
+                  <img src="<%= item.image_url %>" alt="<%= item.product_name %>" class="wishlist-img" />
+                  <div class="wishlist-details">
+                    <h4><%= item.product_name %></h4>
+                    <p>$<%= item.price %></p>
+                  </div>
+                  <button type="button" class="remove-btn" data-id="<%= item.wishlist_id %>">Remove</button>
+                </div>
+              <% }) %>
+            <% } else { %>
+              <p class="empty">Your wishlist is empty.</p>
+            <% } %>
           </div>
-          <button type="button" class="remove-btn" data-id="<%= item.wishlist_id %>">Remove</button>
-        </div>
-      <% }) %>
-    <% } else { %>
-      <p class="empty">Your wishlist is empty.</p>
-    <% } %>
-  </div>
-</div>
-
+        </section>
 
         <!-- Privacy Section -->
-        <div class="section" id="privacy">
-          <h3>Privacy Settings</h3>
+        <section class="section" id="privacy" aria-labelledby="privacy-title">
+          <h3 id="privacy-title">Privacy Settings</h3>
           <div class="info-section">
-            <div class="info-row"><span>Profile Visibility</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
-            <div class="info-row"><span>Two-Factor Authentication</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
-            <div class="info-row"><span>Blocked Accounts</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Profile Visibility</span> <a href="#" class="view-link"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Two-Factor Authentication</span> <a href="#" class="view-link"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Blocked Accounts</span> <a href="#" class="view-link"><i class="fa-solid fa-angle-right"></i></a></div>
           </div>
-        </div>
+        </section>
 
         <!-- Languages Section -->
-        <div class="section" id="languages">
-          <h3>Language Settings</h3>
+        <section class="section" id="languages" aria-labelledby="language-title">
+          <h3 id="language-title">Language Settings</h3>
           <div class="info-section">
-            <div class="info-row"><span>Preferred Language</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
-            <div class="info-row"><span>Translation Options</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Preferred Language</span> <a href="#" class="view-link"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Translation Options</span> <a href="#" class="view-link"><i class="fa-solid fa-angle-right"></i></a></div>
           </div>
-        </div>
+        </section>
 
         <!-- Help Section -->
-        <div class="section" id="help">
-          <h3>Help & Support</h3>
+        <section class="section" id="help" aria-labelledby="help-title">
+          <h3 id="help-title">Help & Support</h3>
           <div class="info-section">
-            <div class="info-row"><span>FAQs</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
-            <div class="info-row"><span>Contact Support</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
-            <div class="info-row"><span>Report a Problem</span> <a href="#"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>FAQs</span> <a href="#" class="view-link"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Contact Support</span> <a href="#" class="view-link"><i class="fa-solid fa-angle-right"></i></a></div>
+            <div class="info-row"><span>Report a Problem</span> <a href="#" class="view-link"><i class="fa-solid fa-angle-right"></i></a></div>
           </div>
-        </div>
+        </section>
 
       </div>
     </div>
   </div>
 
+  <footer>
+    <%- include ("../partials/footer.ejs") %>
+  </footer>
+
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener('DOMContentLoaded', () => {
       // Sidebar navigation
-      const menuItems = document.querySelectorAll(".sidebar ul li");
-      const sections = document.querySelectorAll(".section");
+      const menuItems = document.querySelectorAll('.sidebar ul li[data-section]');
+      const sections = document.querySelectorAll('.section');
+
+      function activateTab(sectionId){
+        menuItems.forEach(i => i.classList.remove('active'));
+        sections.forEach(sec => sec.classList.remove('active'));
+        const menuItem = Array.from(menuItems).find(m => m.getAttribute('data-section') === sectionId);
+        if(menuItem) menuItem.classList.add('active');
+        const target = document.getElementById(sectionId);
+        if(target) target.classList.add('active');
+      }
 
       menuItems.forEach(item => {
-        item.addEventListener("click", () => {
-          menuItems.forEach(i => i.classList.remove("active"));
-          item.classList.add("active");
-          sections.forEach(sec => sec.classList.remove("active"));
-          const sectionId = item.getAttribute("data-section");
-          if (sectionId) document.getElementById(sectionId).classList.add("active");
+        item.addEventListener('click', () => {
+          const sectionId = item.getAttribute('data-section');
+          if (sectionId) activateTab(sectionId);
         });
       });
 
-      // Edit rows
-      document.querySelectorAll(".edit-icon").forEach(icon => {
-        icon.addEventListener("click", () => {
-          const row = icon.closest(".info-row");
-          const input = row.querySelector("input");
-          const saveBtn = row.querySelector(".save-btn");
-          input.removeAttribute("readonly");
-          input.focus();
-          saveBtn.style.display = "inline-block";
-          icon.style.display = "none";
+      // Deep link via ?tab=orders
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab') || 'general';
+      activateTab(tab);
+
+      // Edit rows toggle
+      document.querySelectorAll('.edit-icon').forEach(icon => {
+        icon.addEventListener('click', () => {
+          const row = icon.closest('.info-row');
+          const inputs = row.querySelectorAll('input');
+          const saveBtn = row.querySelector('.save-btn');
+          inputs.forEach(inp => inp.removeAttribute('readonly'));
+          if (inputs[0]) inputs[0].focus();
+          if (saveBtn) saveBtn.style.display = 'inline-block';
+          icon.style.display = 'none';
         });
       });
-    });
 
-     document.addEventListener("DOMContentLoaded", () => {
-    const removeButtons = document.querySelectorAll(".remove-btn");
-
-    removeButtons.forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const wishlistId = btn.getAttribute("data-id");
-
-        try {
-          const res = await fetch(`/accountsettings/wishlist/remove/${wishlistId}`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" }
-          });
-
-          if (res.ok) {
-            // remove the element from DOM
-            const itemRow = btn.closest(".wishlist-item");
-            itemRow.remove();
-
-            // if no items left, show "empty" message
-            const remaining = document.querySelectorAll(".wishlist-item");
-            if (remaining.length === 0) {
-              document.querySelector("#wishlist .info-section").innerHTML =
-                '<p class="empty">Your wishlist is empty.</p>';
-            }
-          } else {
-            alert("Failed to remove item.");
+      // Password: collapsed/expanded toggle
+      const pwCollapsed = document.getElementById('pw-collapsed');
+      const pwExpanded = document.getElementById('pw-expanded');
+      const changeLink = document.getElementById('pw-change-link');
+      const cancelBtn = document.getElementById('pw-cancel');
+    // Eye toggles for each password field
+      if (changeLink && pwCollapsed && pwExpanded) {
+        changeLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          pwCollapsed.classList.add('hidden');
+          pwExpanded.classList.remove('hidden');
+          const cur = pwExpanded.querySelector('input[name="current_password"]');
+          if (cur) cur.focus();
+        });
+      }
+      if (cancelBtn && pwCollapsed && pwExpanded) {
+        cancelBtn.addEventListener('click', () => {
+          // clear inputs
+          pwExpanded.querySelectorAll('input[type="password"]').forEach(inp => inp.value = '');
+          // reset visibility
+          pwExpanded.querySelectorAll('input[name="current_password"], input[name="new_password"], input[name="confirm_password"]').forEach(inp => { inp.type = 'password'; });
+          pwExpanded.classList.add('hidden');
+          pwCollapsed.classList.remove('hidden');
+        });
+      }
+      document.querySelectorAll('.pw-eye').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-target');
+          const inp = document.getElementById(id);
+          if (!inp) return;
+          const showing = inp.type === 'text';
+          inp.type = showing ? 'password' : 'text';
+          const icon = btn.querySelector('i');
+          if (icon) {
+            icon.classList.toggle('fa-eye', showing);
+            icon.classList.toggle('fa-eye-slash', !showing);
           }
-        } catch (err) {
-          console.error("Error:", err);
-          alert("Error removing item.");
-        }
+        });
       });
+
+      // Client-side min length validation for new password
+      const pwForm = document.getElementById('pw-expanded');
+      if (pwForm) {
+        const curPw = document.getElementById('curPw');
+        const newPw = document.getElementById('newPw');
+        const cfmPw = document.getElementById('cfmPw');
+        const curStatus = document.getElementById('curPwStatus');
+        const cfmStatus = document.getElementById('cfmPwStatus');
+        const saveBtn = document.getElementById('pw-save');
+
+        function evalReqs(val){
+          const reqs = {
+            min: val.length >= 12,
+            upper: /[A-Z]/.test(val),
+            lower: /[a-z]/.test(val),
+            number: /[0-9]/.test(val),
+            special: /[^A-Za-z0-9]/.test(val)
+          };
+          document.querySelectorAll('.pw-reqs li').forEach(li => {
+            const key = li.getAttribute('data-req');
+            li.classList.toggle('met', !!reqs[key]);
+          });
+          return Object.values(reqs).every(Boolean);
+        }
+
+        function checkConfirm(){
+          const match = newPw.value.trim() && (newPw.value.trim() === cfmPw.value.trim());
+          cfmStatus.textContent = match ? 'Match' : (cfmPw.value ? 'Does not match' : '');
+          cfmStatus.className = 'pw-status ' + (match ? 'ok' : (cfmPw.value ? 'err' : ''));
+          return match;
+        }
+
+        function updateSave(){
+          const strong = evalReqs(newPw.value.trim());
+          const matched = checkConfirm();
+          const requireCurrent = (pwForm.getAttribute('data-require-current') === 'true');
+          const curOk = requireCurrent ? !!curPw.value.trim() : true;
+          saveBtn.disabled = !(strong && matched && curOk);
+        }
+
+        ['input','keyup','change'].forEach(evt => {
+          newPw.addEventListener(evt, updateSave);
+          cfmPw.addEventListener(evt, updateSave);
+          if (curPw) curPw.addEventListener(evt, () => {
+            if (curPw.value.trim().length) {
+              curStatus.textContent = '';
+              curStatus.className = 'pw-status';
+            }
+            updateSave();
+          });
+        });
+
+        pwForm.addEventListener('submit', (e) => {
+          const strong = evalReqs(newPw.value.trim());
+          const matched = checkConfirm();
+          if (!strong || !matched) {
+            e.preventDefault();
+          }
+        });
+      }
+
+  // Profile image preview (both instances)
+  const fileInputs = [document.getElementById('profileInput'), document.getElementById('profileInput2')].filter(Boolean);
+      const previews = [document.getElementById('profilePreview'), document.getElementById('profilePreview2')].filter(Boolean);
+      fileInputs.forEach(input => {
+        input.addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (file) {
+            const url = URL.createObjectURL(file);
+            previews.forEach(p => p && (p.src = url));
+          }
+        });
+      });
+
+      // Wishlist remove (event delegation for robustness)
+      const wishlistSection = document.getElementById('wishlist');
+      if (wishlistSection) {
+        wishlistSection.addEventListener('click', async (e) => {
+          const btn = e.target.closest('.remove-btn');
+          if (!btn) return;
+          const wishlistId = btn.getAttribute('data-id');
+          try {
+            const res = await fetch(`/accountsettings/wishlist/remove/${wishlistId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+            if (res.ok) {
+              const itemRow = btn.closest('.wishlist-item');
+              if (itemRow) itemRow.remove();
+              const remaining = document.querySelectorAll('.wishlist-item');
+              if (remaining.length === 0) {
+                const container = document.querySelector('#wishlist .info-section');
+                if (container) container.innerHTML = '<p class="empty">Your wishlist is empty.</p>';
+              }
+            } else {
+              alert('Failed to remove item.');
+            }
+          } catch (err) {
+            console.error('Error:', err);
+            alert('Error removing item.');
+          }
+        });
+      }
+
+      // Orders tabs + card filtering
+      const tabs = Array.from(document.querySelectorAll('.orders-tab'));
+      const cards = Array.from(document.querySelectorAll('.order-card'));
+      function updateCounts(){
+        const counts = { ship: 0, receive: 0, review: 0 };
+        cards.forEach(c => { const g = c.getAttribute('data-group'); if (counts[g] != null) counts[g]++; });
+        const ship = document.getElementById('cnt-ship'); if (ship) ship.textContent = counts.ship;
+        const rec = document.getElementById('cnt-receive'); if (rec) rec.textContent = counts.receive;
+        const rev = document.getElementById('cnt-review'); if (rev) rev.textContent = counts.review;
+      }
+      function applyFilter(key){
+        tabs.forEach(t => { const on = t.getAttribute('data-filter') === key; t.classList.toggle('active', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); });
+        cards.forEach(c => { const match = c.getAttribute('data-group') === key; c.style.display = match ? '' : 'none'; });
+      }
+      async function cancelOrder(orderId, btn){
+        try{
+          btn.disabled = true; btn.textContent = 'Cancelling...';
+          const res = await fetch(`/accountsettings/orders/${orderId}/cancel`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+          if(!res.ok){ throw new Error('Failed'); }
+          const card = document.querySelector(`.order-card[data-id="${orderId}"]`);
+          if(card){ card.remove(); }
+          updateCounts();
+        }catch(e){
+          alert('Unable to cancel this order now.');
+        }finally{
+          if(btn){ btn.disabled = false; btn.textContent = 'Cancel order'; }
+        }
+      }
+      if (tabs.length){
+        updateCounts();
+        applyFilter('ship');
+        tabs.forEach(t => t.addEventListener('click', () => applyFilter(t.getAttribute('data-filter'))));
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest('.btn-cancel');
+          if(!btn) return;
+          const id = btn.getAttribute('data-id');
+          if(confirm('Cancel this order?')) cancelOrder(id, btn);
+        });
+        // Navigate to tracking when clicking on a card (except on cancel button)
+        document.addEventListener('click', (e) => {
+          const card = e.target.closest('.order-card');
+          if(!card) return;
+          const cancel = e.target.closest('.btn-cancel');
+          if (cancel) return; // let cancel handler run
+          const id = card.getAttribute('data-id');
+          window.location.href = `/orders/${id}/track`;
+        });
+        // Keyboard accessibility
+        document.addEventListener('keydown', (e) => {
+          const card = e.target.closest('.order-card');
+          if (!card) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            const id = card.getAttribute('data-id');
+            window.location.href = `/orders/${id}/track`;
+          }
+        });
+      }
     });
-  });
   </script>
+
+  <style>
+    .status-chip{display:inline-block;padding:4px 10px;border-radius:16px;font-size:12px}
+    .status-chip.pending{background:#FEF9C3;color:#A16207}
+    .status-chip.done{background:#DCFCE7;color:#166534}
+    .view-link{color:#2563EB;text-decoration:none}
+    .view-link:hover{text-decoration:underline}
+    .toggle-label{font-size:12px;color:#6b7280;display:flex;align-items:center;gap:6px}
+    .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;background:#fff;margin-top:12px}
+    .card-head h4{margin:0 0 4px}
+    .card-head .small{font-size:12px}
+
+    /* Orders tabs */
+  .orders-tabs{display:flex;gap:8px;margin:10px 0 12px; justify-content:center}
+  .orders-tab{border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:6px 12px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:8px}
+  .orders-tab i{opacity:.85}
+  .orders-cards{display:flex;flex-direction:column;gap:12px}
+  .order-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;cursor:pointer;transition:box-shadow .15s ease, transform .05s}
+  .order-card:focus{outline:2px solid #2563eb; outline-offset:2px}
+  .order-card:hover{box-shadow:0 6px 18px rgba(2,6,23,0.08)}
+  .oc-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #f1f5f9}
+  .oc-head .left{display:flex;align-items:center;gap:8px}
+  .mall-badge{background:#0f172a;color:#fff;border-radius:6px;padding:2px 6px;font-size:12px;font-weight:700}
+  .shop-name{font-weight:700}
+  .status-text{font-weight:600;color:#334155}
+  .status-text.done{color:#16a34a}
+  .status-text.intransit{color:#2563eb}
+  .status-text.processing{color:#d97706}
+  .oc-estimate{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px dashed #e5e7eb;color:#475569}
+  .oc-estimate i{color:#334155}
+  .oc-estimate .est-window{color:#0ea5e9}
+  .oc-item{display:flex;align-items:center;gap:12px;padding:12px 14px}
+  .item-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;border:1px solid #e5e7eb}
+  .item-main{flex:1}
+  .item-title{font-size:14px;margin:0 0 4px}
+  .item-sub{font-size:12px;color:#6b7280}
+  .item-price{font-weight:700}
+  .oc-more{padding:0 14px 8px;color:#64748b;font-size:12px}
+  .oc-foot{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-top:1px solid #f1f5f9}
+  .oc-foot .total{color:#334155}
+  .oc-foot .actions{display:flex;gap:8px}
+  .btn-outline{border:1px solid #e5e7eb;background:#fff;padding:6px 10px;border-radius:8px;cursor:pointer}
+  .btn-outline.danger{border-color:#fecaca;color:#b91c1c}
+  .btn-outline.small{font-size:12px}
+    .orders-tab .badge{background:#e5e7eb;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700}
+    .orders-tab.active{background:#2563eb;color:#fff;border-color:#2563eb}
+    .orders-tab.active .badge{background:rgba(255,255,255,0.25);color:#fff}
+
+  /* Dashboard summary (removed) */
+
+    /* Overview widgets */
+    .overview-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:12px}
+    @media (max-width: 1000px){ .overview-grid{grid-template-columns:1fr;} }
+    .info-card{border:1px solid #e5e7eb;background:#fff;border-radius:12px;margin-bottom:12px}
+    .info-card .ic-head{padding:12px 14px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between}
+    .info-card .ic-body{padding:12px 14px}
+    .info-card .ic-foot{padding:10px 14px;border-top:1px solid #f1f5f9}
+    .ic-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
+    .ic-label{color:#6b7280;font-size:13px}
+    .ic-value{font-weight:600}
+    .list-clean{list-style:none;margin:0;padding:0}
+    .lo-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8fafc;cursor:pointer}
+    .lo-item:last-child{border-bottom:none}
+    .lo-main{display:flex;flex-direction:column}
+    .lo-id{font-weight:700}
+    .lo-date{color:#64748b;font-size:12px}
+    .lo-side{text-align:right}
+    .lo-total{font-weight:800}
+    .wl-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f8fafc}
+    .wl-item:last-child{border-bottom:none}
+    .wl-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid #e5e7eb}
+    .wl-name{font-weight:600}
+    .wl-price{color:#0f172a;font-weight:700}
+    .list-bullet{margin:0;padding-left:18px}
+    .notif{padding:10px;border-radius:8px}
+    .notif.ok{background:#ecfdf5;color:#065f46}
+    .notif.error{background:#fef2f2;color:#991b1b}
+  </style>
 </body>
 </html>

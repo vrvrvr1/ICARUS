@@ -79,13 +79,27 @@
 
             <div style="display:flex;gap:0.75rem;margin-top:10px;">
               <div style="flex:1">
-                <label class="attr-label" for="stock">Stock</label>
-                <input class="search-input" type="number" id="stock" name="stock" required>
+                <label class="attr-label" for="stock">Total Stock (fallback)</label>
+                <input class="search-input" type="number" id="stock" name="stock" value="0" required>
+                <div class="small text-secondary" style="margin-top:4px;">Optional fallback if per-size stocks are not set.</div>
               </div>
               <div style="width:180px">
                 <label class="attr-label" for="category">Category</label>
                 <input class="search-input" type="text" id="category" name="category">
               </div>
+            </div>
+
+            <div class="dashboard-card" style="margin-top:12px;">
+              <label class="attr-label">Per-size stock</label>
+              <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
+                <% ['S','M','L','XL'].forEach(sz => { %>
+                  <div>
+                    <label class="small text-secondary">Size <%= sz %></label>
+                    <input class="search-input" type="number" name="size_stock[<%= sz %>]" min="0" value="0">
+                  </div>
+                <% }) %>
+              </div>
+              <div class="small text-secondary" style="margin-top:6px;">If provided, these override the total stock for availability and cart limits.</div>
             </div>
 
             <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">

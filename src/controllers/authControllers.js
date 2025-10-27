@@ -20,8 +20,9 @@ export const sendOtp = async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const otp = crypto.randomInt(100000, 999999).toString();
-    const expires = new Date(Date.now() + 5 * 60 * 1000);
+  const otp = crypto.randomInt(100000, 999999).toString();
+  // expire OTP after 60 seconds to match client-side timer
+  const expires = new Date(Date.now() + 60 * 1000);
 
     await pool.query(
       `INSERT INTO customers (first_name, last_name, email, password, otp_code, otp_expires)
@@ -35,7 +36,7 @@ export const sendOtp = async (req, res) => {
       from: process.env.GMAIL_USER,
       to: email,
       subject: "Your OTP Code",
-      text: `Hello ${firstName}, your verification code is ${otp}. It expires in 5 minutes.`,
+      text: `Hello ${firstName}, your verification code is ${otp}. It expires in 1 minute.`,
     });
 
     res.render("customer/verify", { email });
@@ -82,8 +83,9 @@ export const resendOtp = async (req, res) => {
   const { email } = req.query;
 
   try {
-    const otp = crypto.randomInt(100000, 999999).toString();
-    const expires = new Date(Date.now() + 5 * 60 * 1000);
+  const otp = crypto.randomInt(100000, 999999).toString();
+  // expire OTP after 60 seconds to match client-side timer
+  const expires = new Date(Date.now() + 60 * 1000);
 
     await pool.query(
       "UPDATE customers SET otp_code=$1, otp_expires=$2 WHERE email=$3",
@@ -94,9 +96,15 @@ export const resendOtp = async (req, res) => {
       from: process.env.GMAIL_USER,
       to: email,
       subject: "Resent OTP Code",
-      text: `Your new OTP code is ${otp}. It will expire in 5 minutes.`,
+      text: `Your new OTP code is ${otp}. It will expire in 1 minute.`,
     });
 
+    // If this was requested via AJAX, return JSON so the client can reset timer without full page reload
+    if (req.query.ajax || req.xhr) {
+      return res.json({ success: true, message: 'OTP resent' });
+    }
+
+    // Otherwise render the verify page (normal flow)
     res.render("customer/verify", { email });
   } catch (err) {
     console.error("Error resending OTP:", err);

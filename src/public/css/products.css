@@ -328,6 +328,9 @@ display: none;
   margin-bottom: 5px;
 }
 
+.product-price .price-new { color:#111; font-weight:800; }
+.product-price .price-old { color:#9ca3af; text-decoration: line-through; margin-left:8px; font-weight:600; font-size:0.95rem; }
+
 .product-name {
   text-transform: uppercase;
   color: #000;
@@ -396,4 +399,19 @@ display: none;
 
 .wishlist-btn i.bi-heart-fill {
   color: red;
+}
+
+/* Discount badge */
+.product-card .discount-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #e63946; /* red */
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  z-index: 2;
 }

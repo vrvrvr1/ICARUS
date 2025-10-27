@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Customers</title>
-  <link rel="stylesheet" href="/css/admin.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
   <aside class="dashboard-sidebar">
@@ -24,7 +24,9 @@
         <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
         <a href="/customers" class="active"><i class="bi bi-people"></i> Customers</a>
         <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
-        <a href="#"><i class="bi bi-gear"></i> Settings</a>
+        <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/cms"><i class="bi bi-journal-text"></i> CMS</a>
+        
       </nav>
     </div>
 
@@ -62,7 +64,7 @@
           <table>
             <thead>
               <tr>
-                <th>Username</th>
+                <th>Customer</th>
                 <th>Email</th>
                 <th>Role</th>
                 <th>Total Orders</th>
@@ -76,8 +78,27 @@
               </tr>
             <% } else { %>
               <% customers.forEach(customer => { %>
+                <% 
+                  // normalize the stored profile image and compute a public href
+                  let rawImg = customer.profile_image || null;
+                  let imgHref = '/image/profile1.png';
+                  if (rawImg) {
+                    rawImg = String(rawImg).trim();
+                    rawImg = rawImg.replace(/\\/g, '/');
+                    if (rawImg.startsWith('./')) rawImg = rawImg.slice(2);
+                    if (rawImg.toLowerCase().startsWith('uploads/')) rawImg = rawImg.slice(8);
+                    if (/^https?:\/\//i.test(rawImg) || rawImg.startsWith('/')) imgHref = rawImg;
+                    else imgHref = '/uploads/' + rawImg;
+                  }
+                %>
                 <tr>
-                  <td><%= (customer.first_name || '') + ' ' + (customer.last_name || '') %><br><small style="color:var(--text-secondary)">@<%= customer.email.split('@')[0] %></small></td>
+                  <td>
+                    <div class="customer-cell">
+                      <button class="avatar-btn" data-img="<%= imgHref %>">
+                        <img src="<%= imgHref %>" alt="customer avatar" class="order-thumb" onerror="this.src='/image/profile1.png'" />
+                      </button>
+                    </div>
+                  </td>
                   <td><%= customer.email %></td>
                   <td><%= customer.role %></td>
                   <td><%= customer.total_orders || 0 %></td>

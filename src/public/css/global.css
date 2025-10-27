@@ -1,0 +1,8 @@
+:root{--font-sans:'Poppins',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+html,body{font-family:var(--font-sans);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+/* Force Poppins everywhere, but don't override icon fonts */
+body :not(.fa):not(.fas):not(.far):not(.fal):not(.fab):not([class*="fa-"]):not(.bi){
+	font-family:var(--font-sans) !important;
+}
+button,input,select,textarea{font-family:inherit}
+h1,h2,h3,h4,h5,h6{font-family:inherit}

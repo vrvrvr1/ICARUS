@@ -4,65 +4,167 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Email Verification</title>
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root{ --card-bg:#ffffff; --primary-1:#3071e8; --primary-2:#2a6de0 }
     body {
-      background: #f8f9fa;
+      background: linear-gradient(135deg,#f8e8ff 0%, #e8f3ff 50%, #fff0f8 100%);
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
+      font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      padding: 32px;
     }
     .verify-box {
-      background: #fff;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      background: var(--card-bg);
+      padding: 36px 34px;
+      border-radius: 14px;
+      box-shadow: 0 18px 40px rgba(12,20,40,0.06);
       width: 100%;
-      max-width: 400px;
+      max-width: 520px; /* increased to give OTP boxes room */
+      border: 1px solid rgba(10,20,30,0.04);
+      margin: 0 16px; /* small outer breathing room on very small screens */
     }
-    .verify-box h2 {
-      font-weight: 600;
-      margin-bottom: 1rem;
-      text-align: center;
-    }
+    .verify-box h2 { font-weight:700; margin:0 0 6px 0; text-align:center; font-size:38px; color:#0b3948 }
+    .verify-sub { text-align:center; color:#6b7d7f; margin:0 0 18px 0; font-size:13px }
+    .masked-email { font-weight:600; color:#0b3948 }
+  .otp-group { display:flex; gap:12px; justify-content:space-between; margin:16px 0 8px; width:100%; }
+  .otp-group input { flex:1; min-width:48px; height:64px; text-align:center; font-size:22px; border-radius:10px; border:1px solid rgba(15,30,45,0.06); background:#fbfdff; box-shadow:0 6px 18px rgba(12,20,40,0.04), inset 0 -2px 0 rgba(0,0,0,0.02); font-weight:700; box-sizing:border-box; }
+  .otp-group input:focus { outline:none; border-color:rgba(48,113,232,0.9); box-shadow:0 8px 30px rgba(48,113,232,0.12) }
+  @media (max-width:420px){ .otp-group input{ min-width:40px; height:56px; font-size:18px } }
+    .timer { text-align:center; color:#6b7d7f; font-size:13px; margin-top:6px }
+    .error-message { color:#c53030; font-size:13px; text-align:center; margin-top:8px }
+    .btn-primary-wide { width:100%; padding:12px 18px; border-radius:10px; font-weight:700; border:none; background:linear-gradient(180deg,var(--primary-1),var(--primary-2)); color:#fff; box-shadow:0 8px 26px rgba(42,109,224,0.18) }
+    .btn-primary-wide.ghost { background:linear-gradient(180deg,#fff,#f6f8ff); color:var(--primary-1); border:1px solid rgba(42,109,224,0.08); box-shadow:none }
+    .resend-row { display:flex; justify-content:center; gap:12px; align-items:center; margin-top:14px }
+    .resend-row .small { font-size:13px; color:#6b7d7f }
   </style>
 </head>
 <body>
   <div class="verify-box">
-    <h2>Email Verification</h2>
-    <p class="text-muted text-center">
-      Enter the 6-digit OTP sent to your Gmail account.
-    </p>
+    <h2>Verification Code</h2>
+    <% var maskedEmail = '';
+       if (typeof email === 'string' && email.length) {
+         try { var parts = email.split('@'); var local = parts[0]||''; var domain = parts[1]||''; var vis = local.slice(0, Math.max(1, Math.floor(local.length/2))); maskedEmail = vis + '...' + '@' + domain; } catch(e) { maskedEmail = email; }
+       }
+    %>
+    <p class="verify-sub">Enter the code sent to <span class="masked-email"><%= maskedEmail || 'your email' %></span></p>
 
-<form action="/verify" method="POST">
-  <!-- hidden email so backend can check OTP against correct user -->
-  <input type="hidden" name="email" value="<%= email %>">
+    <form id="verifyForm" action="/verify" method="POST">
+      <input type="hidden" name="email" value="<%= email %>">
+      <input type="hidden" name="otp" id="otpHidden" value="">
 
-  <div class="mb-3">
-    <label for="otp" class="form-label">OTP Code</label>
-    <input
-      type="text"
-      class="form-control"
-      id="otp"
-      name="otp"
-      placeholder="Enter 6-digit code"
-      maxlength="6"
-      required
-    />
+      <div class="otp-group" role="group" aria-label="Enter verification code">
+        <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" aria-label="Digit 1">
+        <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" aria-label="Digit 2">
+        <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" aria-label="Digit 3">
+        <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" aria-label="Digit 4">
+        <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" aria-label="Digit 5">
+        <input inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" aria-label="Digit 6">
+      </div>
+
+  <div class="timer" id="timer">01:00</div>
+
+      <% var errorMsg = (typeof error !== 'undefined' && error) ? error : ''; %>
+      <% if (errorMsg) { %>
+        <div class="error-message"><%= errorMsg %></div>
+      <% } %>
+
+      <div style="margin-top:12px">
+        <button type="submit" class="btn btn-primary btn-primary-wide"><%= errorMsg ? 'Try Again' : 'Verify' %></button>
+      </div>
+    </form>
+
+    <div class="resend-row">
+      <div class="small">Didn’t receive a code?</div>
+      <button type="button" id="resendBtn" class="btn btn-outline-secondary btn-sm" data-email="<%= email %>">Resend Code</button>
+      <div id="resendMsg" style="margin-left:8px; font-size:13px; color:green; display:none">Sent</div>
+    </div>
   </div>
 
-  <button type="submit" class="btn btn-primary">Verify</button>
-</form>
+  <script>
+    // OTP input handling: auto-advance, paste, combine on submit
+    (function(){
+      const inputs = Array.from(document.querySelectorAll('.otp-input'));
+      inputs.forEach((el, idx) => {
+        el.addEventListener('input', (e) => {
+          const v = el.value.replace(/[^0-9]/g,'');
+          el.value = v;
+          if (v && idx < inputs.length-1) inputs[idx+1].focus();
+        });
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !el.value && idx>0) { inputs[idx-1].focus(); }
+        });
+        el.addEventListener('paste', (e) => {
+          e.preventDefault();
+          const paste = (e.clipboardData || window.clipboardData).getData('text') || '';
+          const digits = paste.replace(/\D/g,'').slice(0, inputs.length).split('');
+          digits.forEach((d,i) => { inputs[i].value = d; });
+        });
+      });
+      const form = document.getElementById('verifyForm');
+      form.addEventListener('submit', (e) => {
+        const val = inputs.map(i=>i.value||'').join('');
+        if (val.length !== inputs.length) { e.preventDefault(); inputs[0].focus(); return; }
+        document.getElementById('otpHidden').value = val;
+      });
+      if (inputs[0]) inputs[0].focus();
 
+  // Countdown timer (start 60s)
+  let remaining = 60;
+      const timerEl = document.getElementById('timer');
+      const resendBtn = document.getElementById('resendBtn');
+      function updateTimer(){
+        const m = String(Math.floor(remaining/60)).padStart(2,'0');
+        const s = String(remaining%60).padStart(2,'0');
+        if (timerEl) timerEl.textContent = m + ':' + s;
+        if (remaining <= 0) { if (resendBtn) resendBtn.classList.remove('disabled'); return; }
+        remaining--; setTimeout(updateTimer, 1000);
+      }
+      if (timerEl) updateTimer();
+      if (resendBtn) resendBtn.classList.add('disabled');
 
-    <p class="mt-3 text-center">
-      Didn’t get the code?
-      <a href="/resend-otp">Resend OTP</a>
-    </p>
-  </div>
+      // Resend button handler (AJAX) - calls /resend-otp?email=...&ajax=1
+      const resendMsg = document.getElementById('resendMsg');
+      function setResendDisabled(state){
+        if (!resendBtn) return;
+        resendBtn.disabled = state;
+        if (state) {
+          resendBtn.classList.add('disabled');
+        } else {
+          resendBtn.classList.remove('disabled');
+        }
+      }
+
+      if (resendBtn) {
+        resendBtn.addEventListener('click', async (e) => {
+          if (resendBtn.disabled) return;
+          const emailInput = document.querySelector('input[name="email"]');
+          const emailVal = emailInput ? emailInput.value : resendBtn.dataset.email || '';
+          if (!emailVal) return;
+          try {
+            setResendDisabled(true);
+            const resp = await fetch('/resend-otp?email=' + encodeURIComponent(emailVal) + '&ajax=1');
+            if (resp.ok) {
+              // show brief feedback and reset timer
+              if (resendMsg) { resendMsg.style.display = 'inline'; setTimeout(()=>{ if (resendMsg) resendMsg.style.display='none'; }, 2500); }
+              remaining = 60; // reset countdown
+              if (timerEl) timerEl.textContent = '01:00';
+              // restart timer loop
+              setTimeout(updateTimer, 1000);
+            } else {
+              // on failure re-enable
+              setResendDisabled(false);
+            }
+          } catch (err) {
+            console.error('Resend failed', err);
+            setResendDisabled(false);
+          }
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

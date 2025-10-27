@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin • Discounts</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/discounts" class="active"><i class="bi bi-percent"></i> Discounts</a>
+      </nav>
+    </div>
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Discounts</div>
+        <div class="dashboard-title-sub">Create and manage coupon codes</div>
+      </div>
+    </div>
+
+    <div class="dashboard-cards">
+      <div class="dashboard-card">
+        <div class="card-label"><i class="bi bi-percent card-icon"></i> Active Discounts</div>
+        <div class="card-value">0</div>
+      </div>
+      <div class="dashboard-card">
+        <div class="card-label"><i class="bi bi-hourglass-split card-icon"></i> Expiring Soon</div>
+        <div class="card-value">0</div>
+      </div>
+    </div>
+
+    <div class="dashboard-orders">
+      <div class="orders-title-row">
+        <div class="orders-title">All Discounts</div>
+      </div>
+
+      <!-- Toolbar: Tabs + Search + Add button -->
+      <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+        <ul class="nav nav-pills discounts-tabs">
+          <li class="nav-item"><button class="nav-link active" data-filter="all" type="button">All</button></li>
+          <li class="nav-item"><button class="nav-link" data-filter="active" type="button">Active</button></li>
+          <li class="nav-item"><button class="nav-link" data-filter="inactive" type="button">Inactive</button></li>
+        </ul>
+
+        <div class="d-flex align-items-center gap-2 ms-auto">
+          <div class="input-group input-group-sm" style="min-width: 260px;">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input id="discountSearch" type="text" class="form-control" placeholder="Search discount code...">
+          </div>
+          <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#createDiscountCard" aria-expanded="false">
+            <i class="bi bi-plus"></i> Add a discount
+          </button>
+        </div>
+      </div>
+
+      <!-- Create Discount Form -->
+      <div id="createDiscountCard" class="collapse dashboard-card discounts-card mb-4">
+          <form class="discounts-form" action="/admin/discounts" method="POST">
+            <!-- Row 1: Code, Type, Value, Active, Add -->
+            <div class="row g-3 align-items-end">
+              <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                <label class="form-label mb-1">Code</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                  <input type="text" name="code" class="form-control" placeholder="e.g. SUMMER25" required>
+                </div>
+                <div class="form-text">3–30 letters/numbers, dash or underscore.</div>
+              </div>
+              <div class="col-6 col-sm-6 col-md-2 col-lg-2">
+                <label class="form-label mb-1">Type</label>
+                <select name="type" id="discType" class="form-select form-select-sm" required>
+                  <option value="percent">Percent %</option>
+                  <option value="fixed">Fixed $</option>
+                </select>
+              </div>
+              <div class="col-6 col-sm-6 col-md-2 col-lg-2">
+                <label class="form-label mb-1">Value</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text" id="valueAddon">%</span>
+                  <input type="number" name="value" id="discValue" class="form-control" min="0" step="0.1" required placeholder="e.g. 15">
+                </div>
+              </div>
+              <div class="col-6 col-sm-6 col-md-2 col-lg-2 d-flex align-items-center">
+                <div class="form-check form-switch mt-3 mt-md-0">
+                  <input class="form-check-input" type="checkbox" id="activeSwitch" name="active" checked>
+                  <label class="form-check-label" for="activeSwitch">Active</label>
+                </div>
+              </div>
+              <div class="col-12 col-sm-12 col-md-2 col-lg-2 d-grid ms-md-auto">
+                <button class="btn btn-primary btn-sm px-4" type="submit"><i class="bi bi-plus"></i> Add</button>
+              </div>
+            </div>
+
+            <!-- Row 2: Start, End, Min Order, Max Uses -->
+            <div class="row g-3 mt-2">
+              <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label mb-1">Start</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
+                  <input type="datetime-local" name="start_date" class="form-control" placeholder="">
+                </div>
+              </div>
+              <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label mb-1">End</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text"><i class="bi bi-calendar2-week"></i></span>
+                  <input type="datetime-local" name="end_date" class="form-control" placeholder="">
+                </div>
+              </div>
+              <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label mb-1">Min Order $</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">$</span>
+                  <input type="number" name="min_order" class="form-control" min="0" step="0.01" placeholder="0.00">
+                </div>
+              </div>
+              <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label mb-1">Max Uses</label>
+                <input type="number" name="max_uses" class="form-control form-control-sm" min="1" step="1" placeholder="Unlimited">
+              </div>
+            </div>
+          </form>
+      </div>
+
+      <div class="table-container table-container--no-scroll">
+        <div class="table-responsive">
+          <table class="orders-table">
+        <thead>
+          <tr>
+            <th>Details</th>
+            <th>Type</th>
+            <th>Value</th>
+            <th>Min Order</th>
+            <th>Uses</th>
+            <th>Start/End</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (discounts && discounts.length) { %>
+            <% discounts.forEach(d => { %>
+              <tr
+                data-code="<%= d.code %>"
+                <% const __now = Date.now(); const __started = !d.start_date || new Date(d.start_date) <= __now; const __notEnded = !d.end_date || new Date(d.end_date) >= __now; const __underCap = !d.max_uses || Number(d.uses||0) < d.max_uses; const __rowActive = !!d.active && __started && __notEnded && __underCap; const __expired = !!d.end_date && new Date(d.end_date) < __now; %>
+                data-active="<%= __rowActive ? 'true' : 'false' %>"
+                data-expired="<%= __expired ? 'true' : 'false' %>"
+              >
+                <td>
+                  <div class="d-flex flex-column">
+                    <div class="d-flex align-items-center gap-2">
+                      <strong><%= d.code %></strong>
+                      <% if (!d.active) { %>
+                        <span class="discount-badge disabled">Disabled</span>
+                      <% } %>
+                      <% if (__expired) { %>
+                        <span class="discount-badge expired">Expired</span>
+                      <% } %>
+                      <button type="button"
+                              class="btn-action open-delete-modal ms-1"
+                              data-id="<%= d.id %>"
+                              data-code="<%= d.code %>"
+                              title="Delete discount">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                    <div class="text-secondary small mt-1">
+                      <% const __valueTxt = d.type === 'percent' ? (Number(d.value).toFixed(0) + '% off') : ('$' + Number(d.value).toFixed(2) + ' off'); %>
+                      <% const __scopeTxt = Number(d.min_order||0) > 0 ? ('on orders over $' + Number(d.min_order).toFixed(2)) : 'for all orders'; %>
+                      <%= __valueTxt %> <span class="opacity-75"> <%= __scopeTxt %></span>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-capitalize"><%= d.type %></td>
+                <td>
+                  <% if (d.type === 'percent') { %>
+                    <%= Number(d.value).toFixed(2) %>%
+                  <% } else { %>
+                    $<%= Number(d.value).toFixed(2) %>
+                  <% } %>
+                </td>
+                <td>$<%= Number(d.min_order || 0).toFixed(2) %></td>
+                <td><%= Number(d.uses || 0) %><% if (d.max_uses) { %> / <%= d.max_uses %><% } %></td>
+                <td>
+                  <div class="small text-secondary">
+                    <% if (d.start_date) { %>
+                      <% const __sd = new Date(d.start_date); %>
+                      <div>Starts <span class="text-light"><%= __sd.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) %></span></div>
+                    <% } else { %>
+                      <div>Starts <span class="text-light">—</span></div>
+                    <% } %>
+                    <% if (d.end_date) { %>
+                      <% const __ed = new Date(d.end_date); const __isExp = __ed < new Date(); %>
+                      <div><%= __isExp ? 'Expired' : 'Expires' %> <span class="<%= __isExp ? 'text-danger' : 'text-light' %>"><%= __ed.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) %></span></div>
+                    <% } else { %>
+                      <div>Expires <span class="text-light">—</span></div>
+                    <% } %>
+                  </div>
+                </td>
+                <td>
+                  <span class="order-status <%= __rowActive ? 'completed' : 'pending' %>"><%= __rowActive ? 'Active' : 'Inactive' %></span>
+                </td>
+                <td class="d-flex gap-2">
+                  <form action="/admin/discounts/<%= d.id %>/toggle" method="POST">
+                    <button class="btn btn-sm <%= d.active ? 'btn-warning' : 'btn-success' %>" type="submit">
+                      <i class="bi <%= d.active ? 'bi-slash-circle' : 'bi-check-circle' %>"></i>
+                      <%= d.active ? 'Disable' : 'Enable' %>
+                    </button>
+                  </form>
+                  <button type="button" class="btn btn-sm btn-danger open-delete-modal" data-id="<%= d.id %>" data-code="<%= d.code %>"><i class="bi bi-trash"></i> Delete</button>
+                </td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="9" class="text-center text-muted">No discounts yet.</td>
+            </tr>
+          <% } %>
+        </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteDiscountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="background: var(--card-dark); color: var(--text-primary); border: 1px solid var(--muted-border);">
+        <div class="modal-header" style="border-bottom-color: var(--muted-border);">
+          <h5 class="modal-title">Delete discount</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="deleteDiscountForm" method="POST">
+          <div class="modal-body">
+            <p class="mb-1">Are you sure you want to delete this discount?</p>
+            <div class="small text-secondary">Code: <strong id="deleteDiscountCode">—</strong></div>
+          </div>
+          <div class="modal-footer" style="border-top-color: var(--muted-border);">
+            <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Delete</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Toggle value addon and constraints based on discount type
+    (function(){
+      const typeSel = document.getElementById('discType');
+      const addon = document.getElementById('valueAddon');
+      const input = document.getElementById('discValue');
+      if (!typeSel || !addon || !input) return;
+      function sync(){
+        const t = typeSel.value;
+        if (t === 'percent') {
+          addon.textContent = '%';
+          input.step = '0.1';
+          input.max = '100';
+          input.placeholder = 'e.g. 15';
+        } else {
+          addon.textContent = '$';
+          input.step = '0.01';
+          input.removeAttribute('max');
+          input.placeholder = 'e.g. 10.00';
+        }
+      }
+      typeSel.addEventListener('change', sync);
+      sync();
+    })();
+
+    // Filtering and search
+    (function(){
+      const search = document.getElementById('discountSearch');
+      const rows = Array.from(document.querySelectorAll('table.orders-table tbody tr'));
+      const tabs = document.querySelectorAll('.discounts-tabs .nav-link');
+      function apply(){
+        const q = (search?.value || '').trim().toLowerCase();
+        const activeTab = document.querySelector('.discounts-tabs .nav-link.active');
+        const filter = activeTab?.getAttribute('data-filter') || 'all';
+        rows.forEach(r => {
+          const code = (r.getAttribute('data-code') || '').toLowerCase();
+          const isActive = r.getAttribute('data-active') === 'true';
+          const matchText = !q || code.includes(q);
+          const matchTab = filter === 'all' || (filter === 'active' && isActive) || (filter === 'inactive' && !isActive);
+          r.style.display = (matchText && matchTab) ? '' : 'none';
+        });
+      }
+      tabs.forEach(t => t.addEventListener('click', (e) => {
+        tabs.forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        apply();
+      }));
+      if (search) search.addEventListener('input', apply);
+      apply();
+    })();
+
+    // Delete modal wiring
+    (function(){
+      const modalEl = document.getElementById('deleteDiscountModal');
+      const form = document.getElementById('deleteDiscountForm');
+      const codeEl = document.getElementById('deleteDiscountCode');
+      if (!modalEl || !form || !codeEl) return;
+      const modal = new bootstrap.Modal(modalEl);
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.open-delete-modal');
+        if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        const code = btn.getAttribute('data-code');
+        form.action = `/admin/discounts/${id}/delete`;
+        codeEl.textContent = code || '—';
+        modal.show();
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -23,7 +23,7 @@
         <a href="/adminproducts" class="active"><i class="bi bi-box-seam"></i> Products</a>
         <a href="/customers"><i class="bi bi-people"></i> Customers</a>
         <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
-        <a href="#"><i class="bi bi-gear"></i> Settings</a>
+        
       </nav>
     </div>
 
@@ -99,13 +99,29 @@
 
             <div style="display:flex;gap:0.75rem;margin-top:10px;">
               <div style="flex:1">
-                <label class="attr-label" for="stock">Stock</label>
+                <label class="attr-label" for="stock">Total Stock (fallback)</label>
                 <input class="search-input" type="number" id="stock" name="stock" value="<%= product.stock %>" required>
+                <div class="small text-secondary" style="margin-top:4px;">Used when per-size stocks are not configured.</div>
               </div>
               <div style="width:180px">
                 <label class="attr-label" for="category">Category</label>
                 <input class="search-input" type="text" id="category" name="category" value="<%= product.category %>">
               </div>
+            </div>
+
+            <% // Per-size stock editor (fetch passed-in sizeStock if available) %>
+            <% const __sizeStock = (typeof sizeStock !== 'undefined' && sizeStock) ? sizeStock : {}; %>
+            <div class="dashboard-card" style="margin-top:12px;">
+              <label class="attr-label">Per-size stock</label>
+              <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
+                <% ['S','M','L','XL'].forEach(sz => { %>
+                  <div>
+                    <label class="small text-secondary">Size <%= sz %></label>
+                    <input class="search-input" type="number" name="size_stock[<%= sz %>]" min="0" value="<%= Number(__sizeStock[sz] || 0) %>">
+                  </div>
+                <% }) %>
+              </div>
+              <div class="small text-secondary" style="margin-top:6px;">Overrides total stock for availability and cart limits when set.</div>
             </div>
 
             <!-- category handled above in the left column; color chips moved under Short Description -->
@@ -144,6 +160,55 @@
                 <% } %>
               </div>
               <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:6px;">You need to add at least 4 images. Pay attention to background and dimensions.</div>
+            </div>
+
+            <div class="dashboard-card" style="margin-top:12px;">
+              <label class="attr-label" for="discounts">Discounts (optional)</label>
+              <div style="max-height:220px; overflow:auto; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:8px;">
+                <% if (typeof discounts !== 'undefined' && discounts.length) { %>
+                  <% discounts.forEach(d => { 
+                       const now = new Date();
+                       const expired = d.end_date && (new Date(d.end_date) < now);
+                       const disabled = !d.active || expired;
+                       const checked = (typeof productDiscountIds !== 'undefined' && productDiscountIds.has && productDiscountIds.has(Number(d.id))) ? 'checked' : '';
+                  %>
+                    <label style="display:flex; align-items:center; gap:8px; padding:6px 4px; border-bottom:1px solid rgba(255,255,255,0.04);">
+                      <input type="checkbox" name="discount_ids[]" value="<%= d.id %>" <%= checked %> />
+                      <span style="font-weight:700;"><%= d.code %></span>
+                      <span class="badge" style="margin-left:auto; background:rgba(37,99,235,0.15); color:#93c5fd; border-radius:999px; padding:2px 8px; font-size:12px;">
+                        <%= d.type === 'percent' ? (Number(d.value)+'%') : ('$'+Number(d.value).toFixed(2)) %>
+                      </span>
+                      <% if (disabled) { %>
+                        <span class="badge" style="background:rgba(239,68,68,0.15); color:#fecaca; border-radius:999px; padding:2px 8px; font-size:12px;">Disabled</span>
+                      <% } %>
+                    </label>
+                  <% }) %>
+                <% } else { %>
+                  <div class="text-secondary small">No discounts found. Create some in Admin → Discounts.</div>
+                <% } %>
+              </div>
+              <div class="small text-secondary" style="margin-top:6px;">
+                If a discount is selected here, it will only apply when the customer uses that code and this product is in the cart.
+              </div>
+            </div>
+
+            <div class="dashboard-card" style="margin-top:12px;">
+              <label class="attr-label">Product Promo (auto-apply)</label>
+              <div class="small text-secondary" style="margin:4px 0 8px;">Set a per-product sale that applies automatically without a code.</div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <label style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" name="promo_active" <%= product.promo_active ? 'checked' : '' %> />
+                  <span>Enable promo</span>
+                </label>
+                <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
+                  <span class="small text-secondary">Percent</span>
+                  <input class="search-input" type="number" name="promo_percent" min="0" max="100" step="1" value="<%= Number(product.promo_percent || 0) %>" style="width:100px;">
+                  <span>%</span>
+                </div>
+              </div>
+              <div class="small text-secondary" style="margin-top:6px;">
+                Example: 20 means 20% off (price becomes 80%). Rounds to cents.
+              </div>
             </div>
 
             <!-- right column reserved for images and helpers -->

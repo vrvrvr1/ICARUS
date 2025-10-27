@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit Order #<%= order.id %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/image/profile1.png" alt="Admin" class="sidebar-avatar" onerror="this.onerror=null;this.src='/image/profile1.png';" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders" class="active"><i class="bi bi-bag-check"></i> Orders</a>
+        
+      </nav>
+    </div>
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header" style="gap:10px;">
+      <div>
+        <div class="dashboard-title-main">Edit Order #<%= order.id %></div>
+        <div class="dashboard-title-sub">Last updated: <%= order.order_date ? new Date(order.order_date).toLocaleString() : 'N/A' %></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <a class="analytics-btn" href="/admin/orders/<%= order.id %>">Back</a>
+        <button type="submit" class="btn" form="statusForm">Save Changes</button>
+      </div>
+    </div>
+
+   <% const st = (order.status || '').toLowerCase();
+     const stepIndex = (st.includes('delivered') || st.includes('completed')) ? 3
+                : ((st.includes('en route') || st.includes('courier') || st.includes('out')) ? 2
+                : (st.includes('shipped') ? 1 : 0)); %>
+    <div class="dl-card">
+      <div class="dl-title">Delivery timeline</div>
+      <div class="dl-track-wrap">
+        <div class="dl-track-bar" data-step="<%= stepIndex %>"></div>
+      </div>
+      <div class="dl-steps">
+        <div class="dl-step <%= stepIndex >= 0 ? 'done' : '' %>" data-index="0">
+          <div class="dl-dot"></div>
+          <div class="dl-icon"><i class="bi bi-journal-check"></i></div>
+          <div class="dl-label">Order Placed</div>
+        </div>
+        <div class="dl-step <%= stepIndex >= 1 ? 'done' : '' %>" data-index="1">
+          <div class="dl-dot"></div>
+          <div class="dl-icon"><i class="bi bi-box-seam"></i></div>
+          <div class="dl-label">Order Shipped</div>
+        </div>
+        <div class="dl-step <%= stepIndex >= 2 ? 'done' : '' %>" data-index="2">
+          <div class="dl-dot"></div>
+          <div class="dl-icon"><i class="bi bi-truck"></i></div>
+          <div class="dl-label">Order En Route</div>
+        </div>
+        <div class="dl-step <%= stepIndex >= 3 ? 'done' : '' %>" data-index="3">
+          <div class="dl-dot"></div>
+          <div class="dl-icon"><i class="bi bi-house"></i></div>
+          <div class="dl-label">Order Arrived</div>
+        </div>
+      </div>
+    </div>
+
+    <% const etaDate = order.estimated_delivery ? new Date(order.estimated_delivery) : null; 
+       const etaStart = order.estimated_delivery_start ? new Date(order.estimated_delivery_start) : null;
+       const etaEnd = order.estimated_delivery_end ? new Date(order.estimated_delivery_end) : null; %>
+    <div class="dl-card" style="padding-top: 0.5rem;">
+      <div class="dl-title">Estimated delivery</div>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <label class="text-secondary small">From</label>
+        <input type="date" name="estimated_delivery_start_date" form="statusForm" value="<%= etaStart ? etaStart.toISOString().slice(0,10) : '' %>"
+          style="background: rgba(255,255,255,0.02); color:#fff; border:1px solid rgba(255,255,255,0.06); padding:8px 10px; border-radius:8px;" />
+        <label class="text-secondary small">to</label>
+        <input type="date" name="estimated_delivery_end_date" form="statusForm" value="<%= etaEnd ? etaEnd.toISOString().slice(0,10) : '' %>"
+          style="background: rgba(255,255,255,0.02); color:#fff; border:1px solid rgba(255,255,255,0.06); padding:8px 10px; border-radius:8px;" />
+        <small class="text-secondary">Optional. Set one or both dates. If only one is set, it will display as a single date.</small>
+      </div>
+    </div>
+
+    <form method="POST" action="/admin/orders/<%= order.id %>/edit" id="statusForm" style="display:none;">
+      <input type="hidden" id="statusInput" name="status" value="<%= order.status || 'Pending' %>">
+    </form>
+  </main>
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      function setBarToIndex(wrap, i){
+        var bar = wrap.querySelector('.dl-track-bar');
+        var steps = document.querySelectorAll('.dl-steps .dl-step');
+        if (!bar || !steps.length) return;
+        var idx = Math.min(Math.max(i, 0), steps.length - 1);
+        var dot = steps[idx].querySelector('.dl-dot');
+        if (!dot) return;
+        var wrapRect = wrap.getBoundingClientRect();
+        var dotRect = dot.getBoundingClientRect();
+        var centerX = dotRect.left + (dotRect.width/2);
+        var widthPx = Math.max(0, Math.min(centerX - wrapRect.left, wrap.clientWidth));
+        bar.style.width = widthPx + 'px';
+        bar.setAttribute('data-step', String(idx));
+      }
+
+      var input = document.getElementById('statusInput');
+      var wrap = document.querySelector('.dl-track-wrap');
+      if (wrap){
+        var initial = parseInt((wrap.querySelector('.dl-track-bar')||{}).getAttribute?.('data-step') || '0', 10) || 0;
+        setBarToIndex(wrap, initial);
+        window.addEventListener('resize', function(){ setBarToIndex(wrap, parseInt((wrap.querySelector('.dl-track-bar')||{}).getAttribute?.('data-step') || '0', 10) || 0); });
+      }
+
+      // Delivery timeline click behavior -> updates visual progress and hidden status
+      var steps = Array.from(document.querySelectorAll('.dl-steps .dl-step'));
+      var stepToStatus = ['Processing', 'Shipped', 'With courier en route', 'Delivered'];
+      steps.forEach(function(step, idx){
+        if (!step.hasAttribute('data-index')) step.setAttribute('data-index', String(idx));
+        step.addEventListener('click', function(){
+          var i = parseInt(step.getAttribute('data-index'), 10);
+          if (isNaN(i)) i = idx;
+          steps.forEach(function(s, j){ s.classList.toggle('done', j <= i); });
+          if (wrap) setBarToIndex(wrap, i);
+          var newStatus = stepToStatus[i] || 'Processing';
+          if (input) input.value = newStatus;
+        });
+      });
+    });
+  </script>
+</body>
+</html>

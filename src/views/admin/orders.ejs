@@ -1,93 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orders</title>
-  <link rel="stylesheet" href="/css/admin.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-</head>
-<body>
-    
-  <!-- Header -->
-  <header class="header">
-    <h1>Admin Dashboard</h1>
-    <a href="/logout" class="btn-logout">Logout</a>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Orders</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/admin.css">
+  </head>
 
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <h2>ADMIN</h2>
-    <a href="/admin">Dashboard</a>
-    <a href="/adminproducts">Products</a>
-    <a href="/orders" class="active">Orders</a>
-    <a href="/customers">Customers</a>
-  </div>
-
-  <!-- Main Content -->
-  <div class="main">
-    
-    <!-- Topbar -->
-    <div class="topbar">
-      <h2>Orders</h2>
+  <body>
+    <!-- Sidebar (reuse admin layout markup) -->
+    <aside class="dashboard-sidebar">
       <div>
-        <select class="filter">
-          <option>This Month</option>
-          <option>Last Month</option>
-          <option>All Time</option>
-        </select>
+        <div class="sidebar-profile">
+          <img src="/image/profile1.png" alt="Admin" class="sidebar-avatar" onerror="this.onerror=null;this.src='/image/profile1.png';" />
+          <div>
+            <div class="sidebar-welcome">Welcome back,</div>
+            <div class="sidebar-name">Admin</div>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+          <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+          <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+          <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+          <a href="/orders" class="active"><i class="bi bi-bag-check"></i> Orders</a>
+          <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+          <a href="/admin/cms"><i class="bi bi-journal-text"></i> CMS</a>
+        
+        </nav>
       </div>
-    </div>
 
-    <!-- Orders Table -->
-    <div class="table-container">
-      <h3>All Orders</h3>
-      <table>
-        <tr>
-          <th>Order ID</th>
-          <th>Customer</th>
-          <th>Email</th>
-          <th>Status</th>
-          <th>Total Amount</th>
-          <th>Date</th>
-          <th>Action</th>
-        </tr>
+      <div>
+        <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+      </div>
+    </aside>
 
-        <% if (orders.length === 0) { %>
-          <tr>
-            <td colspan="7">No orders found.</td>
-          </tr>
-        <% } else { %>
-          <% orders.forEach(order => { %>
+    <!-- Main content area -->
+    <main class="dashboard-main">
+      <div class="dashboard-header">
+        <div>
+          <div class="dashboard-title-main">Orders</div>
+          <div class="dashboard-title-sub">Manage and review customer orders</div>
+        </div>
+        <div class="dashboard-search">
+          <input type="text" placeholder="Search orders or customer" />
+          <i class="bi bi-search"></i>
+        </div>
+      </div>
+
+      <div class="dashboard-orders">
+        <div class="orders-title-row">
+          <div class="orders-title">All Orders</div>
+          <div style="margin-left:auto">
+            <select class="filter" onchange="location.href='/orders?range=' + this.value">
+              <option value="this-week" <%= (typeof range !== 'undefined' && range === 'this-week') ? 'selected' : '' %>>This Week</option>
+              <option value="this-month" <%= (typeof range === 'undefined' || range === 'this-month') ? 'selected' : '' %>>This Month</option>
+              <option value="last-month" <%= (typeof range !== 'undefined' && range === 'last-month') ? 'selected' : '' %>>Last Month</option>
+              <option value="all" <%= (typeof range !== 'undefined' && range === 'all') ? 'selected' : '' %>>All Time</option>
+            </select>
+          </div>
+        </div>
+
+        <table class="orders-table">
+          <thead>
             <tr>
-              <td>#<%= order.id %></td>
-              <td><%= order.customer_name %></td>
-              <td><%= order.customer_email %></td>
-              <td>
-                <% if (order.status === 'Pending') { %>
-                  <span class="status pending">Pending</span>
-                <% } else if (order.status === 'Shipped') { %>
-                  <span class="status shipped">Shipped</span>
-                <% } else if (order.status === 'Delivered') { %>
-                  <span class="status delivered">Delivered</span>
-                <% } else { %>
-                  <span class="status cancelled">Cancelled</span>
-                <% } %>
-              </td>
-              <td>$<%= order.total_amount.toFixed(2) %></td>
-              <td><%= order.order_date.toDateString() %></td>
-              <td>
-                <button class="btn-action"><i class="bi bi-eye-fill"></i></button>
-                <button class="btn-action"><i class="bi bi-pencil-fill"></i></button>
-                <button class="btn-action"><i class="bi bi-trash3-fill"></i></button>
-              </td>
+              <th>Order</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          <% }) %>
-        <% } %>
+          </thead>
+          <tbody>
+            <% if (!orders || orders.length === 0) { %>
+              <tr>
+                <td colspan="6">No orders found.</td>
+              </tr>
+            <% } else { %>
+              <% orders.forEach(order => { %>
+                <tr class="<%=
+                  (/deliver|complete/i.test(order.status || '')) ? 'row-delivered' : ''
+                %>">
+                  <td>#<%= order.id %></td>
+                  <td>
+                    <div style="display:flex; align-items:center; gap:12px">
+                      <img src="<%= order.customer_image || '/image/profile1.png' %>" alt="avatar" class="order-thumb" onerror="this.src='/image/profile1.png'" />
+                      <div>
+                        <div><%= order.customer_name %></div>
+                        <div class="small text-secondary"><%= order.customer_email %></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><%= order.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A' %></td>
+                  <td>$<%= Number(order.total_amount || 0).toLocaleString() %></td>
+                  <td>
+              <% const s = (order.status || '').toLowerCase();
+                       const isDelivered = /deliver|complete/.test(s);
+                       const isPending = /pend/.test(s);
+                       const isInTransit = /en route|courier|out/.test(s);
+                       const isShipped = /ship/.test(s);
+                const isProcessing = /process/.test(s);
+                       const isCancelled = /cancel/.test(s);
+                       const cls = isDelivered ? 'completed' : (
+                         isPending ? 'pending' : (
+                         isInTransit ? 'intransit' : (
+                         isShipped ? 'shipped' : (
+                         isProcessing ? 'processing' : (
+                         isCancelled ? 'cancelled' : '' )))));
+                       const icon = isDelivered ? 'bi-bag-check' : (
+                         isInTransit || isShipped ? 'bi-truck' : (
+                         isProcessing ? 'bi-gear' : (
+                         isPending ? 'bi-hourglass-split' : (
+                         isCancelled ? 'bi-x-circle' : 'bi-dot'))));
+                    %>
+                    <span class="order-status <%= cls %> <%= isDelivered ? 'delivered' : '' %>">
+                      <i class="bi <%= icon %>"></i>
+                      <% if (isInTransit) { %>
+                        <strong>Shipped</strong>
+                        <span class="hint">On delivery</span>
+                      <% } else { %>
+                        <%= order.status || 'N/A' %>
+                      <% } %>
+                    </span>
+                  </td>
+                  <td>
+                    <a class="btn-action" title="View" href="/admin/orders/<%= order.id %>"><i class="bi bi-eye-fill"></i></a>
+                    <a class="btn-action" title="Edit" href="/admin/orders/<%= order.id %>/edit"><i class="bi bi-pencil-fill"></i></a>
+                    <form action="/admin/orders/<%= order.id %>/delete" method="POST" style="display:inline-block;margin:0;" onsubmit="return confirm('Delete order #<%= order.id %>? This cannot be undone.');">
+                      <button class="btn-action" title="Delete" type="submit"><i class="bi bi-trash3-fill"></i></button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </main>
 
-      </table>
-    </div>
-  </div>
-
-</body>
+  </body>
 </html>

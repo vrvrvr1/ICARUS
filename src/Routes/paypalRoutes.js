@@ -25,29 +25,125 @@ router.post("/create-order", async (req, res) => {
   const customerId = req.session.user.id;
 
   try {
-    // Get cart total
-    const cartResult = await db.query(
-      `SELECT c.quantity, p.price FROM cart c JOIN products p ON c.product_id=p.id WHERE c.customer_id=$1`,
-      [customerId]
-    );
-    if (!cartResult.rows.length) return res.status(400).json({ error: "Cart empty" });
+    const { selectedItems, shipping_amount, discount_code } = req.body || {};
+    // Fetch cart items (optionally filtered by selectedItems)
+    let cartRows;
+    if (selectedItems) {
+      const ids = String(selectedItems)
+        .split(',')
+        .map(v => v.trim())
+        .filter(v => /^\d+$/.test(v))
+        .map(v => Number(v));
+      if (!ids.length) return res.status(400).json({ error: 'Invalid selectedItems' });
+      const r = await db.query(
+        `SELECT c.quantity,
+                CASE WHEN COALESCE(p.promo_active, false) = true AND COALESCE(p.promo_percent, 0) > 0
+                     THEN ROUND(p.price * (1 - (p.promo_percent/100.0))::numeric, 2)
+                     ELSE p.price
+                END AS price,
+                p.id AS product_id
+         FROM cart c JOIN products p ON c.product_id=p.id
+         WHERE c.customer_id=$1 AND c.id = ANY($2::int[])`,
+        [customerId, ids]
+      );
+      cartRows = r.rows;
+    } else {
+      const r = await db.query(
+        `SELECT c.quantity,
+                CASE WHEN COALESCE(p.promo_active, false) = true AND COALESCE(p.promo_percent, 0) > 0
+                     THEN ROUND(p.price * (1 - (p.promo_percent/100.0))::numeric, 2)
+                     ELSE p.price
+                END AS price,
+                p.id AS product_id
+         FROM cart c JOIN products p ON c.product_id=p.id WHERE c.customer_id=$1`,
+        [customerId]
+      );
+      cartRows = r.rows;
+    }
+    if (!cartRows.length) return res.status(400).json({ error: "Cart empty" });
 
-    let subtotal = 0;
-    cartResult.rows.forEach(item => subtotal += item.price * item.quantity);
-    const tax = Math.round(subtotal * 0.12);
-    const total = subtotal + tax;
+    // Compute subtotal
+    const subtotal = cartRows.reduce((s, it) => s + Number(it.price) * Number(it.quantity), 0);
 
-    const accessToken = await generateAccessToken();
+    // Optional discount validation with product scoping
+    async function validateDiscount(code) {
+      const c = String(code || '').trim().toUpperCase();
+      if (!c) return { ok: false, amount: 0 };
+      try {
+        const q = await db.query('SELECT * FROM discounts WHERE code = $1', [c]);
+        if (!q.rows || q.rows.length === 0) return { ok: false, amount: 0 };
+        const d = q.rows[0];
+        if (d.active === false) return { ok: false, amount: 0 };
+        const now = new Date();
+        if (d.start_date && new Date(d.start_date) > now) return { ok: false, amount: 0 };
+        if (d.end_date && new Date(d.end_date) < now) return { ok: false, amount: 0 };
+        const maxUses = (d.max_uses == null) ? null : Number(d.max_uses);
+        const used = Number(d.uses || 0);
+        if (maxUses !== null && used >= maxUses) return { ok: false, amount: 0 };
+
+        // Determine eligible items based on discount_products mapping
+        let eligibleItems = cartRows;
+        let isScoped = false;
+        try {
+          const mapRes = await db.query('SELECT product_id FROM discount_products WHERE discount_id = $1', [d.id]);
+          const eligibleIds = (mapRes.rows || []).map(r => Number(r.product_id));
+          if (eligibleIds.length > 0) {
+            isScoped = true;
+            eligibleItems = cartRows.filter(it => eligibleIds.includes(Number(it.product_id)));
+          }
+        } catch {
+          eligibleItems = cartRows;
+          isScoped = false;
+        }
+
+        if (isScoped && eligibleItems.length === 0) return { ok: false, amount: 0 };
+
+        const eligibleSubtotal = eligibleItems.reduce((s, it) => s + Number(it.price) * Number(it.quantity), 0);
+        const minOrder = Number(d.min_order || 0);
+        if (eligibleSubtotal < minOrder) return { ok: false, amount: 0 };
+
+        const type = String(d.type);
+        const value = Number(d.value);
+        let amount = 0;
+        if (type === 'percent') amount = Math.round((eligibleSubtotal * value / 100) * 100) / 100;
+        else amount = Math.round(value * 100) / 100;
+        if (amount > eligibleSubtotal) amount = eligibleSubtotal;
+        return { ok: true, amount };
+      } catch {
+        return { ok: false, amount: 0 };
+      }
+    }
+
+    const disc = await validateDiscount(discount_code);
+    const discount = disc.ok ? disc.amount : 0;
+    const discountedSubtotal = Math.max(0, subtotal - discount);
+    const tax = Math.round(discountedSubtotal * 0.12);
+    const shipping = shipping_amount ? Number(shipping_amount) : 0;
+    const total = discountedSubtotal + tax + shipping;
+
+  const accessToken = await generateAccessToken();
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
 
     // Create PayPal order
     const orderRes = await axios.post(
       `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders`,
       {
         intent: "CAPTURE",
-        purchase_units: [{ amount: { currency_code: "USD", value: total.toFixed(2) } }],
+        purchase_units: [{
+          amount: {
+            currency_code: "USD",
+            value: total.toFixed(2),
+            breakdown: {
+              item_total: { currency_code: 'USD', value: discountedSubtotal.toFixed(2) },
+              shipping: { currency_code: 'USD', value: shipping.toFixed(2) },
+              tax_total: { currency_code: 'USD', value: tax.toFixed(2) },
+              ...(discount > 0 ? { discount: { currency_code: 'USD', value: discount.toFixed(2) } } : {})
+            }
+          }
+        }],
         application_context: {
-          return_url: `http://localhost:3000/api/paypal/capture-order`,
-          cancel_url: `http://localhost:3000/checkout`
+          return_url: `${baseUrl}/api/paypal/capture-order`,
+          cancel_url: `${baseUrl}/checkout`
         }
       },
       { headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" } }
@@ -55,15 +151,8 @@ router.post("/create-order", async (req, res) => {
 
     const orderID = orderRes.data.id;
 
-    // Insert order as pending in DB (do not mark completed)
-    await db.query(
-      `INSERT INTO orders (customer_id, paypal_order_id, payment_method, status, payment_completed, subtotal, tax, total)
-       VALUES ($1,$2,$3,'pending',false,$4,$5,$6)`,
-      [customerId, orderID, "PayPal", subtotal, tax, total]
-    );
-
     // Return PayPal approval link to frontend
-    const approveUrl = orderRes.data.links.find(link => link.rel === "approve").href;
+  const approveUrl = orderRes.data.links.find(link => link.rel === "approve").href;
     res.json({ approveUrl, orderID });
 
   } catch (err) {
@@ -88,15 +177,10 @@ router.get("/capture-order", async (req, res) => {
 
     const paid = captureRes.data.status === "COMPLETED";
 
+    // Record paid state in session; final order row is created later in /checkout/place-order
     if (paid) {
-      // Mark order as completed in DB
-      const orderResult = await db.query(
-        `UPDATE orders SET status='completed', payment_completed=true
-         WHERE paypal_order_id=$1 RETURNING customer_id`,
-        [token]
-      );
-
-
+      req.session._paypalPaid = req.session._paypalPaid || {};
+      req.session._paypalPaid[token] = true;
     }
 
     res.send("<script>window.close();</script>");
@@ -110,13 +194,12 @@ router.get("/capture-order", async (req, res) => {
 router.get("/check-status", async (req, res) => {
   const { orderID } = req.query;
   if (!orderID) return res.json({ paid: false });
-
   try {
-    const result = await db.query(`SELECT payment_completed FROM orders WHERE paypal_order_id=$1`, [orderID]);
-    res.json({ paid: result.rows[0]?.payment_completed || false });
+    const paid = !!(req.session._paypalPaid && req.session._paypalPaid[orderID]);
+    return res.json({ paid });
   } catch (err) {
     console.error(err);
-    res.json({ paid: false });
+    return res.json({ paid: false });
   }
 });
 

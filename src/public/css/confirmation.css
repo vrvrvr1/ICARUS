@@ -1,0 +1,88 @@
+/* Order Confirmation Page Styling */
+:root {
+  --brand: #ff6b6b;
+  --ink-100: #f8f9fb;
+  --ink-200: #eef0f3;
+  --ink-400: #96a0aa;
+  --ink-600: #3a4750;
+}
+
+/* Global */
+body { background: #fff; font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+
+.confirmation-wrap { max-width: 1100px; }
+
+.billing-slab { min-height: 100%; }
+
+.btn-brand {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+.btn-brand:hover, .btn-brand:focus { background: #ff5a5a; border-color: #ff5a5a; }
+
+/* Receipt card decorative tab similar to the mock */
+.receipt-card { border-radius: 16px; position: relative; }
+.receipt-card .receipt-tab {
+  position: absolute;
+  top: 0; left: 24px; right: 24px;
+  height: 14px;
+  background: #e9ecef;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+/* Perforated bottom edge to mimic a printed receipt */
+.receipt-footer { position: relative; }
+.receipt-footer::before {
+  content: "";
+  position: absolute;
+  top: -14px; left: 0; right: 0;
+  height: 14px;
+  background: radial-gradient(circle at 8px 7px, transparent 6px, #fff 6px) left top/16px 14px repeat-x,
+              linear-gradient(#e9ecef, #e9ecef) left top/100% 1px no-repeat;
+}
+
+.item-thumb { box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+.item-row { border-bottom: 1px dashed #e9ecef; padding-bottom: 12px; }
+.item-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+.summary-meta { background: #fafbfc; }
+.totals-panel { background: #fafbfc; }
+.order-total { background: #fff; }
+
+h1, .h1, h2, .h2, h3, .h3 { font-weight: 600; }
+p { font-weight: 400; }
+
+/* Monospace amounts like receipts */
+.amount { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; letter-spacing: 0.3px; }
+
+/* Simple CSS barcode look */
+.barcode {
+  height: 36px;
+  width: 100%;
+  max-width: 220px;
+  margin: 0 auto;
+  background-image: repeating-linear-gradient(
+    to right,
+    #111 0px, #111 2px,
+    transparent 2px, transparent 4px,
+    #111 4px, #111 5px,
+    transparent 5px, transparent 7px
+  );
+  opacity: 0.6;
+}
+
+@media (max-width: 991.98px) {
+  body { background: #fff; }
+  .confirmation-wrap { max-width: 100%; }
+  .receipt-card .receipt-tab { left: 16px; right: 16px; }
+}
+
+/* Print styles */
+@media print {
+  body { background: #fff; }
+  .btn, .btn * { display: none !important; }
+  .confirmation-wrap { margin-top: 0 !important; }
+  .receipt-card { box-shadow: none !important; border: 1px solid #e9ecef; }
+  .receipt-footer::before { background: none; }
+}

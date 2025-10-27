@@ -10,22 +10,93 @@ function nextStep(step) {
   });
 
   if (step === 3) {
-    const shipping = `${document.getElementById("firstName").value} ${document.getElementById("lastName").value}, 
-${document.getElementById("address").value}, ${document.getElementById("city").value}, 
-${document.getElementById("province").value}, ${document.getElementById("zip").value}, 
-${document.getElementById("phone").value}, ${document.getElementById("email").value}`;
-    document.getElementById("reviewShipping").innerText = shipping;
+    // make sure review shows the latest values
+    syncHiddenFromVisible();
+    const fn = document.getElementById("firstName").value;
+    const ln = document.getElementById("lastName").value;
+    const addr = document.getElementById("address").value;
+    const city = document.getElementById("city").value;
+    const prov = document.getElementById("province").value;
+    const zip = document.getElementById("zip").value;
+    const phone = document.getElementById("phone").value;
+    const email = document.getElementById("email").value;
 
-    const payment = document.querySelector("input[name='payment']:checked")?.value || "Not selected";
-    document.getElementById("reviewPayment").innerText = payment;
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+    setText('rvName', `${fn} ${ln}`.trim());
+    setText('rvAddress', addr);
+    setText('rvCity', city);
+    setText('rvProvince', prov);
+    setText('rvZip', zip);
+    setText('rvPhone', phone);
+    setText('rvEmail', email);
+
+  const paymentCode = document.querySelector("input[name='payment']:checked")?.value || "Not selected";
+  const paymentLabelMap = { 'COD': 'Cash on Delivery', 'Card': 'Credit/Debit Card', 'PayPal': 'PayPal' };
+  const payment = paymentLabelMap[paymentCode] || paymentCode || 'Not selected';
+  setText('reviewPayment', payment);
   }
 
   if (step === 4) {
+    // re-sync before confirmation
+    syncHiddenFromVisible();
     ["FirstName","LastName","Address","City","Province","Zip","Phone","Email"].forEach(id => {
       document.getElementById(`hidden${id}`).value = document.getElementById(id.charAt(0).toLowerCase() + id.slice(1)).value;
     });
     const paymentSelected = document.querySelector("input[name='payment']:checked");
     document.getElementById("hiddenPayment").value = paymentSelected ? paymentSelected.value : "";
+  }
+}
+
+// --------------------------
+// Helper: sync hidden fields from visible inputs
+// --------------------------
+function syncHiddenFromVisible() {
+  const map = [
+    ['firstName', 'hiddenFirstName'],
+    ['lastName', 'hiddenLastName'],
+    ['address', 'hiddenAddress'],
+    ['city', 'hiddenCity'],
+    ['province', 'hiddenProvince'],
+    ['zip', 'hiddenZip'],
+    ['email', 'hiddenEmail']
+  ];
+  map.forEach(([srcId, dstId]) => {
+    const src = document.getElementById(srcId);
+    const dst = document.getElementById(dstId);
+    if (src && dst) dst.value = src.value || '';
+  });
+
+  // payment method
+  const paymentSelected = document.querySelector("input[name='payment']:checked");
+  const hiddenPayment = document.getElementById('hiddenPayment');
+  if (hiddenPayment) hiddenPayment.value = paymentSelected ? paymentSelected.value : '';
+
+  // ensure an idempotency key exists for this order attempt
+  const idem = document.getElementById('idempotencyKey');
+  if (idem && !idem.value) {
+    // simple UUID v4 generator fallback
+    const uuid = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2) + Date.now();
+    idem.value = uuid;
+  }
+
+  // phone: recompute with country code if available
+  const hiddenPhone = document.getElementById('hiddenPhone');
+  const select = document.getElementById('countrySelect');
+  const phoneInput = document.getElementById('phone');
+  const getDigits = (s) => (s || '').replace(/\D/g, '');
+  const getCodeDigits = (cc) => (cc || '').replace('+','');
+  if (hiddenPhone) {
+    if (select && phoneInput) {
+      const cc = select.value || '';
+      const rawDigits = getDigits(phoneInput.value);
+      const codeDigits = getCodeDigits(cc);
+      const localDigits = rawDigits.startsWith(codeDigits) ? rawDigits.slice(codeDigits.length) : rawDigits;
+      hiddenPhone.value = cc ? `${cc}${localDigits}` : (phoneInput.value || '');
+    } else {
+      // fallback
+      const src = document.getElementById('phone');
+      if (src) hiddenPhone.value = src.value || '';
+    }
   }
 }
 
@@ -45,6 +116,13 @@ paymentRadios.forEach(radio => {
 // Place Order via AJAX
 // --------------------------
 async function placeOrder() {
+  if (placeOrder._inFlight) return; // guard against double-clicks
+  placeOrder._inFlight = true;
+  const submitBtn = document.querySelector('#placeOrderForm button[type="submit"]');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Placing...'; }
+  // ensure hidden fields are populated just before submit
+  syncHiddenFromVisible();
+
   const selectedPayment = document.querySelector("input[name='payment']:checked")?.value;
   if (!selectedPayment) { alert("Please select a payment method."); return; }
 
@@ -60,23 +138,76 @@ async function placeOrder() {
     payment_method: selectedPayment
   };
 
+  // Include selectedItems (comma-separated cart ids) when present in the DOM
+  const selectedInput = document.querySelector("input[name='selectedItems']");
+  if (selectedInput && selectedInput.value) data.selectedItems = selectedInput.value;
+
+  // Include chosen shipping amount for accurate totals server-side
+  const shippingHidden = document.getElementById('shippingAmountHidden');
+  if (shippingHidden && shippingHidden.value) data.shipping_amount = shippingHidden.value;
+
+  // Include idempotency key
+  const idem = document.getElementById('idempotencyKey');
+  if (idem && idem.value) data.idempotency_key = idem.value;
+
+  // Include PayPal order id (for PayPal flow)
+  const ppHidden = document.getElementById('paypalOrderIdHidden');
+  if (ppHidden && ppHidden.value) data.paypal_order_id = ppHidden.value;
+
+  // Include discount code if applied
+  const discCode = document.getElementById('discountCodeHidden');
+  if (discCode && discCode.value) data.discount_code = discCode.value;
+
   try {
+    console.log('Placing order payload:', data);
     const res = await fetch("/checkout/place-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: 'same-origin',
       body: JSON.stringify(data)
     });
     const result = await res.json();
 
     if (result.success) {
-      alert("✅ Order completed successfully!");
-      window.location.href = `/checkout/confirmation/${result.orderId}`;
+      // Show success modal and redirect on user action (or after short delay)
+      try {
+        const modalEl = document.getElementById('orderSuccessModal');
+        if (modalEl && window.bootstrap && bootstrap.Modal) {
+          const modal = new bootstrap.Modal(modalEl);
+          modal.show();
+          // Ensure single-use click handler
+          const btn = document.getElementById('orderSuccessContinueBtn');
+          if (btn) {
+            btn.replaceWith(btn.cloneNode(true));
+            const fresh = document.getElementById('orderSuccessContinueBtn');
+            fresh.addEventListener('click', () => {
+              modal.hide();
+              window.location.href = `/checkout/confirmation/${result.orderId}`;
+            }, { once: true });
+          }
+          // Fallback auto-redirect after 2.5s if user doesn't click
+          setTimeout(() => {
+            if (document.body.contains(modalEl)) {
+              try { modal.hide(); } catch(_) {}
+            }
+            window.location.href = `/checkout/confirmation/${result.orderId}`;
+          }, 2500);
+        } else {
+          // Fallback if Bootstrap modal isn't available
+          window.location.href = `/checkout/confirmation/${result.orderId}`;
+        }
+      } catch(_) {
+        window.location.href = `/checkout/confirmation/${result.orderId}`;
+      }
     } else {
       alert("❌ " + result.error);
     }
   } catch (err) {
     console.error(err);
     alert("Server error. Please try again.");
+  } finally {
+    placeOrder._inFlight = false;
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Place Order'; }
   }
 }
 
@@ -90,10 +221,19 @@ async function handleContinue() {
 
   if (selectedPayment === "PayPal") {
     try {
+      const btn = document.getElementById('reviewOrderBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Redirecting…'; }
+      // Include selection context so PayPal reflects the same totals
+      const payload = {
+        selectedItems: document.getElementById('selectedItemsHidden')?.value || undefined,
+        shipping_amount: document.getElementById('shippingAmountHidden')?.value || undefined,
+        discount_code: document.getElementById('discountCodeHidden')?.value || undefined
+      };
       const res = await fetch("/api/paypal/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "same-origin"
+        credentials: "same-origin",
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
 
@@ -103,7 +243,11 @@ async function handleContinue() {
         return;
       }
 
-      const paypalWindow = window.open(data.approveUrl, "_blank", "width=500,height=700");
+        // Store PayPal order id in hidden input for later server reconciliation
+        const ppHidden = document.getElementById('paypalOrderIdHidden');
+        if (ppHidden) ppHidden.value = data.orderID;
+
+  const paypalWindow = window.open(data.approveUrl, "_blank", "width=500,height=700");
       if (!paypalWindow) { alert("Popup blocked. Please allow popups."); return; }
 
       const interval = setInterval(async () => {
@@ -119,10 +263,19 @@ async function handleContinue() {
               const successModal = new bootstrap.Modal(document.getElementById('successModal'));
               successModal.show();
 
-              document.getElementById("continueBtn").addEventListener("click", () => {
+              const onContinue = () => {
                 successModal.hide();
+                  // ensure all hidden fields are up to date before review
+                  syncHiddenFromVisible();
                 nextStep(3);
-              });
+              };
+              const btn = document.getElementById("continueBtn");
+              // ensure only one handler is attached
+              if (btn) {
+                btn.replaceWith(btn.cloneNode(true));
+                const fresh = document.getElementById("continueBtn");
+                fresh.addEventListener("click", onContinue, { once: true });
+              }
             } else {
               alert("❌ Payment not completed. Please try again.");
             }
@@ -136,21 +289,16 @@ async function handleContinue() {
     } catch (err) {
       console.error(err);
       alert("Failed to redirect to PayPal. Please try again.");
+    } finally {
+      const btn = document.getElementById('reviewOrderBtn');
+      if (btn) { btn.disabled = false; btn.textContent = 'Review Order'; }
     }
   } else {
     nextStep(3); // COD or Card
   }
 }
 
-// --------------------------
-// Success Modal Continue
-// --------------------------
-document.getElementById("continueBtn").addEventListener("click", () => {
-  const modalEl = document.getElementById('successModal');
-  const modal = bootstrap.Modal.getInstance(modalEl);
-  if (modal) modal.hide();
-  nextStep(3);
-});
+// Removed global Success Modal Continue listener to avoid duplicate handlers.
 
 // --------------------------
 // Intercept Place Order Form

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="g3" x1="0" x2="1">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#g3)"/>
+  <g transform="translate(120,80)" fill="#fff" opacity="0.95">
+    <rect x="40" y="40" rx="24" ry="24" width="960" height="640" fill="rgba(255,255,255,0.06)" />
+    <!-- stylized t-shirt -->
+    <g transform="translate(260,150)">
+      <path d="M60 40 L140 40 L160 20 L220 20 L240 40 L320 40 C320 40 300 220 180 220 C60 220 60 40 60 40 Z" fill="rgba(255,255,255,0.12)" />
+    </g>
+  </g>
+  <text x="600" y="720" font-family="Poppins, Arial" font-weight="700" font-size="36" text-anchor="middle" fill="rgba(255,255,255,0.95)">Unisex</text>
+</svg>

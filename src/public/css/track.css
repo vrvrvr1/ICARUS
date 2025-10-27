@@ -1,0 +1,57 @@
+/* Track page polished layout */
+:root{
+  --bg:#f8fafc;--card:#fff;--border:#e5e7eb;--muted:#64748b;--ink:#0f172a;--brand:#2563eb;--ok:#16a34a
+}
+body.track{
+  background:var(--bg);
+}
+.track .container{max-width:1120px}
+.track .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+@media (max-width: 992px){.track .grid{grid-template-columns:1fr}}
+.cardx{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 28px rgba(2,6,23,.04)}
+.cardx .head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #f1f5f9}
+.cardx .body{padding:16px 18px}
+.badge-pill{border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-weight:600;background:#fff}
+.badge-pill.ok{background:rgba(22,163,74,.08);color:#166534;border-color:#86efac}
+.badge-pill.ship{background:rgba(37,99,235,.08);color:#1d4ed8;border-color:#93c5fd}
+
+/* Delivery line */
+.dl{padding:10px 0}
+.dl-track{position:relative;height:8px;background:#e5e7eb;border-radius:999px;margin:26px 0 8px}
+.dl-bar{position:absolute;left:0;top:0;height:8px;background:linear-gradient(90deg,#10b981,#22c55e);border-radius:999px;width:0;transition:width .35s ease}
+.dl-steps{display:flex;justify-content:space-between;position:relative;margin-top:-24px}
+.dl-step{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1}
+.dl-bullet{width:16px;height:16px;border-radius:50%;background:#e5e7eb;border:2px solid #fff;box-shadow:0 0 0 1px rgba(2,6,23,.08)}
+.dl-step.done .dl-bullet{background:#22c55e}
+.dl-step.current .dl-bullet{box-shadow:0 0 0 4px rgba(34,197,94,.25)}
+.dl-label{font-size:12px;color:#334155}
+.dl-hint{color:var(--muted);display:flex;align-items:center;gap:8px}
+
+/* Admin-style delivery timeline (reused on customer page) */
+.dl-card{ background:#fff; border-radius: 16px; padding: 0.75rem 1rem; box-shadow: 0 6px 16px rgba(2,6,23,0.04); margin-bottom: 0.5rem; }
+.dl-track-wrap{ position: relative; height: 6px; background: #e5e7eb; border-radius: 999px; margin: 18px 6px 26px 6px; }
+.dl-track-bar{ position: absolute; left:0; top:0; bottom:0; width:0%; background: linear-gradient(90deg, #6d28d9, #7c3aed); border-radius: 999px; transition: width 240ms ease; }
+.dl-steps{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: start; text-align:center; }
+.dl-step{ display:flex; flex-direction:column; align-items:center; gap:8px; color:#0f172a; }
+.dl-step .dl-dot{ width: 18px; height: 18px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.12); background: #fff; box-shadow: 0 0 0 4px #fff; position: relative; top: -31px; }
+.dl-step.done{ color: #111827; font-weight: 600; }
+.dl-step.done .dl-dot{ border-color: #7c3aed; background: #7c3aed; }
+.dl-step .dl-icon{ font-size: 22px; color: #334155; opacity: 0.9; }
+.dl-step .dl-label{ font-weight: 700; font-size: 12px; color:#0f172a }
+
+/* Order summary */
+.items{display:flex;flex-direction:column;gap:10px}
+.item{display:flex;align-items:center;gap:12px}
+.item .thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;border:1px solid var(--border)}
+.item .name{font-weight:600}
+.item .qty{color:var(--muted);font-size:12px}
+.item .price{margin-left:auto;font-weight:700}
+.summary{display:flex;justify-content:space-between;border-top:1px dashed var(--border);margin-top:10px;padding-top:10px}
+
+/* Map card */
+#map{height:360px;width:100%;border-radius:12px}
+.legend{position:absolute;bottom:10px;left:10px;background:#fff;padding:6px 8px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.1);font-size:12px}
+.legend .item{display:flex;align-items:center;gap:6px}
+.legend .dot{width:10px;height:10px;border-radius:50%}
+.dot-store{background:#2563eb}
+.dot-order{background:#ef4444}

@@ -12,6 +12,8 @@
 
     <!-- LEFT SIDE: Steps -->
     <div class="checkout-left">
+      <div class="shipping-row">
+        <div class="shipping-column">
       <!-- Progress Bar -->
       <div class="checkout-steps">
         <div class="step active" id="step-1-indicator"><span>1</span><p>Shipping</p></div>
@@ -24,35 +26,254 @@
       <div class="checkout-section active" id="step-1">
         <h2>Shipping Information</h2>
         <form id="checkoutForm" method="POST" action="/checkout/place-order">
-<input type="text" id="firstName" name="firstName" value="<%= user.first_name %>" required>
-<input type="text" id="lastName" name="lastName" value="<%= user.last_name %>" required>
-          <input type="text" id="address" name="address" placeholder="Address" required>
-          <input type="text" id="city" name="city" placeholder="City" required>
-          <input type="text" id="province" name="province" placeholder="Province" required>
-          <input type="text" id="zip" name="zip" placeholder="ZIP Code" required>
-          <input type="text" id="phone" name="phone" placeholder="Phone" required>
-<input type="email" id="email" name="email" value="<%= user.email %>" required>
-          <button type="button" onclick="nextStep(2)">Continue to Payment</button>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="firstName">First Name</label>
+              <input type="text" id="firstName" name="firstName" value="<%= user.first_name %>" required>
+            </div>
+            <div class="form-group">
+              <label for="lastName">Last Name</label>
+              <input type="text" id="lastName" name="lastName" value="<%= user.last_name %>" required>
+            </div>
+
+            <div class="form-group full">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" value="<%= user.email %>" required>
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone</label>
+              <div class="phone-control" title="Select country then enter local number">
+                <div class="phone-combined">
+                  <div class="phone-select-wrap">
+                    <span class="select-caret" aria-hidden="true">▾</span>
+                    <img id="flagImg" class="flag-img" src="https://flagcdn.com/w20/ph.png" width="20" height="14" alt="country flag" aria-hidden="true" />
+                    <div id="codeBox" class="code-box">+63</div>
+                    <!-- Custom menu for phone country -->
+                    <ul class="cs-menu phone-cs-menu" id="phoneCSMenu" role="listbox" tabindex="-1" aria-label="Country options"></ul>
+                    <!-- Hidden native select synced with custom menu -->
+                    <select id="countrySelect" aria-label="Select country" class="native-select">
+                      <option value="+63" data-cc="ph" selected>Philippines (+63)</option>
+                      <option value="+1" data-cc="us">United States (+1)</option>
+                      <option value="+44" data-cc="gb">United Kingdom (+44)</option>
+                      <option value="+61" data-cc="au">Australia (+61)</option>
+                      <option value="+91" data-cc="in">India (+91)</option>
+                    </select>
+                  </div>
+                  <div class="phone-divider" aria-hidden="true"></div>
+                  <input type="text" id="phone" name="phone" placeholder="+63 ___ ___ ____" required class="phone-input" inputmode="tel" autocomplete="tel">
+                </div>
+                <div class="phone-valid" id="phoneValid" aria-hidden="true" title="Valid number">
+                  <!-- small green check -->
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group full">
+              <label for="address">Address</label>
+              <input type="text" id="address" name="address" placeholder="Address" required>
+            </div>
+
+            <div class="form-group full">
+              <label for="province">Province / City</label>
+              <div class="pair-control">
+                <!-- Custom Province dropdown -->
+                <div class="custom-select" id="provCS" data-for="province" aria-label="Province selector">
+                  <button type="button" class="cs-control" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="cs-value">Select province</span>
+                    <span class="cs-caret" aria-hidden="true">▾</span>
+                  </button>
+                  <ul class="cs-menu" role="listbox" tabindex="-1" aria-label="Province options"></ul>
+                </div>
+
+                <!-- Custom City dropdown -->
+                <div class="custom-select disabled" id="cityCS" data-for="city" aria-label="City selector">
+                  <button type="button" class="cs-control" aria-haspopup="listbox" aria-expanded="false" disabled>
+                    <span class="cs-value">Select city</span>
+                    <span class="cs-caret" aria-hidden="true">▾</span>
+                  </button>
+                  <ul class="cs-menu" role="listbox" tabindex="-1" aria-label="City options"></ul>
+                </div>
+
+                <!-- Hidden native selects kept in sync for form submission and existing logic -->
+                <select id="province" name="province" required class="pair-input native-select" aria-hidden="true" tabindex="-1"></select>
+                <select id="city" name="city" required class="pair-input native-select" aria-hidden="true" tabindex="-1"></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="zip">ZIP Code</label>
+              <input type="text" id="zip" name="zip" placeholder="ZIP Code" required>
+            </div>
+            <!-- Saved addresses trigger moved under ZIP Code -->
+            <div class="form-group full" id="savedAddressesRow" style="display:none;">
+              <button type="button" class="btn btn-light" id="openAddressBook" data-bs-toggle="modal" data-bs-target="#addressBookModal" style="border:1px solid rgba(11,18,32,0.08); border-radius:10px;">Choose from saved addresses</button>
+            </div>
+            <!-- Save this address (shown only in 'new address' mode) -->
+            <div class="form-group full" id="saveAddressRow" style="display:none; align-items:center;">
+              <label class="form-check-label" for="saveAddressCheckbox" style="display:flex; align-items:center; gap:8px; font-weight:400;">
+                <input type="checkbox" id="saveAddressCheckbox" class="form-check-input">
+                Save this address to my account
+              </label>
+            </div>
+          </div>
+
+          <!-- Shipping Method (card style) -->
+          <div class="shipping-methods">
+            <h3>Shipping Method</h3>
+            <div class="ship-cards">
+              <label class="ship-card" data-amount="4.99" data-method="standard">
+                <input type="radio" name="shippingOption" value="4.99" class="hidden-radio">
+                <div class="ship-card-body">
+                  <div class="ship-left">
+                    <div class="ship-icon" aria-hidden="true">
+                      <!-- Truck icon -->
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 7H16V14H3V7Z" stroke="#0b1220" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M16 10H20L22 12V14H16V10Z" stroke="#0b1220" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="7.5" cy="17.5" r="1.5" stroke="#0b1220" stroke-width="1.2"/>
+                        <circle cx="18.5" cy="17.5" r="1.5" stroke="#0b1220" stroke-width="1.2"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="ship-title">Standard Shipping</div>
+                      <div class="ship-sub">7-20 Days</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="ship-price">$4.99</div>
+              </label>
+
+              <label class="ship-card" data-amount="9" data-method="express">
+                <input type="radio" name="shippingOption" value="9" class="hidden-radio">
+                <div class="ship-card-body">
+                  <div class="ship-left">
+                    <div class="ship-icon" aria-hidden="true">
+                      <!-- Truck + clock icon -->
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 7H16V14H3V7Z" stroke="#0b1220" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M16 10H20L22 12V14H16V10Z" stroke="#0b1220" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="7.5" cy="17.5" r="1.5" stroke="#0b1220" stroke-width="1.2"/>
+                        <circle cx="18.5" cy="17.5" r="1.5" stroke="#0b1220" stroke-width="1.2"/>
+                        <path d="M18 6a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" stroke="#0b1220" stroke-width="1.2"/>
+                        <path d="M18 7v2l1 1" stroke="#0b1220" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="ship-title">Express Shipping</div>
+                      <div class="ship-sub">1-3 Days</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="ship-price">$9</div>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-actions d-flex justify-content-between align-items-center mt-3">
+            <a href="/cart" class="btn btn-link p-0">Back to Cart</a>
+            <button type="button" id="continueToPayment" class="btn btn-primary" disabled aria-disabled="true">Continue to Payment</button>
+          </div>
         </form>
+      </div>
+
+      <!-- Address Book Modal -->
+      <div class="modal fade" id="addressBookModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Saved Addresses</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <!-- New address chooser -->
+              <div id="enterNewAddressItem" class="list-group mb-3">
+                <button type="button" class="list-group-item list-group-item-action d-flex align-items-center" id="enterNewAddressBtn">
+                  <span class="badge text-bg-success me-2" aria-hidden="true">+</span>
+                  Enter a new address
+                </button>
+              </div>
+              <div id="addressList" class="list-group"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Step 2: Payment -->
       <div class="checkout-section" id="step-2">
-        <h2>Payment Information</h2>
-        <form id="checkoutForm" method="POST" action="/checkout/place-order">
-          <label><input type="radio" name="payment" value="COD" required> Cash on Delivery</label><br>
-          <label><input type="radio" name="payment" value="Card"> Credit/Debit Card</label><br>
-          <label><input type="radio" name="payment" value="PayPal"> PayPal</label><br>
+        <h2 class="mb-3">Payment Information</h2>
 
-          <div id="cardDetails" style="display:none;">
-            <input type="text" id="cardNumber" placeholder="Card Number">
-            <input type="text" id="expiry" placeholder="Expiry Date">
-            <input type="text" id="cvv" placeholder="CVV">
+        <div class="row g-3" role="group" aria-label="Payment method">
+          <div class="col-md-4">
+            <input type="radio" class="btn-check" name="payment" id="payCOD" value="COD" autocomplete="off" required>
+            <label class="btn btn-outline-secondary w-100 text-start p-3 h-100 d-flex align-items-start gap-3" for="payCOD">
+              <span aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="5" width="18" height="14" rx="2" stroke="#0b1220" stroke-width="1.2"/>
+                  <path d="M3 10H21" stroke="#0b1220" stroke-width="1.2"/>
+                </svg>
+              </span>
+              <span>
+                <div class="fw-semibold">Cash on Delivery</div>
+                <div class="text-muted small">Pay with cash when your order arrives.</div>
+              </span>
+            </label>
           </div>
-            <button type="button" onclick="handleContinue()">Continue to Review</button>
-        </form>
+
+          <div class="col-md-4">
+            <input type="radio" class="btn-check" name="payment" id="payCard" value="Card" autocomplete="off">
+            <label class="btn btn-outline-secondary w-100 text-start p-3 h-100 d-flex align-items-start gap-3" for="payCard">
+              <span aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="5" width="20" height="14" rx="2" stroke="#0b1220" stroke-width="1.2"/>
+                  <rect x="4" y="9" width="16" height="2" fill="#0b1220"/>
+                  <rect x="4" y="13" width="6" height="2" fill="#0b1220"/>
+                </svg>
+              </span>
+              <span>
+                <div class="fw-semibold">Credit/Debit Card</div>
+                <div class="text-muted small">Visa • Mastercard • Amex</div>
+              </span>
+            </label>
+          </div>
+
+          <div class="col-md-4">
+            <input type="radio" class="btn-check" name="payment" id="payPayPal" value="PayPal" autocomplete="off">
+            <label class="btn btn-outline-secondary w-100 text-start p-3 h-100 d-flex align-items-start gap-3" for="payPayPal">
+              <span aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 17h3l1-5h3.5c2 0 3.5-1.5 3.5-3.4 0-1.4-1.1-2.6-3.1-2.6H8.5L7 17z" stroke="#0b1220" stroke-width="1.2" fill="none"/>
+                </svg>
+              </span>
+              <span>
+                <div class="fw-semibold">PayPal</div>
+                <div class="text-muted small">You’ll be redirected to PayPal to complete payment.</div>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div id="cardDetails" class="mt-3" style="display:none;">
+          <div class="row g-2">
+            <div class="col-12">
+              <input type="text" id="cardNumber" class="form-control" placeholder="Card Number" inputmode="numeric" autocomplete="cc-number">
+            </div>
+            <div class="col-6">
+              <input type="text" id="expiry" class="form-control" placeholder="MM/YY" inputmode="numeric" autocomplete="cc-exp">
+            </div>
+            <div class="col-6">
+              <input type="text" id="cvv" class="form-control" placeholder="CVV" inputmode="numeric" autocomplete="cc-csc">
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex justify-content-between">
+          <button type="button" class="btn btn-link p-0" onclick="nextStep(1)">Back to Shipping</button>
+          <button type="button" id="reviewOrderBtn" class="btn btn-primary px-4" onclick="handleContinue()" aria-label="Proceed to review your order">Review Order</button>
+        </div>
       </div>
-<!-- Success Modal -->
+<!-- Success Modal (PayPal payment success pre-order) -->
 <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content text-center p-4" style="border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);">
@@ -68,24 +289,68 @@
   </div>
 </div>
 
+<!-- Order Placed Success Modal -->
+<div class="modal fade" id="orderSuccessModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center p-4" style="border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2);">
+      <div class="modal-body">
+        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="#16a34a" class="bi bi-bag-check mb-3" viewBox="0 0 16 16" aria-hidden="true">
+          <path fill-rule="evenodd" d="M8 1a2.5 2.5 0 0 0-2.5 2.5V4H3.5A1.5 1.5 0 0 0 2 5.5v8A1.5 1.5 0 0 0 3.5 15h9A1.5 1.5 0 0 0 14 13.5v-8A1.5 1.5 0 0 0 12.5 4H10.5v-.5A2.5 2.5 0 0 0 8 1Zm1.5 3V3.5A1.5 1.5 0 0 0 8 2a1.5 1.5 0 0 0-1.5 1.5V4h3Z"/>
+          <path d="M10.854 8.146a.5.5 0 0 1 0 .708l-2.5 2.5a.5.5 0 0 1-.708 0L6.646 10.354a.5.5 0 1 1 .708-.708L8 10.293l2.146-2.147a.5.5 0 0 1 .708 0Z"/>
+        </svg>
+        <h3 class="fw-bold mb-2">Order placed successfully</h3>
+        <p class="text-muted mb-4">We’ve received your order. You can view the confirmation next.</p>
+        <button type="button" class="btn btn-success btn-lg px-4" id="orderSuccessContinueBtn">View order</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
       <!-- Step 3: Review -->
       <div class="checkout-section" id="step-3">
-        <h2>Review Order</h2>
-        <p>Please review your details before placing your order:</p>
+        <h2 class="mb-2">Review Order</h2>
+        <p class="text-muted">Please review your details before placing your order:</p>
 
-        <div id="reviewDetails">
-          <!-- Shipping preview -->
-          <h3>Shipping</h3>
-          <p id="reviewShipping"></p>
+        <div id="reviewDetails" class="d-grid gap-3">
+          <!-- Shipping Card -->
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h3 class="h5 m-0">Shipping</h3>
+                <button type="button" class="btn btn-sm btn-link p-0" onclick="nextStep(1)">Edit</button>
+              </div>
+              <div class="row gy-2">
+                <div class="col-12">
+                  <div class="fw-semibold" id="rvName">—</div>
+                  <div id="rvAddress">—</div>
+                  <div><span id="rvCity">—</span>, <span id="rvProvince">—</span> <span id="rvZip">—</span></div>
+                </div>
+                <div class="col-md-6"><span class="text-muted">Phone:</span> <span id="rvPhone">—</span></div>
+                <div class="col-md-6"><span class="text-muted">Email:</span> <span id="rvEmail">—</span></div>
+              </div>
+            </div>
+          </div>
 
-          <!-- Payment preview -->
-          <h3>Payment</h3>
-          <p id="reviewPayment"></p>
+          <!-- Payment Card -->
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h3 class="h5 m-0">Payment</h3>
+                <button type="button" class="btn btn-sm btn-link p-0" onclick="nextStep(2)">Edit</button>
+              </div>
+              <div>
+                <span id="reviewPayment" class="badge text-bg-secondary">—</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <p class="note">Check the order summary on the right for your items.</p>
+        <p class="note mt-2">Items and totals are shown in the order summary on the right.</p>
 
-        <button type="button" onclick="nextStep(4)">Continue</button>
+        <div class="mt-3 d-flex justify-content-between">
+          <button type="button" class="btn btn-link p-0" onclick="nextStep(2)">Back to Payment</button>
+          <button type="button" class="btn btn-primary" onclick="nextStep(4)">Proceed to Confirmation</button>
+        </div>
       </div>
 
     <!-- Step 4: Place Order -->
@@ -93,7 +358,7 @@
       <h2>Place Order</h2>
       <p>Everything looks good! Click below to confirm your order.</p>
 
-      <form id="placeOrderForm" method="POST" action="/checkout/place-order">
+  <form id="placeOrderForm" method="POST" action="/checkout/place-order">
         <!-- Hidden inputs to carry over user data -->
         <input type="hidden" name="firstName" id="hiddenFirstName">
         <input type="hidden" name="lastName" id="hiddenLastName">
@@ -104,33 +369,1184 @@
         <input type="hidden" name="phone" id="hiddenPhone">
         <input type="hidden" name="email" id="hiddenEmail">
         <input type="hidden" name="payment_method" id="hiddenPayment">
-        <button type="submit">Place Order</button>
+  <!-- idempotency key to prevent duplicate order creation -->
+  <input type="hidden" name="idempotency_key" id="idempotencyKey">
+        <!-- carry selectedItems (comma-separated cart row ids) through the checkout flow -->
+        <input type="hidden" name="selectedItems" id="selectedItemsHidden" value="<%= selectedItems ? selectedItems : '' %>">
+        <!-- carry selected shipping choice -->
+        <input type="hidden" name="shipping_amount" id="shippingAmountHidden" value="<%= typeof shipping !== 'undefined' ? shipping : 4.99 %>">
+  <!-- PayPal order id if payment method is PayPal -->
+  <input type="hidden" name="paypal_order_id" id="paypalOrderIdHidden">
+  <!-- Discount selections -->
+  <input type="hidden" name="discount_code" id="discountCodeHidden">
+  <input type="hidden" name="discount_amount" id="discountAmountHidden" value="0">
+        <div class="mt-3 d-flex justify-content-between">
+          <button type="button" class="btn btn-link p-0" onclick="nextStep(3)">Back to Review</button>
+          <button type="submit" class="btn btn-success">Place Order</button>
+        </div>
       </form>
     </div>
 
 
-    <!-- RIGHT SIDE: Order Summary -->
-    <div class="checkout-right">
-      <h2>Order Summary</h2>
-      <% if (cartItems && cartItems.length > 0) { %>
-        <% cartItems.forEach(item => { %>
-          <div class="order-item">
-            <img src="<%= item.image_url %>" alt="<%= item.name %>">
-            <div>
-              <p><strong><%= item.name %></strong></p>
-              <p>Qty: <%= item.quantity %></p>
-            </div>
-          </div>
-        <% }) %>
-        <hr>
-      <p class="item-price">$<%= item.price %></p>
-  <p><strong>Total: $<%= total %></strong></p>
-      <% } else { %>
-        <p>Your cart is empty.</p>
-      <% } %>
+        </div><!-- /.shipping-column -->
+      </div><!-- /.shipping-row inside left -->
     </div>
+
+    <!-- RIGHT SIDE: Order Summary (moved to be the container's second column) -->
+    <aside class="summary-column">
+      <div class="checkout-right">
+        <h2>Order Summary</h2>
+        <% if (cartItems && cartItems.length > 0) { %>
+          <% cartItems.forEach(item => { %>
+            <div class="order-item">
+              <img src="<%= item.image_url %>" alt="<%= item.product_name %>">
+              <div>
+                <p><strong><%= item.product_name %></strong></p>
+                <p>Qty: <%= item.quantity %></p>
+                <p class="item-price">$<%= Number(item.price || 0).toFixed(2) %></p>
+              </div>
+            </div>
+          <% }) %>
+      <hr>
+      <div class="discount">
+        <input type="text" placeholder="Discount code" id="discountCode">
+        <button type="button" id="applyDiscount">Apply</button>
+        <button type="button" id="removeDiscount" style="display:none;margin-left:8px;">Remove</button>
+      </div>
+
+    <div class="summary-lines">
+      <div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>$<%= Number(subtotal || 0).toFixed(2) %></span></div>
+  <div style="display:flex;justify-content:space-between"><span>Tax</span><span id="summary-tax">$<%= Number(tax || 0).toFixed(2) %></span></div>
+  <div style="display:flex;justify-content:space-between; color:#16a34a; display:none;" id="summary-discount-row"><span>Discount (<span id="summary-discount-code"></span>)</span><span id="summary-discount">-$0.00</span></div>
+      <div style="display:flex;justify-content:space-between"><span>Shipping</span><span id="summary-shipping">$<%= Number(shipping || 0).toFixed(2) %></span></div>
+      <hr>
+      <div style="display:flex;justify-content:space-between;font-weight:700"><span>Total</span><span id="summary-total">$<%= Number(total || 0).toFixed(2) %></span></div>
+    </div>
+        <% } else { %>
+          <p>Your cart is empty.</p>
+        <% } %>
+      </div>
+    </aside>
+
   </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/checkout.js"></script>
+<script src="/js/checkout.js"></script>
+<script>
+  // ensure that when the final place-order form is submitted, it contains selectedItems
+  (function(){
+    const selected = "<%= selectedItems ? selectedItems : '' %>";
+    if (selected) {
+      const hidden = document.getElementById('selectedItemsHidden');
+      if (hidden) hidden.value = selected;
+    }
+
+    // also ensure the placeOrderForm copies data from the step forms into hidden inputs
+    const placeForm = document.getElementById('placeOrderForm');
+    if (placeForm) {
+      placeForm.addEventListener('submit', function(e){
+        // copy visible shipping fields into hidden inputs (these ids exist earlier in the page)
+        const fields = ['firstName','lastName','address','city','province','zip','phone','email'];
+        fields.forEach(f => {
+          const src = document.getElementById(f);
+          const dst = document.getElementById('hidden' + f.charAt(0).toUpperCase() + f.slice(1));
+          if (src && dst) dst.value = src.value || dst.value;
+        });
+      });
+    }
+  })();
+
+  // Shipping option handling: sync shipping choice to hidden input and update summary
+  (function(){
+    const shippingRadios = Array.from(document.querySelectorAll('input[name="shippingOption"]'));
+    const shippingHidden = document.getElementById('shippingAmountHidden');
+    const summaryShipping = document.getElementById('summary-shipping');
+    const summaryTotal = document.getElementById('summary-total');
+
+    // Dynamic pricing tiers by province proximity
+    // near: Metro Manila, Rizal, Cavite, Bulacan, Laguna
+    // mid: Pampanga, Batangas, Tarlac, Nueva Ecija
+    // far: others
+    function getProvinceTier(province){
+      const p = (province || '').toLowerCase();
+      const NEAR = ['metro manila','rizal','cavite','bulacan','laguna'];
+      const MID = ['pampanga','batangas','tarlac','nueva ecija'];
+      if (NEAR.includes(p)) return 'near';
+      if (MID.includes(p)) return 'mid';
+      return 'far';
+    }
+
+    function computePrice(method, province){
+      const tier = getProvinceTier(province);
+      if (method === 'express') {
+        if (tier === 'near') return 9.00;
+        if (tier === 'mid') return 12.00;
+        return 15.00; // far
+      } else { // standard
+        if (tier === 'near') return 4.99;
+        if (tier === 'mid') return 6.99;
+        return 8.99; // far
+      }
+    }
+
+    function updateCardPrices(){
+      const provinceEl = document.getElementById('province');
+      const province = provinceEl && provinceEl.value ? provinceEl.value : '';
+      const cards = Array.from(document.querySelectorAll('.ship-card'));
+      cards.forEach(card => {
+        const method = card.getAttribute('data-method') || 'standard';
+        const price = computePrice(method, province);
+        card.setAttribute('data-amount', String(price));
+        const priceEl = card.querySelector('.ship-price');
+        if (priceEl) priceEl.textContent = '$' + price.toFixed(2);
+        const radio = card.querySelector('input[name="shippingOption"]');
+        if (radio) radio.value = String(price);
+      });
+    }
+
+    function updateShippingUI(amount){
+      if (shippingHidden) shippingHidden.value = amount;
+      if (summaryShipping) summaryShipping.textContent = '$' + Number(amount).toFixed(2);
+      const subtotal = parseFloat('<%= subtotal %>') || 0;
+      const tax = parseFloat('<%= tax %>') || 0;
+      const newTotal = subtotal + tax + Number(amount || 0);
+      if (summaryTotal) summaryTotal.textContent = '$' + Number(newTotal).toFixed(2);
+    }
+
+    shippingRadios.forEach(r => r.addEventListener('change', function(){ updateShippingUI(this.value); }));
+
+    // Recompute when location changes
+    function wireLocationListeners(){
+      const provinceEl = document.getElementById('province');
+      const cityEl = document.getElementById('city');
+      const onLocChange = () => {
+        const selectedRadio = shippingRadios.find(x => x.checked) || shippingRadios[0];
+        updateCardPrices();
+        if (selectedRadio) {
+          // sync selected card after prices change
+          const card = selectedRadio.closest('.ship-card');
+          const newAmount = card ? card.getAttribute('data-amount') : selectedRadio.value;
+          if (newAmount) {
+            selectedRadio.value = newAmount;
+            updateShippingUI(newAmount);
+          }
+        }
+      };
+      if (provinceEl) provinceEl.addEventListener('change', onLocChange);
+      if (cityEl) cityEl.addEventListener('change', onLocChange);
+    }
+
+    // initialize
+    updateCardPrices();
+    wireLocationListeners();
+    const selectedRadio = shippingRadios.find(x => x.checked) || shippingRadios[0];
+    if (selectedRadio) updateShippingUI(selectedRadio.value);
+  })();
+
+  // Shipping card click handling
+  (function(){
+    const cards = Array.from(document.querySelectorAll('.ship-card'));
+    const radios = Array.from(document.querySelectorAll('input[name="shippingOption"]'));
+    const shippingHidden = document.getElementById('shippingAmountHidden');
+    function selectCard(card){
+      cards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      const amount = card.getAttribute('data-amount') || '0';
+      // find radio inside and check it
+      const r = card.querySelector('input[name="shippingOption"]');
+      if (r) r.checked = true;
+      if (shippingHidden) shippingHidden.value = amount;
+      // trigger the other update function (reuse existing logic by dispatching change)
+      if (r) r.dispatchEvent(new Event('change'));
+    }
+    cards.forEach(card => card.addEventListener('click', () => selectCard(card)));
+    // initialize first card as selected if none
+    const checked = radios.find(r => r.checked);
+    if (!checked && cards.length) selectCard(cards[0]);
+    else if (checked) {
+      const parent = checked.closest('.ship-card');
+      if (parent) selectCard(parent);
+    }
+  })();
+
+  // Discount: apply/remove via API
+  (function(){
+    const applyBtn = document.getElementById('applyDiscount');
+    const removeBtn = document.getElementById('removeDiscount');
+    const input = document.getElementById('discountCode');
+    const selectedHidden = document.getElementById('selectedItemsHidden');
+    const shipHidden = document.getElementById('shippingAmountHidden');
+    const codeHidden = document.getElementById('discountCodeHidden');
+    const amountHidden = document.getElementById('discountAmountHidden');
+    const row = document.getElementById('summary-discount-row');
+    const codeSpan = document.getElementById('summary-discount-code');
+    const amountSpan = document.getElementById('summary-discount');
+    const subtotalSpan = document.querySelector('.summary-lines span:nth-child(2)');
+    const taxSpan = document.getElementById('summary-tax');
+    const shipSpan = document.getElementById('summary-shipping');
+    const totalSpan = document.getElementById('summary-total');
+
+    function parseMoney(text){
+      return parseFloat(String(text||'').replace(/[$,]/g,'')) || 0;
+    }
+    function fmt(n){ return '$' + Number(n||0).toFixed(2); }
+
+    async function apply(){
+      const code = (input.value||'').trim();
+      if (!code) { alert('Enter a discount code'); return; }
+      const payload = {
+        code,
+        selectedItems: selectedHidden ? selectedHidden.value : undefined,
+        shipping_amount: shipHidden ? shipHidden.value : undefined
+      };
+      try {
+        const res = await fetch('/checkout/apply-discount', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          const reasons = {
+            NOT_FOUND: 'Code not found',
+            INACTIVE: 'Code is inactive',
+            NOT_STARTED: 'Code not started yet',
+            EXPIRED: 'Code expired',
+            MIN_ORDER: `Minimum order not met${data.min_order ? ' ($'+Number(data.min_order).toFixed(2)+')' : ''}`,
+            MAX_USES: 'Code usage limit reached'
+          };
+          alert(reasons[data.reason] || data.error || 'Cannot apply code');
+          return;
+        }
+        // Update UI
+        if (row) row.style.display = '';
+        if (codeSpan) codeSpan.textContent = data.discount.code;
+        if (amountSpan) amountSpan.textContent = '-' + fmt(data.discount.amount);
+        if (taxSpan) taxSpan.textContent = fmt(data.summary.tax);
+        if (totalSpan) totalSpan.textContent = fmt(data.summary.total);
+        // keep hidden fields for order placement
+        if (codeHidden) codeHidden.value = data.discount.code;
+        if (amountHidden) amountHidden.value = data.discount.amount;
+        // disable input to avoid double-apply; show remove
+        input.disabled = true;
+        if (applyBtn) applyBtn.disabled = true;
+        if (removeBtn) removeBtn.style.display = '';
+      } catch (e) {
+        alert('Error applying discount');
+      }
+    }
+
+    function remove(){
+      // Clear hidden fields
+      if (codeHidden) codeHidden.value = '';
+      if (amountHidden) amountHidden.value = '0';
+      // Hide row
+      if (row) row.style.display = 'none';
+      if (codeSpan) codeSpan.textContent = '';
+      if (amountSpan) amountSpan.textContent = '-$0.00';
+      // Recompute total using base numbers from template + current shipping
+      const baseSubtotal = parseFloat('<%= subtotal %>') || 0;
+      const baseTax = Math.round(baseSubtotal * 0.12);
+      const ship = parseMoney(shipSpan ? shipSpan.textContent : '0');
+      if (taxSpan) taxSpan.textContent = fmt(baseTax);
+      if (totalSpan) totalSpan.textContent = fmt(baseSubtotal + baseTax + ship);
+      input.disabled = false;
+      if (applyBtn) applyBtn.disabled = false;
+      if (removeBtn) removeBtn.style.display = 'none';
+    }
+
+    if (applyBtn) applyBtn.addEventListener('click', apply);
+    if (removeBtn) removeBtn.addEventListener('click', remove);
+
+    // Re-apply discount preview when shipping changes
+    const shippingRadios = Array.from(document.querySelectorAll('input[name="shippingOption"]'));
+    shippingRadios.forEach(r => r.addEventListener('change', () => {
+      if (codeHidden && codeHidden.value) apply();
+    }));
+  })();
+
+  // Province/City dependent dropdowns (simple client-side map)
+  (function(){
+    const provinceEl = document.getElementById('province');
+    const cityEl = document.getElementById('city');
+    const zipEl = document.getElementById('zip');
+    const continueBtn = document.getElementById('continueToPayment');
+    if (!provinceEl || !cityEl) return;
+
+    // Expanded PH sample data with representative ZIP codes per city
+    // Note: Real ZIPs can be barangay-specific; these are city-level representative codes
+    const DATA = {
+      'Metro Manila': {
+        'Manila': '1000',
+        'Makati': '1226',
+        'Quezon City': '1100',
+        'Pasig': '1600',
+        'Taguig': '1630',
+        'Mandaluyong': '1550',
+        'Pasay': '1300',
+        'Parañaque': '1700',
+        'Las Piñas': '1740',
+        'Muntinlupa': '1770',
+        'Marikina': '1800',
+        'Malabon': '1470',
+        'Navotas': '1485',
+        'Valenzuela': '1440',
+        'San Juan': '1500',
+        'Caloocan': '1400',
+        'Pateros': '1620'
+      },
+      'Cebu': {
+        'Cebu City': '6000',
+        'Lapu-Lapu City': '6015',
+        'Mandaue City': '6014',
+        'Talisay City': '6045'
+      },
+      'Davao del Sur': {
+        'Davao City': '8000',
+        'Digos': '8002'
+      },
+      'Bulacan': {
+        'Malolos': '3000',
+        'Meycauayan': '3020',
+        'San Jose del Monte': '3023'
+      },
+      'Laguna': {
+        'Santa Rosa': '4026',
+        'Calamba': '4027',
+        'San Pedro': '4023',
+        'Biñan': '4024'
+      },
+      'Cavite': {
+        'Bacoor': '4102',
+        'Imus': '4103',
+        'Dasmariñas': '4114',
+        'General Trias': '4107'
+      },
+      'Rizal': {
+        'Antipolo': '1870',
+        'Cainta': '1900',
+        'Taytay': '1920',
+        'Binangonan': '1940'
+      },
+      'Batangas': {
+        'Batangas City': '4200',
+        'Lipa': '4217',
+        'Tanauan': '4232'
+      },
+      'Pampanga': {
+        'San Fernando': '2000',
+        'Angeles': '2009',
+        'Mabalacat': '2010'
+      },
+      'Iloilo': {
+        'Iloilo City': '5000',
+        'Oton': '5008'
+      },
+      'Negros Occidental': {
+        'Bacolod': '6100',
+        'Talisay': '6115'
+      },
+      'Bohol': {
+        'Tagbilaran': '6300'
+      },
+      'Misamis Oriental': {
+        'Cagayan de Oro': '9000'
+      },
+      'Davao del Norte': {
+        'Tagum': '8100'
+      },
+      'Zamboanga del Sur': {
+        'Zamboanga City': '7000'
+      }
+    };
+
+    // Custom select helpers
+    const provCS = document.getElementById('provCS');
+    const cityCS = document.getElementById('cityCS');
+    const provBtn = provCS.querySelector('.cs-control');
+    const cityBtn = cityCS.querySelector('.cs-control');
+    const provMenu = provCS.querySelector('.cs-menu');
+    const cityMenu = cityCS.querySelector('.cs-menu');
+
+    // Portal utilities to render menus at <body> level for full visibility
+    let currentPortal = null;
+    function positionMenu(menu, anchor, gap){
+      const rect = anchor.getBoundingClientRect();
+      const scrollX = window.scrollX || window.pageXOffset;
+      const scrollY = window.scrollY || window.pageYOffset;
+      const anchorLeft = rect.left + scrollX;
+      const anchorTop = rect.top + scrollY;
+      const below = window.innerHeight - rect.bottom;
+      const above = rect.top;
+      const openUp = (below < 200 && above > below);
+      menu.style.minWidth = rect.width + 'px';
+      if (!openUp) {
+        menu.style.top = (rect.bottom + scrollY + (gap||6)) + 'px';
+      } else {
+        // open upwards
+        const maxH = Math.min(280, above - (gap||6));
+        menu.style.maxHeight = maxH + 'px';
+        menu.style.top = (anchorTop - (menu.offsetHeight || maxH) - (gap||6)) + 'px';
+      }
+      menu.style.left = anchorLeft + 'px';
+      menu.style.right = 'auto';
+    }
+    function openPortal(menu, anchor){
+      if (!menu || !anchor) return;
+      if (currentPortal && currentPortal.menu === menu) { return; }
+      // move menu to body
+      if (!menu.__origParent) menu.__origParent = menu.parentElement;
+      document.body.appendChild(menu);
+      menu.style.position = 'absolute';
+      menu.style.display = 'block';
+      menu.style.zIndex = '4000';
+      // clamp width to avoid overly wide menu
+      const r = anchor.getBoundingClientRect();
+      const desired = Math.min(r.width, 320);
+      menu.style.width = desired + 'px';
+      positionMenu(menu, anchor, 6);
+      const onScroll = () => positionMenu(menu, anchor, 6);
+      const onResize = () => positionMenu(menu, anchor, 6);
+      window.addEventListener('scroll', onScroll, true);
+      window.addEventListener('resize', onResize);
+      currentPortal = { menu, onScroll, onResize };
+    }
+    function closePortal(){
+      if (!currentPortal) return;
+      const { menu, onScroll, onResize } = currentPortal;
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onResize);
+      // restore to original parent
+      if (menu.__origParent) menu.__origParent.appendChild(menu);
+      menu.removeAttribute('style');
+      currentPortal = null;
+    }
+    function closeAll(){
+      provCS.classList.remove('open'); cityCS.classList.remove('open');
+      provBtn.setAttribute('aria-expanded','false'); cityBtn.setAttribute('aria-expanded','false');
+      closePortal();
+    }
+    document.addEventListener('click', (e) => {
+      const clickInside = provCS.contains(e.target) || cityCS.contains(e.target);
+      if (!clickInside) closeAll();
+    });
+
+    function renderMenu(menu, items, selected){
+      menu.innerHTML = '';
+      items.forEach(txt => {
+        const li = document.createElement('li');
+        li.className = 'cs-option';
+        li.setAttribute('role','option');
+        li.setAttribute('tabindex','-1');
+        li.textContent = txt;
+        if (selected && selected === txt) li.setAttribute('aria-selected','true');
+        menu.appendChild(li);
+      });
+    }
+
+    function fillProvinces(selected){
+      provinceEl.innerHTML = '<option value="" selected disabled>Select province</option>';
+      const provinces = Object.keys(DATA).sort();
+      provinces.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p; opt.textContent = p;
+        if (selected && selected === p) opt.selected = true;
+        provinceEl.appendChild(opt);
+      });
+      renderMenu(provMenu, provinces, selected);
+      provCS.querySelector('.cs-value').textContent = selected || 'Select province';
+    }
+
+    function fillCities(province, selected){
+      cityEl.innerHTML = '<option value="" selected disabled>Select city</option>';
+      const map = DATA[province] || {};
+      const cities = Object.keys(map).sort();
+      const disabled = cities.length === 0;
+      cityEl.disabled = disabled;
+      cityCS.classList.toggle('disabled', disabled);
+      cityBtn.disabled = disabled;
+      cities.forEach(c => {
+        const zip = map[c];
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        if (zip) opt.dataset.zip = zip;
+        if (selected && selected === c) opt.selected = true;
+        cityEl.appendChild(opt);
+      });
+      renderMenu(cityMenu, cities, selected);
+      cityCS.querySelector('.cs-value').textContent = selected || 'Select city';
+      // reset linked ZIP when province changes
+      if (zipEl) zipEl.value = '';
+    }
+
+    // wire custom select interactions
+    provBtn.addEventListener('click', () => {
+      // Safety: if menu is empty, rebuild
+      if (!provMenu.children.length) {
+        const provinces = Object.keys(DATA).sort();
+        renderMenu(provMenu, provinces, provinceEl.value || undefined);
+      }
+      const isOpen = provCS.classList.contains('open');
+      closeAll();
+      if (!isOpen) {
+        provCS.classList.add('open');
+        provBtn.setAttribute('aria-expanded','true');
+        openPortal(provMenu, provBtn);
+      }
+    });
+    cityBtn.addEventListener('click', () => {
+      if (cityBtn.disabled) return;
+      // Safety: if menu is empty, rebuild from current province
+      if (!cityMenu.children.length) {
+        const map = DATA[provinceEl.value] || {};
+        const cities = Object.keys(map).sort();
+        renderMenu(cityMenu, cities, cityEl.value || undefined);
+      }
+      const isOpen = cityCS.classList.contains('open');
+      closeAll();
+      if (!isOpen) {
+        cityCS.classList.add('open');
+        cityBtn.setAttribute('aria-expanded','true');
+        openPortal(cityMenu, cityBtn);
+      }
+    });
+
+    provMenu.addEventListener('click', (e) => {
+      const li = e.target.closest('.cs-option');
+      if (!li) return;
+      const value = li.textContent;
+      provinceEl.value = value;
+      provMenu.querySelectorAll('.cs-option').forEach(o => o.removeAttribute('aria-selected'));
+      li.setAttribute('aria-selected', 'true');
+      provCS.querySelector('.cs-value').textContent = value;
+  provCS.classList.remove('open');
+  provBtn.setAttribute('aria-expanded','false');
+  closePortal();
+      // trigger native change for existing logic
+      provinceEl.dispatchEvent(new Event('change'));
+    });
+
+    cityMenu.addEventListener('click', (e) => {
+      const li = e.target.closest('.cs-option');
+      if (!li) return;
+      const value = li.textContent;
+      cityEl.value = value;
+      cityMenu.querySelectorAll('.cs-option').forEach(o => o.removeAttribute('aria-selected'));
+      li.setAttribute('aria-selected', 'true');
+      cityCS.querySelector('.cs-value').textContent = value;
+  cityCS.classList.remove('open');
+  cityBtn.setAttribute('aria-expanded','false');
+  closePortal();
+      // trigger native change for ZIP autofill and button enabling
+      cityEl.dispatchEvent(new Event('change'));
+    });
+
+    // keep keyboard accessibility for custom menus
+    function menuKeydown(menu, btn){
+      return function(e){
+        const opts = Array.from(menu.querySelectorAll('.cs-option'));
+        const idx = opts.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') { e.preventDefault(); const n = opts[Math.min(opts.length-1, idx+1)] || opts[0]; n.focus(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); const n = opts[Math.max(0, idx-1)] || opts[opts.length-1]; n.focus(); }
+        else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.activeElement.click(); }
+        else if (e.key === 'Escape') { e.preventDefault(); btn.click(); btn.focus(); }
+      }
+    }
+    provMenu.addEventListener('keydown', menuKeydown(provMenu, provBtn));
+    cityMenu.addEventListener('keydown', menuKeydown(cityMenu, cityBtn));
+
+    // mirror native select change to re-render menus and state
+    provinceEl.addEventListener('change', function(){
+      fillCities(this.value);
+      updateContinueState();
+    });
+
+    cityEl.addEventListener('change', function(){
+      const selectedOpt = this.options[this.selectedIndex];
+      const z = selectedOpt && selectedOpt.dataset ? selectedOpt.dataset.zip : '';
+      if (zipEl && z) {
+        zipEl.value = z;
+      }
+      updateContinueState();
+    });
+
+    if (zipEl) {
+      zipEl.addEventListener('input', updateContinueState);
+    }
+
+    function updateContinueState(){
+      if (!continueBtn) return;
+      const cityChosen = cityEl && cityEl.value && cityEl.selectedIndex > 0; // not the placeholder
+      const hasZip = zipEl && zipEl.value && zipEl.value.trim().length > 0;
+      const enable = !!(cityChosen && hasZip);
+      continueBtn.disabled = !enable;
+      continueBtn.setAttribute('aria-disabled', String(!enable));
+    }
+
+    // Attempt to preselect from any existing values
+    const initialProvince = provinceEl.getAttribute('data-initial') || '';
+    const initialCity = cityEl.getAttribute('data-initial') || '';
+    fillProvinces(initialProvince || undefined);
+    if (initialProvince && DATA[initialProvince]) {
+      fillCities(initialProvince, initialCity || undefined);
+    } else {
+      // default disabled city until province picked
+      cityEl.disabled = true;
+      cityCS.classList.add('disabled');
+      cityBtn.disabled = true;
+    }
+    // Safety: if menus have no items (e.g., after navigation), rebuild
+    if (!provMenu.children.length) {
+      const provinces = Object.keys(DATA).sort();
+      renderMenu(provMenu, provinces, provinceEl.value || undefined);
+    }
+    if (!cityMenu.children.length && provinceEl.value) {
+      const map = DATA[provinceEl.value] || {};
+      const cities = Object.keys(map).sort();
+      renderMenu(cityMenu, cities, cityEl.value || undefined);
+    }
+    updateContinueState();
+  })();
+
+  // Saved addresses: fetch, render into modal, and apply
+  (function(){
+    const listRow = document.getElementById('savedAddressesRow');
+    const list = document.getElementById('addressList');
+    if (!list || !listRow) return;
+
+    // New address mode control
+    let newAddressMode = false;
+    const saveRow = document.getElementById('saveAddressRow');
+    const saveCb = document.getElementById('saveAddressCheckbox');
+    const enterNewBtn = document.getElementById('enterNewAddressBtn');
+    const modalEl = document.getElementById('addressBookModal');
+
+    function item(address){
+      const a = document.createElement('button');
+      a.type = 'button';
+      a.className = 'list-group-item list-group-item-action';
+      a.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <div>
+          <div style="font-weight:600;">${address.label || 'Saved Address'} ${address.is_default ? '<span class="badge bg-primary">Default</span>' : ''}</div>
+          <div style="font-size:13px; color:#6b7280;">${address.first_name || ''} ${address.last_name || ''} • ${address.phone || ''}</div>
+          <div style="font-size:13px;">${address.address_line}, ${address.city}, ${address.province} ${address.zipcode}</div>
+        </div>
+        <div>
+          <span class="btn btn-sm btn-outline-primary apply-address">Use</span>
+        </div>
+      </div>`;
+      a.querySelector('.apply-address').addEventListener('click', (e) => { e.stopPropagation(); applyAddress(address); });
+      a.addEventListener('click', () => applyAddress(address));
+      return a;
+    }
+
+    /* removed duplicate applyAddress definition (kept the version that also closes the modal) */
+
+    async function fetchAddresses(){
+      try {
+        const res = await fetch('/api/addresses', { credentials: 'same-origin' });
+        // Always show the button; if no addresses, show a helpful message in modal
+        listRow.style.display = '';
+        if (!res.ok) { list.innerHTML = '<div class="text-muted">No saved addresses found.</div>'; return; }
+        const data = await res.json();
+        if (!data.success) { list.innerHTML = '<div class="text-muted">No saved addresses found.</div>'; return; }
+        list.innerHTML = '';
+        if ((data.addresses || []).length > 0) {
+          data.addresses.forEach(a => list.appendChild(item(a)));
+        } else {
+          list.innerHTML = '<div class="text-muted">No saved addresses yet.</div>';
+        }
+      } catch(_){ /* noop */ }
+    }
+    fetchAddresses();
+
+    // When modal opens, refetch addresses and ensure "Enter new" button works
+    if (modalEl) {
+      modalEl.addEventListener('shown.bs.modal', () => {
+        fetchAddresses();
+        const btn = document.getElementById('enterNewAddressBtn');
+        if (btn) btn.onclick = enterNewAddress;
+      });
+    }
+
+    // Close modal when address is applied
+    function closeModal(){
+      const el = modalEl;
+      if (!el) return;
+      const modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+      modal.hide();
+    }
+    function applyAddress(a){
+      const setIf = (id, v) => { const el = document.getElementById(id); if (el && v != null && v !== '') el.value = v; };
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+      const findOptionVal = (select, target) => {
+        if (!select || !target) return '';
+        const t = String(target).trim().toLowerCase();
+        let match = '';
+        Array.from(select.options).forEach(opt => {
+          if (match) return;
+          const ov = String(opt.value || '').trim();
+          const ot = String(opt.textContent || '').trim();
+          if (ov === target) match = ov;
+          else if (ot.toLowerCase() === t) match = ov || ot;
+        });
+        return match;
+      };
+
+      setIf('firstName', a.first_name);
+      setIf('lastName', a.last_name);
+      setIf('email', a.email);
+      set('address', a.address_line);
+
+      try {
+        const phoneEl = document.getElementById('phone');
+        const ccSel = document.getElementById('countrySelect');
+        const phone = a.phone || '';
+        if (phoneEl && ccSel && phone.startsWith('+')) {
+          const opt = Array.from(ccSel.options).find(o => phone.startsWith(o.value));
+          if (opt) {
+            ccSel.value = opt.value;
+            ccSel.dispatchEvent(new Event('change'));
+          }
+          phoneEl.value = phone;
+          phoneEl.dispatchEvent(new Event('input'));
+        }
+      } catch(_){ }
+
+      const provinceEl = document.getElementById('province');
+      const cityEl = document.getElementById('city');
+      if (provinceEl) {
+        const provVal = findOptionVal(provinceEl, a.province);
+        if (provVal) {
+          provinceEl.value = provVal;
+          provinceEl.dispatchEvent(new Event('change'));
+          // Sync custom select display for province
+          const provCSWrap = document.getElementById('provCS');
+          if (provCSWrap) {
+            const cv = provCSWrap.querySelector('.cs-value');
+            if (cv) cv.textContent = provinceEl.value || 'Select province';
+          }
+          if (cityEl) {
+            setTimeout(() => {
+              const cityVal = findOptionVal(cityEl, a.city);
+              if (cityVal) {
+                cityEl.value = cityVal;
+                cityEl.dispatchEvent(new Event('change'));
+                // Sync custom select display for city after it is populated
+                const cityCSWrap = document.getElementById('cityCS');
+                if (cityCSWrap) {
+                  const cv = cityCSWrap.querySelector('.cs-value');
+                  if (cv) cv.textContent = cityEl.value || 'Select city';
+                  cityCSWrap.classList.remove('disabled');
+                  const btn = cityCSWrap.querySelector('.cs-control');
+                  if (btn) btn.disabled = false;
+                }
+              }
+            }, 0);
+          }
+        }
+      }
+      set('zip', a.zipcode);
+      const btn = document.getElementById('continueToPayment');
+      if (btn) btn.disabled = !(a.city && a.zipcode);
+      newAddressMode = false;
+      if (saveRow) saveRow.style.display = 'none';
+      if (saveCb) saveCb.checked = false;
+      closeModal();
+    }
+
+    // Enter new address flow
+    function enterNewAddress(){
+      newAddressMode = true;
+      // Clear address-specific fields but keep user name/email
+      const clear = (id) => { const el = document.getElementById(id); if (el) el.value = ''; };
+      clear('address');
+      const provinceEl = document.getElementById('province');
+      const cityEl = document.getElementById('city');
+      if (provinceEl) {
+        provinceEl.value = '';
+        provinceEl.dispatchEvent(new Event('change'));
+      }
+      if (cityEl) {
+        cityEl.value = '';
+        cityEl.dispatchEvent(new Event('change'));
+      }
+      clear('zip');
+      // Clear phone number
+      try {
+        const ccSel = document.getElementById('countrySelect');
+        const phoneEl = document.getElementById('phone');
+        const phoneValid = document.getElementById('phoneValid');
+        if (ccSel && phoneEl) {
+          const cc = ccSel.value || '+63';
+          phoneEl.value = cc + ' ';
+          phoneEl.dispatchEvent(new Event('input'));
+        }
+        // Hide green check explicitly and remove any invalid border
+        if (phoneValid) phoneValid.style.opacity = '0';
+        const wrapper = phoneEl ? phoneEl.closest('.phone-combined') : null;
+        if (wrapper) wrapper.classList.remove('invalid');
+      } catch(_) { /* noop */ }
+      // Show save checkbox
+      if (saveRow) saveRow.style.display = '';
+      if (saveCb) saveCb.checked = true;
+      // Enable continue button based on city+zip state (likely disabled until chosen)
+      const cont = document.getElementById('continueToPayment');
+      if (cont) cont.disabled = true;
+      closeModal();
+    }
+    if (enterNewBtn) enterNewBtn.addEventListener('click', enterNewAddress);
+
+    // Intercept Continue to Payment to optionally save new address
+    const continueBtn = document.getElementById('continueToPayment');
+    if (continueBtn) {
+      continueBtn.addEventListener('click', async () => {
+        if (!newAddressMode || !saveCb || !saveCb.checked) {
+          return nextStep(2);
+        }
+        // Build payload from form
+        const payload = {
+          label: 'Checkout Address',
+          first_name: document.getElementById('firstName')?.value?.trim() || '',
+          last_name: document.getElementById('lastName')?.value?.trim() || '',
+          email: document.getElementById('email')?.value?.trim() || undefined,
+          address_line: document.getElementById('address')?.value?.trim() || '',
+          province: document.getElementById('province')?.value || '',
+          city: document.getElementById('city')?.value || '',
+          zipcode: document.getElementById('zip')?.value?.trim() || '',
+          is_default: false
+        };
+        // Normalize phone to +CC######## format
+        const select = document.getElementById('countrySelect');
+        const phoneInput = document.getElementById('phone');
+        const getDigits = (s) => (s || '').replace(/\D/g, '');
+        const cc = select ? select.value : '';
+        const codeDigits = cc.replace('+','');
+        const rawDigits = getDigits(phoneInput ? phoneInput.value : '');
+        const localDigits = rawDigits.startsWith(codeDigits) ? rawDigits.slice(codeDigits.length) : rawDigits;
+        payload.phone = cc ? `${cc}${localDigits}` : (phoneInput ? phoneInput.value.trim() : '');
+
+        // Basic guard
+        if (!payload.first_name || !payload.last_name || !payload.address_line || !payload.province || !payload.city || !payload.zipcode) {
+          return nextStep(2); // proceed without saving
+        }
+        try {
+          const res = await fetch('/api/addresses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) {
+            // If unauthorized or error, just proceed
+            return nextStep(2);
+          }
+          const data = await res.json().catch(() => ({ success:false }));
+          // Ignore response outcome for flow
+          return nextStep(2);
+        } catch(_) {
+          return nextStep(2);
+        }
+      });
+    }
+
+    // removed legacy add-address UI handlers referencing undefined elements (toggleAddBtn, addSection, aa*, addForm)
+  })();
+
+  // Phone validation (select now contains the prefix)
+  (function(){
+    const select = document.getElementById('countrySelect');
+    const phoneInput = document.getElementById('phone');
+    const phoneValid = document.getElementById('phoneValid');
+    const flagImg = document.getElementById('flagImg');
+    const codeBox = document.getElementById('codeBox');
+    const phoneWrap = document.querySelector('.phone-select-wrap');
+    const phoneMenu = document.getElementById('phoneCSMenu');
+    if (!select || !phoneInput) return;
+
+    // country-specific grouping for display formatting only
+    function formatDigits(cc, digits){
+      // basic per-country formatting
+      if (cc === '+1') {
+        // US: (XXX) XXX - XXXX
+        const p1 = digits.slice(0,3);
+        const p2 = digits.slice(3,6);
+        const p3 = digits.slice(6,10);
+        let out = '';
+        if (p1) out += `(${p1}` + (p1.length===3 ? ')' : '') + ' ';
+        if (p2) out += p2 + (p2.length===3 ? ' - ' : '');
+        if (p3) out += p3;
+        return out.trim();
+      } else if (cc === '+63') {
+        // PH: XXX XXX XXXX (10 digits)
+        const p1 = digits.slice(0,3);
+        const p2 = digits.slice(3,6);
+        const p3 = digits.slice(6,10);
+        return [p1,p2,p3].filter(Boolean).join(' ');
+      } else if (cc === '+44') {
+        // UK (rough): 4-3-3 grouping for 10 digits
+        const p1 = digits.slice(0,4);
+        const p2 = digits.slice(4,7);
+        const p3 = digits.slice(7,10);
+        return [p1,p2,p3].filter(Boolean).join(' ');
+      } else if (cc === '+61') {
+        // AU (mobile/most numbers): 3-3-3 grouping for 9 digits
+        const p1 = digits.slice(0,3);
+        const p2 = digits.slice(3,6);
+        const p3 = digits.slice(6,9);
+        return [p1,p2,p3].filter(Boolean).join(' ');
+      } else if (cc === '+91') {
+        // IN: 5-5
+        const p1 = digits.slice(0,5);
+        const p2 = digits.slice(5,10);
+        return [p1,p2].filter(Boolean).join(' ');
+      }
+      return digits; // fallback
+    }
+
+    const getDigits = (s) => (s || '').replace(/\D/g, '');
+    const getCodeDigits = (cc) => cc.replace('+','');
+    function formatDisplay(cc, localDigits){
+      const local = formatDigits(cc, localDigits);
+      // Always include the country prefix in the input; keep trailing space when empty
+      return local ? `${cc} ${local}` : `${cc} `;
+    }
+
+    // exact lengths per country (local digits only, excluding the country code)
+    const TARGET_LEN = {
+      '+63': 10,
+      '+1': 10,
+      '+44': 10,
+      '+61': 9,
+      '+91': 10
+    };
+
+    function validate(){
+      const cc = select.value;
+      const rawDigits = getDigits(phoneInput.value);
+      const codeDigits = getCodeDigits(cc);
+      const localDigits = rawDigits.startsWith(codeDigits) ? rawDigits.slice(codeDigits.length) : rawDigits;
+      const target = TARGET_LEN[cc] ?? 10;
+      const ok = localDigits.length === target;
+      if (phoneValid) phoneValid.style.opacity = ok ? '1' : '0';
+      // mark red border when user typed something and it's not exact length
+      const wrapper = phoneInput.closest('.phone-combined');
+      if (wrapper) {
+        const showInvalid = localDigits.length > 0 && !ok;
+        wrapper.classList.toggle('invalid', showInvalid);
+      }
+      phoneInput.setAttribute('aria-invalid', ok ? 'false' : 'true');
+      return { ok, localDigits, target };
+    }
+
+    function renderFromCurrent(){
+      const cc = (select && select.value) ? select.value : '+63';
+      const rawDigits = getDigits(phoneInput.value);
+      const codeDigits = getCodeDigits(cc);
+      const localDigits = rawDigits.startsWith(codeDigits) ? rawDigits.slice(codeDigits.length) : rawDigits;
+      phoneInput.value = formatDisplay(cc, localDigits);
+      validate();
+      ensureCaretAfterPrefix();
+    }
+
+    function ensureCaretAfterPrefix(){
+      const cc = (select && select.value) ? select.value : '+63';
+      const minPos = cc.length + 1; // + space
+      try {
+        if (phoneInput.selectionStart < minPos) {
+          phoneInput.setSelectionRange(minPos, minPos);
+        }
+      } catch(_){}
+    }
+
+    phoneInput.addEventListener('input', renderFromCurrent);
+    phoneInput.addEventListener('focus', () => {
+      const cc = (select && select.value) ? select.value : '+63';
+      if (!phoneInput.value || !phoneInput.value.startsWith(cc + ' ')) {
+        renderFromCurrent();
+      }
+      ensureCaretAfterPrefix();
+    });
+    phoneInput.addEventListener('click', () => {
+      const cc = (select && select.value) ? select.value : '+63';
+      if (!phoneInput.value || !phoneInput.value.startsWith(cc + ' ')) {
+        renderFromCurrent();
+      }
+      ensureCaretAfterPrefix();
+    });
+    phoneInput.addEventListener('beforeinput', (e) => {
+      const cc = (select && select.value) ? select.value : '+63';
+      const minPos = cc.length + 1;
+      const start = phoneInput.selectionStart ?? 0;
+      const end = phoneInput.selectionEnd ?? 0;
+      // Prevent deleting into prefix or replacing it
+      if ((e.inputType === 'deleteContentBackward' && start <= minPos)
+        || (e.inputType === 'deleteContentForward' && start < minPos)
+        || (e.inputType === 'deleteByCut' && start < minPos)
+        || (e.inputType === 'insertText' && start < minPos && e.data && /\d/.test(e.data))) {
+        e.preventDefault();
+        ensureCaretAfterPrefix();
+      }
+    });
+    phoneInput.addEventListener('keydown', (e) => {
+      const cc = (select && select.value) ? select.value : '+63';
+      const minPos = cc.length + 1;
+      if ((e.key === 'Backspace' || e.key === 'ArrowLeft') && phoneInput.selectionStart <= minPos) {
+        e.preventDefault();
+        ensureCaretAfterPrefix();
+      }
+    });
+    phoneInput.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const cc = (select && select.value) ? select.value : '+63';
+      const pasted = (e.clipboardData || window.clipboardData).getData('text') || '';
+      const digits = pasted.replace(/\D/g, '');
+      const codeDigits = getCodeDigits(cc);
+      const localDigits = digits.startsWith(codeDigits) ? digits.slice(codeDigits.length) : digits;
+      phoneInput.value = formatDisplay(cc, localDigits);
+      validate();
+      ensureCaretAfterPrefix();
+    });
+    phoneInput.addEventListener('compositionend', () => {
+      renderFromCurrent();
+    });
+    phoneInput.addEventListener('change', () => {
+      renderFromCurrent();
+    });
+    phoneInput.addEventListener('blur', () => {
+      // Reassert prefix on blur in case of any odd edits
+      renderFromCurrent();
+    });
+    phoneInput.addEventListener('cut', (e) => {
+      const cc = (select && select.value) ? select.value : '+63';
+      const minPos = cc.length + 1;
+      const start = phoneInput.selectionStart ?? 0;
+      if (start < minPos) { e.preventDefault(); ensureCaretAfterPrefix(); }
+    });
+    // run initial
+    validate();
+
+    // flag sync
+    function getIso(){
+      const opt = select.options[select.selectedIndex];
+      return (opt && opt.dataset && opt.dataset.cc) ? opt.dataset.cc.toLowerCase() : 'ph';
+    }
+    const PLACEHOLDER = {
+      '+63': '___ ___ ____', // 10
+      '+1': '(___) ___ - ____', // 10
+      '+44': '____ ___ ___', // 10
+      '+61': '___ ___ ___', // 9
+      '+91': '_____ _____' // 10
+    };
+    function updateFlag(){
+      const cc = select.value;
+      const iso = getIso();
+      if (flagImg) flagImg.src = `https://flagcdn.com/w20/${iso}.png`;
+      if (codeBox) codeBox.textContent = cc;
+      if (phoneInput) phoneInput.placeholder = PLACEHOLDER[cc] || `${cc} __________`;
+      renderFromCurrent();
+      // Hide valid icon on init/change
+      if (phoneValid) phoneValid.style.opacity = '0';
+    }
+    select.addEventListener('change', updateFlag);
+    // Ensure a default CC is always applied on load
+    if (!select.value || !Array.from(select.options).some(o => o.value === select.value)) {
+      const def = Array.from(select.options)[0];
+      if (def) def.selected = true;
+    }
+    updateFlag();
+
+    // Build custom phone country menu from native options
+    function buildPhoneMenu(){
+      if (!phoneMenu) return;
+      phoneMenu.innerHTML = '';
+      Array.from(select.options).forEach(opt => {
+        const li = document.createElement('li');
+        li.className = 'cs-option';
+        li.setAttribute('role','option');
+        li.setAttribute('tabindex','-1');
+        const iso = (opt.dataset && opt.dataset.cc) ? opt.dataset.cc.toLowerCase() : 'ph';
+        li.innerHTML = `<img src="https://flagcdn.com/w20/${iso}.png" width="18" height="12" alt="" aria-hidden="true"/> <span>${opt.textContent}</span>`;
+        if (opt.selected) li.setAttribute('aria-selected','true');
+        li.addEventListener('click', () => {
+          select.value = opt.value;
+          select.dispatchEvent(new Event('change'));
+          closePhoneMenu();
+        });
+        phoneMenu.appendChild(li);
+      });
+    }
+    buildPhoneMenu();
+
+    // Robust open/close with portal
+    let phoneOpen = false;
+    function positionPhoneMenu(){
+      const rect = phoneWrap.getBoundingClientRect();
+      const scrollX = window.scrollX || window.pageXOffset;
+      const scrollY = window.scrollY || window.pageYOffset;
+      const vw = document.documentElement.clientWidth;
+      const menuW = Math.max(220, Math.min(280, 260));
+      let left = rect.left + scrollX;
+      if (left + menuW > vw + scrollX - 8) left = vw + scrollX - 8 - menuW;
+      phoneMenu.style.width = menuW + 'px';
+      phoneMenu.style.left = left + 'px';
+      phoneMenu.style.top = (rect.bottom + scrollY + 8) + 'px';
+    }
+    function openPhoneMenu(){
+      if (!phoneMenu.__origParent) phoneMenu.__origParent = phoneMenu.parentElement;
+      if (!phoneMenu.children.length) buildPhoneMenu();
+      document.body.appendChild(phoneMenu);
+      phoneMenu.style.position = 'absolute';
+      phoneMenu.style.display = 'block';
+      phoneMenu.style.zIndex = '5000';
+      positionPhoneMenu();
+      phoneOpen = true;
+      phoneWrap.classList.add('open');
+    }
+    function closePhoneMenu(){
+      phoneOpen = false;
+      if (phoneMenu.__origParent) phoneMenu.__origParent.appendChild(phoneMenu);
+      phoneMenu.style.display = 'none';
+      phoneWrap.classList.remove('open');
+    }
+    phoneWrap.addEventListener('click', (e) => {
+      // Close province/city if any
+      const openCS = document.querySelector('.custom-select.open');
+      if (openCS) openCS.classList.remove('open');
+      if (phoneOpen) closePhoneMenu(); else openPhoneMenu();
+      e.stopPropagation();
+    });
+    // Open on keyboard
+    phoneWrap.setAttribute('tabindex','0');
+    phoneWrap.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (phoneOpen) closePhoneMenu(); else openPhoneMenu(); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (!phoneOpen) openPhoneMenu(); const first = phoneMenu.querySelector('.cs-option'); if (first) first.focus(); }
+      if (e.key === 'Escape' && phoneOpen) { e.preventDefault(); closePhoneMenu(); }
+    });
+  select.addEventListener('change', () => { updateFlag(); buildPhoneMenu(); });
+    document.addEventListener('click', (e) => {
+      if (phoneOpen && !phoneWrap.contains(e.target) && !phoneMenu.contains(e.target)) closePhoneMenu();
+    });
+    window.addEventListener('resize', () => { if (phoneOpen) positionPhoneMenu(); });
+    window.addEventListener('scroll', () => { if (phoneOpen) positionPhoneMenu(); }, true);
+    if (flagImg) {
+      flagImg.addEventListener('click', (e) => { if (phoneOpen) closePhoneMenu(); else openPhoneMenu(); e.stopPropagation(); });
+    }
+
+    // combine on final submit
+    const placeForm = document.getElementById('placeOrderForm');
+    if (placeForm) {
+      placeForm.addEventListener('submit', function(){
+        const hidden = document.getElementById('hiddenPhone');
+        const cc = select.value;
+        const rawDigits = getDigits(phoneInput.value);
+        const codeDigits = getCodeDigits(cc);
+        const localDigits = rawDigits.startsWith(codeDigits) ? rawDigits.slice(codeDigits.length) : rawDigits;
+        if (hidden) hidden.value = `${cc}${localDigits}`;
+      });
+    }
+  })();
+</script>
 </body>
 </html>

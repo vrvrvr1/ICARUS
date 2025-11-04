@@ -162,22 +162,23 @@ router.get("/", isAuthenticated, async (req, res) => {
 
     const user = userResult.rows[0]; // This will have first_name, last_name, etc.
 
-    // Fetch default address if exists
+    // Fetch all saved addresses for the user
+    let savedAddresses = [];
     let defaultAddress = null;
     try {
       const addressResult = await db.query(
-        `SELECT first_name, last_name, phone, email, address_line, city, province, zipcode
+        `SELECT id, label, first_name, last_name, phone, email, address_line, city, province, zipcode, is_default
          FROM addresses 
-         WHERE customer_id=$1 AND is_default=true 
-         LIMIT 1`,
+         WHERE customer_id=$1 
+         ORDER BY is_default DESC, id DESC`,
         [customer_id]
       );
-      if (addressResult.rows.length > 0) {
-        defaultAddress = addressResult.rows[0];
-      }
+      savedAddresses = addressResult.rows || [];
+      // Find the default address
+      defaultAddress = savedAddresses.find(addr => addr.is_default) || savedAddresses[0] || null;
     } catch (err) {
-      console.error('Error fetching default address:', err);
-      // Continue without default address
+      console.error('Error fetching addresses:', err);
+      // Continue without addresses
     }
 
     // Fetch payment and shipping settings
@@ -197,6 +198,12 @@ router.get("/", isAuthenticated, async (req, res) => {
       express_shipping: parseFloat(settings.express_shipping) || 0
     };
 
+    // Debug logging for default address
+    console.log('=== CHECKOUT DEBUG ===');
+    console.log('defaultAddress:', JSON.stringify(defaultAddress, null, 2));
+    console.log('savedAddresses count:', savedAddresses.length);
+    console.log('=====================');
+
     res.render("customer/checkout", {
       user,      // user info from DB
       cartItems,
@@ -206,6 +213,7 @@ router.get("/", isAuthenticated, async (req, res) => {
       total,
       selectedItems: itemsParam || null,
       defaultAddress,
+      savedAddresses,
       paymentSettings,
       shippingSettings
     });

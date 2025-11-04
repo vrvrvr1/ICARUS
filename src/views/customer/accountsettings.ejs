@@ -1,3 +1,8 @@
+<%
+  // Fallback for currency if not set
+  if (typeof currency === 'undefined') currency = '$';
+  if (typeof currencyCode === 'undefined') currencyCode = 'USD';
+%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -113,7 +118,7 @@
                                                : (/ship|en route|courier|out/.test(__s) ? 'intransit' : ''));
                             %>
                             <span class="status-text <%= __cls %>"><%= o.status || 'Pending' %></span>
-                            <div class="lo-total">$<%= Number(o.total_amount || 0).toLocaleString() %></div>
+                            <div class="lo-total"><%= currency %><%= Number(o.total_amount || 0).toLocaleString() %></div>
                           </div>
                         </li>
                       <% }) %>
@@ -139,7 +144,14 @@
                           <img src="<%= w.image_url %>" alt="<%= w.product_name %>" class="wl-thumb" />
                           <div class="wl-main">
                             <div class="wl-name"><%= w.product_name %></div>
-                            <div class="wl-price">$<%= Number(w.price || 0).toLocaleString() %></div>
+                            <% if (w.color || w.size) { %>
+                              <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">
+                                <% if (w.color) { %><span>Color: <%= w.color %></span><% } %>
+                                <% if (w.color && w.size) { %> • <% } %>
+                                <% if (w.size) { %><span>Size: <%= w.size %></span><% } %>
+                              </div>
+                            <% } %>
+                            <div class="wl-price"><%= currency %><%= Number(w.price || 0).toLocaleString() %></div>
                           </div>
                         </li>
                       <% }) %>
@@ -370,13 +382,13 @@
                       <h4 class="item-title"><%= (first && first.product_name) || 'Item' %></h4>
                       <div class="item-sub">x<%= (first && first.quantity) || 1 %></div>
                     </div>
-                    <div class="item-price">$<%= (first && Number(first.price).toLocaleString()) || '0.00' %></div>
+                    <div class="item-price"><%= currency %><%= (first && Number(first.price).toLocaleString()) || '0.00' %></div>
                   </div>
                   <% if (o.items && o.items.length > 1) { %>
                     <div class="oc-more">+<%= o.items.length - 1 %> more item<%= o.items.length - 1 > 1 ? 's' : '' %></div>
                   <% } %>
                   <footer class="oc-foot">
-                    <div class="total">Total: <strong>$<%= Number(o.total_amount || 0).toLocaleString() %></strong></div>
+                    <div class="total">Total: <strong><%= currency %><%= Number(o.total_amount || 0).toLocaleString() %></strong></div>
                     <% 
                       const statusLower = (o.status || '').toLowerCase();
                       const isDelivered = statusLower.includes('deliver') || statusLower.includes('complete');
@@ -408,14 +420,24 @@
           <div class="info-section">
             <% if (wishlistItems && wishlistItems.length > 0) { %>
               <% wishlistItems.forEach(item => { %>
-                <div class="info-row wishlist-item" data-id="<%= item.wishlist_id %>" data-product-id="<%= item.product_id %>">
+                <div class="info-row wishlist-item" data-id="<%= item.wishlist_id %>" data-product-id="<%= item.product_id %>" data-color="<%= item.color || '' %>" data-size="<%= item.size || '' %>">
                   <img src="<%= item.image_url %>" alt="<%= item.product_name %>" class="wishlist-img" />
                   <div class="wishlist-details">
                     <h4><%= item.product_name %></h4>
-                    <p>$<%= item.price %></p>
+                    <% if (item.color || item.size) { %>
+                      <div class="product-attributes" style="display: flex; gap: 6px; margin: 4px 0;">
+                        <% if (item.color) { %>
+                          <span class="attribute" style="background: #F1F5F9; color: #475569; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 500;">Color: <%= item.color %></span>
+                        <% } %>
+                        <% if (item.size) { %>
+                          <span class="attribute" style="background: #F1F5F9; color: #475569; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 500;">Size: <%= item.size %></span>
+                        <% } %>
+                      </div>
+                    <% } %>
+                    <p><%= currency %><%= item.price %></p>
                   </div>
                   <div class="wishlist-actions">
-                    <button type="button" class="btn-primary small add-to-cart-btn" data-product-id="<%= item.product_id %>">
+                    <button type="button" class="btn-primary small add-to-cart-btn" data-product-id="<%= item.product_id %>" data-color="<%= item.color || '' %>" data-size="<%= item.size || '' %>">
                       <i class="fa-solid fa-cart-plus"></i> Add to Cart
                     </button>
                     <button type="button" class="remove-btn" data-id="<%= item.wishlist_id %>">
@@ -653,6 +675,8 @@
           const addToCartBtn = e.target.closest('.add-to-cart-btn');
           if (addToCartBtn) {
             const productId = addToCartBtn.getAttribute('data-product-id');
+            const color = addToCartBtn.getAttribute('data-color') || null;
+            const size = addToCartBtn.getAttribute('data-size') || null;
             const originalText = addToCartBtn.innerHTML;
             
             try {
@@ -664,7 +688,9 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                   product_id: parseInt(productId), 
-                  quantity: 1 
+                  quantity: 1,
+                  color: color || undefined,
+                  size: size || undefined
                 })
               });
               

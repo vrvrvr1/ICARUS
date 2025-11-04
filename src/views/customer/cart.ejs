@@ -1,3 +1,8 @@
+<%
+  // Fallback for currency if not set
+  if (typeof currency === 'undefined') currency = '$';
+  if (typeof currencyCode === 'undefined') currencyCode = 'USD';
+%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -58,7 +63,7 @@
             </div>
 
             <!-- Price -->
-            <div class="price">$<%= Number(item.price).toFixed(2) %></div>
+            <div class="price"><%= currency %><%= Number(item.price).toFixed(2) %></div>
 
             <!-- Quantity Controls -->
             <div class="quantity">
@@ -75,7 +80,7 @@
             </div>
 
             <!-- Total -->
-            <div class="total">$<%= (item.price * item.quantity).toFixed(2) %></div>
+            <div class="total"><%= currency %><%= (item.price * item.quantity).toFixed(2) %></div>
           </div>
         <% }) %>
       <% } else { %>
@@ -103,7 +108,7 @@
       <div class="summary-row">
         <span>Subtotal</span>
         <span id="subtotal">
-          $<%= cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2) %>
+          <%= currency %><%= cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2) %>
         </span>
       </div>
 
@@ -111,13 +116,13 @@
       <!-- Removed shipping options: subtotal/total derived from selected items only -->
       <div class="summary-row">
         <span>Discount</span>
-        <span id="discount">$0.00</span>
+        <span id="discount"><%= currency %>0.00</span>
       </div>
 
       <div class="summary-total">
         <span>Total</span>
         <span id="grand-total">
-          $<span id="grand-total-value"><%= cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2) %></span>
+          <%= currency %><span id="grand-total-value"><%= cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2) %></span>
         </span>
       </div>
 
@@ -169,7 +174,8 @@
       const quantity = qtySpan ? parseInt(qtySpan.textContent) || 1 : 1;
       subtotal += price * quantity;
     });
-    subtotalEl.textContent = '$' + subtotal.toFixed(2);
+    const CURRENCY = '<%= currency %>';
+    subtotalEl.textContent = CURRENCY + subtotal.toFixed(2);
     grandTotalValueEl.textContent = subtotal.toFixed(2);
   }
 
@@ -182,9 +188,10 @@
 
   shippingOptions.forEach(opt => {
     opt.addEventListener("change", () => {
-      const subtotal = parseFloat(subtotalEl.textContent.replace("$", ""));
-      const shipping = parseFloat(opt.value);
-      grandTotalEl.textContent = "$" + (subtotal + shipping).toFixed(2);
+      const CURRENCY = '<%= currency %>';
+      const subtotal = parseFloat(subtotalEl.textContent.replace(/[₱$€£¥₹]/g, ""));
+      const shipping = parseFloat(opt.getAttribute("data-price")) || 0;
+      grandTotalEl.textContent = CURRENCY + (subtotal + shipping).toFixed(2);
     });
   });
 </script>

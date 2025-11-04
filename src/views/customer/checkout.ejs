@@ -165,7 +165,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="ship-price">$4.99</div>
+                <div class="ship-price"><%= currency %>4.99</div>
               </label>
 
               <label class="ship-card" data-amount="9" data-method="express">
@@ -189,7 +189,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="ship-price">$9</div>
+                <div class="ship-price"><%= currency %>9</div>
               </label>
             </div>
           </div>
@@ -438,14 +438,14 @@
               <div>
                 <p><strong><%= item.product_name %></strong></p>
                 <p>Qty: <%= item.quantity %></p>
-                <p class="item-price">$<%= Number(item.price || 0).toFixed(2) %></p>
+                <p class="item-price"><%= currency %><%= Number(item.price || 0).toFixed(2) %></p>
               </div>
             </div>
           <% }) %>
       <hr>
       <div class="discount">
         <input type="text" placeholder="Discount code" id="discountCode">
-        <button type="button" id="applyDiscount">Apply</button>
+        <button type="button" id="applyDiscount" style="color: #000;">Apply</button>
         <button type="button" id="removeDiscount" style="display:none;margin-left:8px;">Remove</button>
       </div>
 
@@ -532,7 +532,7 @@
         const price = computePrice(method, province);
         card.setAttribute('data-amount', String(price));
         const priceEl = card.querySelector('.ship-price');
-        if (priceEl) priceEl.textContent = '$' + price.toFixed(2);
+        if (priceEl) priceEl.textContent = CURRENCY + price.toFixed(2);
         const radio = card.querySelector('input[name="shippingOption"]');
         if (radio) radio.value = String(price);
       });
@@ -540,11 +540,11 @@
 
     function updateShippingUI(amount){
       if (shippingHidden) shippingHidden.value = amount;
-      if (summaryShipping) summaryShipping.textContent = '$' + Number(amount).toFixed(2);
+      if (summaryShipping) summaryShipping.textContent = CURRENCY + Number(amount).toFixed(2);
       const subtotal = parseFloat('<%= subtotal %>') || 0;
       const tax = parseFloat('<%= tax %>') || 0;
       const newTotal = subtotal + tax + Number(amount || 0);
-      if (summaryTotal) summaryTotal.textContent = '$' + Number(newTotal).toFixed(2);
+      if (summaryTotal) summaryTotal.textContent = CURRENCY + Number(newTotal).toFixed(2);
     }
 
     shippingRadios.forEach(r => r.addEventListener('change', function(){ updateShippingUI(this.value); }));
@@ -648,7 +648,7 @@
             INACTIVE: 'Code is inactive',
             NOT_STARTED: 'Code not started yet',
             EXPIRED: 'Code expired',
-            MIN_ORDER: `Minimum order not met${data.min_order ? ' ($'+Number(data.min_order).toFixed(2)+')' : ''}`,
+            MIN_ORDER: `Minimum order not met${data.min_order ? ' ('+CURRENCY+Number(data.min_order).toFixed(2)+')' : ''}`,
             MAX_USES: 'Code usage limit reached'
           };
           alert(reasons[data.reason] || data.error || 'Cannot apply code');
@@ -679,7 +679,7 @@
       // Hide row
       if (row) row.style.display = 'none';
       if (codeSpan) codeSpan.textContent = '';
-      if (amountSpan) amountSpan.textContent = '-$0.00';
+      if (amountSpan) amountSpan.textContent = '-'+CURRENCY+'0.00';
       // Recompute total using base numbers from template + current shipping
       const baseSubtotal = parseFloat('<%= subtotal %>') || 0;
       const baseTax = Math.round(baseSubtotal * 0.12);

@@ -188,7 +188,7 @@
   <div class="product-grid">
     <% if (products.length > 0) { %>
       <% products.forEach(p => { %>
-        <% const isOutOfStock = !p.stock || Number(p.stock) <= 0; %>
+        <% const isOutOfStock = p.out_of_stock || !p.stock || Number(p.stock) <= 0; %>
         <div class="product-card <%= isOutOfStock ? 'out-of-stock' : '' %>">
           <a href="/products/<%= p.id %>">
             <!-- Out of Stock Overlay -->
@@ -269,7 +269,7 @@
       <% const catProducts = (products || []).filter(p => (p.category || '').toLowerCase() === (cat || '').toLowerCase()); %>
       <% if (catProducts.length > 0) { %>
         <% catProducts.forEach(p => { %>
-          <% const _isOutOfStock = !p.stock || Number(p.stock) <= 0; %>
+          <% const _isOutOfStock = p.out_of_stock || !p.stock || Number(p.stock) <= 0; %>
           <div class="product-card <%= _isOutOfStock ? 'out-of-stock' : '' %>">
             <a href="/products/<%= p.id %>" class="card-link">
               <!-- Out of Stock Overlay -->

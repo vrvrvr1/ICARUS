@@ -168,6 +168,7 @@ router.post("/addproduct", upload.fields([
   // parse new flags
   const is_new_flag = (String(req.body.is_new || '').toLowerCase() === 'on') || String(req.body.is_new) === 'true';
   const free_shipping_flag = (String(req.body.free_shipping || '').toLowerCase() === 'on') || String(req.body.free_shipping) === 'true';
+  const out_of_stock = (String(req.body.out_of_stock || '').toLowerCase() === 'on') || String(req.body.out_of_stock) === 'true';
 
   let colorsRaw = req.body['colors[]'] || req.body.colors || req.body.color;
   let colorsCsv = '';
@@ -191,13 +192,14 @@ router.post("/addproduct", upload.fields([
     try {
       await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_new BOOLEAN DEFAULT false`);
       await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS free_shipping BOOLEAN DEFAULT false`);
+      await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS out_of_stock BOOLEAN DEFAULT false`);
     } catch(_) {}
 
     const ins = await db.query(
-      `INSERT INTO products (name, price, category, image_url, image_url_2, image_url_3, image_url_4, sizes, colors, is_new, free_shipping)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      `INSERT INTO products (name, price, category, image_url, image_url_2, image_url_3, image_url_4, sizes, colors, is_new, free_shipping, out_of_stock)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
        RETURNING id`,
-      [name, priceInt, category, img0, img1, img2, img3, sizesCsv, colorsCsv, is_new_flag, free_shipping_flag]
+      [name, priceInt, category, img0, img1, img2, img3, sizesCsv, colorsCsv, is_new_flag, free_shipping_flag, out_of_stock]
     );
 
     // Insert per-variant stock if provided: distribute per-size stock across all selected colors
@@ -229,6 +231,34 @@ router.post("/addproduct", upload.fields([
         }
       }
     } catch(_) { /* ignore if table missing */ }
+
+    // New: accept explicit per-variant stocks from `stock[color][size]` nested inputs
+    try {
+      const pid = ins.rows && ins.rows[0] ? Number(ins.rows[0].id) : null;
+      const stockMap = req.body.stock || {};
+      if (pid && stockMap && typeof stockMap === 'object') {
+        for (const rawColor of Object.keys(stockMap)) {
+          if (!Object.prototype.hasOwnProperty.call(stockMap, rawColor)) continue;
+          const row = stockMap[rawColor] || {};
+          for (const rawSize of Object.keys(row)) {
+            if (!Object.prototype.hasOwnProperty.call(row, rawSize)) continue;
+            const val = row[rawSize];
+            const qty = Number.parseInt(val);
+            if (Number.isNaN(qty) || !val || String(val).trim() === '') continue; // skip empty/NaN
+            const colorNorm = String(rawColor).trim();
+            const sizeNorm = String(rawSize).trim().toUpperCase();
+            // insert
+            await db.query(
+              `INSERT INTO product_variants (product_id, color, size, stock) VALUES ($1,$2,$3,$4)
+               ON CONFLICT (product_id, color, size) DO UPDATE SET stock = $4`,
+              [pid, colorNorm, sizeNorm, qty]
+            );
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Updating per-variant stock on add failed:', e.message);
+    }
 
     res.redirect("/adminproducts");
   } catch (err) {
@@ -628,6 +658,7 @@ router.post("/adminproducts/:id/edit", upload.fields([
   // parse flags
   const is_new_flag = (String(req.body.is_new || '').toLowerCase() === 'on') || String(req.body.is_new) === 'true';
   const free_shipping_flag = (String(req.body.free_shipping || '').toLowerCase() === 'on') || String(req.body.free_shipping) === 'true';
+  const out_of_stock = (String(req.body.out_of_stock || '').toLowerCase() === 'on') || String(req.body.out_of_stock) === 'true';
   // parse per-product promo fields (optional)
   const promo_active = (String(req.body.promo_active || '').toLowerCase() === 'on') || String(req.body.promo_active).toLowerCase() === 'true';
   let promo_percent = Number(req.body.promo_percent || 0);
@@ -669,17 +700,19 @@ router.post("/adminproducts/:id/edit", upload.fields([
       // ensure columns exist
       try { await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_new BOOLEAN DEFAULT false`); } catch(_) {}
       try { await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS free_shipping BOOLEAN DEFAULT false`); } catch(_) {}
+      try { await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS out_of_stock BOOLEAN DEFAULT false`); } catch(_) {}
 
       await db.query(
-        `UPDATE products SET name=$1, price=$2, category=$3, image_url=$4, image_url_2=$5, image_url_3=$6, image_url_4=$7, sizes=$8, colors=$9, is_new=$10, free_shipping=$11, promo_active=$12, promo_percent=$13 WHERE id=$14`,
-        [name, priceInt, category, img0, img1, img2, img3, sizesCsv, colorsCsv, is_new_flag, free_shipping_flag, promo_active, promo_percent, productId]
+        `UPDATE products SET name=$1, price=$2, category=$3, image_url=$4, image_url_2=$5, image_url_3=$6, image_url_4=$7, sizes=$8, colors=$9, is_new=$10, free_shipping=$11, promo_active=$12, promo_percent=$13, out_of_stock=$14 WHERE id=$15`,
+        [name, priceInt, category, img0, img1, img2, img3, sizesCsv, colorsCsv, is_new_flag, free_shipping_flag, promo_active, promo_percent, out_of_stock, productId]
       );
     } else {
       try { await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_new BOOLEAN DEFAULT false`); } catch(_) {}
       try { await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS free_shipping BOOLEAN DEFAULT false`); } catch(_) {}
+      try { await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS out_of_stock BOOLEAN DEFAULT false`); } catch(_) {}
       await db.query(
-        `UPDATE products SET name=$1, price=$2, category=$3, sizes=$4, colors=$5, is_new=$6, free_shipping=$7, promo_active=$8, promo_percent=$9 WHERE id=$10`,
-        [name, priceInt, category, sizesCsv, colorsCsv, is_new_flag, free_shipping_flag, promo_active, promo_percent, productId]
+        `UPDATE products SET name=$1, price=$2, category=$3, sizes=$4, colors=$5, is_new=$6, free_shipping=$7, promo_active=$8, promo_percent=$9, out_of_stock=$10 WHERE id=$11`,
+        [name, priceInt, category, sizesCsv, colorsCsv, is_new_flag, free_shipping_flag, promo_active, promo_percent, out_of_stock, productId]
       );
     }
 

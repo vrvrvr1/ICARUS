@@ -1,3 +1,8 @@
+<%
+  // Fallback for currency if not set
+  if (typeof currency === 'undefined') currency = '$';
+  if (typeof currencyCode === 'undefined') currencyCode = 'USD';
+%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -114,19 +119,19 @@
           const __disc = __hasPromo ? (__price * (1 - (Number(product.promo_percent)/100))) : __price;
         %>
         <% if (__hasPromo) { %>
-          <span class="price-new">$<span id="product-price-value"><%= __disc.toFixed(2) %></span></span>
-          <span class="price-old">$<span id="product-price-original"><%= __price.toFixed(2) %></span></span>
+          <span class="price-new"><%= currency %><span id="product-price-value"><%= __disc.toFixed(2) %></span></span>
+          <span class="price-old"><%= currency %><span id="product-price-original"><%= __price.toFixed(2) %></span></span>
           <span class="price-save">Save <%= Math.round(Number(product.promo_percent)) %>%</span>
         <% } else { %>
-          <span class="price-new">$<span id="product-price-value"><%= __price.toFixed(2) %></span></span>
+          <span class="price-new"><%= currency %><span id="product-price-value"><%= __price.toFixed(2) %></span></span>
         <% } %>
       </div>
 
-      <% const __stock = Number(product.stock || 0); const __lowStock = (__stock > 0 && __stock <= 5); %>
+      <% const __stock = Number(product.stock || 0); const __lowStock = (__stock > 0 && __stock <= 5); const __outOfStock = product.out_of_stock || __stock <= 0; %>
       <div class="stock-status"
            data-stock="<%= __stock %>"
            style="margin-top:6px; font-size:13px; font-weight:600;">
-        <% if (__stock <= 0) { %>
+        <% if (__outOfStock) { %>
           <span style="color:#ef4444;">Out of stock</span>
         <% } else if (__lowStock) { %>
           <span style="color:#d97706;">Only <%= __stock %> left</span>
@@ -197,11 +202,11 @@
       <input type="hidden" name="size" id="selected-size">
       <input type="hidden" name="quantity" id="selected-qty" value="1">
 
-      <button type="submit" class="add-to-cart-btn" <%= __stock <= 0 ? 'disabled aria-disabled="true"' : '' %>>ADD TO CART</button>
+      <button type="submit" class="add-to-cart-btn" <%= __outOfStock ? 'disabled aria-disabled="true"' : '' %>>ADD TO CART</button>
     </form>
 
   <!-- Buy Now -->
-  <button class="buy-now-btn" <%= __stock <= 0 ? 'disabled aria-disabled="true"' : '' %>>BUY NOW</button>
+  <button class="buy-now-btn" <%= __outOfStock ? 'disabled aria-disabled="true"' : '' %>>BUY NOW</button>
 
   <!-- Wishlist -->
   <button class="wishlist-btn" data-id="<%= product.id %>">
@@ -574,14 +579,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
     wishlistBtn.addEventListener("click", async () => {
       try {
-        const res = await fetch(`/wishlist/toggle/${productId}`, { method: "POST" });
+        // Get selected color and size
+        const selectedColor = document.querySelector('input[name="color"]:checked')?.value || null;
+        const selectedSize = document.querySelector('input[name="size"]:checked')?.value || null;
+        
+        const res = await fetch(`/wishlist/toggle/${productId}`, { 
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ color: selectedColor, size: selectedSize })
+        });
         const data = await res.json();
         if (data.wishlisted !== undefined) {
           isWishlisted = data.wishlisted ? "true" : "false";
           updateWishlistIcon();
+          const colorSizeInfo = (selectedColor || selectedSize) ? ` (${[selectedColor, selectedSize].filter(Boolean).join(', ')})` : '';
           showWishlistNotif(
             isWishlisted === "true"
-              ? "Product added to your wishlist!"
+              ? `Product added to your wishlist!${colorSizeInfo}`
               : "Product removed from your wishlist!",
             isWishlisted === "true" ? "added" : "removed"
           );

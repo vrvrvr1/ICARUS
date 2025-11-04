@@ -388,27 +388,29 @@ router.get("/products/:id", async (req, res) => {
 router.post("/wishlist/toggle/:productId", async (req, res) => {
   const userId = req.session.user?.id;
   const productId = req.params.productId;
+  const { color, size } = req.body || {};
 
   if (!userId) return res.status(401).json({ error: "Not logged in" });
 
   try {
+    // Check if this exact variant exists in wishlist
     const existing = await db.query(
-      "SELECT * FROM wishlist WHERE user_id = $1 AND product_id = $2",
-      [userId, productId]
+      "SELECT * FROM wishlist WHERE user_id = $1 AND product_id = $2 AND color = $3 AND size = $4",
+      [userId, productId, color || null, size || null]
     );
 
     if (existing.rows.length > 0) {
       // Remove from wishlist
       await db.query(
-        "DELETE FROM wishlist WHERE user_id = $1 AND product_id = $2",
-        [userId, productId]
+        "DELETE FROM wishlist WHERE user_id = $1 AND product_id = $2 AND color = $3 AND size = $4",
+        [userId, productId, color || null, size || null]
       );
       return res.json({ wishlisted: false, message: "Removed from wishlist" });
     } else {
-      // Add to wishlist
+      // Add to wishlist with color and size
       await db.query(
-        "INSERT INTO wishlist (user_id, product_id) VALUES ($1, $2)",
-        [userId, productId]
+        "INSERT INTO wishlist (user_id, product_id, color, size) VALUES ($1, $2, $3, $4)",
+        [userId, productId, color || null, size || null]
       );
       return res.json({ wishlisted: true, message: "Added to wishlist" });
     }

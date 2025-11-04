@@ -3,9 +3,11 @@ document.querySelectorAll(".wishlist-btn").forEach(button => {
     const productId = this.getAttribute("data-id");
 
     try {
+      // Send color and size as null for products page (no specific variant selected)
       const res = await fetch(`/wishlist/toggle/${productId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ color: null, size: null })
       });
 
       const data = await res.json();

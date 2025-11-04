@@ -72,7 +72,9 @@ router.get("/", isAuthenticated, async (req, res) => {
               p.id AS product_id, 
               p.name AS product_name, 
               p.image_url, 
-              p.price
+              p.price,
+              w.color,
+              w.size
        FROM wishlist w
        JOIN products p ON w.product_id = p.id
        WHERE w.user_id = $1`,

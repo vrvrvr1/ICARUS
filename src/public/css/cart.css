@@ -322,6 +322,8 @@ product-image-container {
   color: #0f172a;
   border-radius: 10px;
   padding: 10px 14px;
+  text-decoration: none;
+  text-align: center;
 }
 .checkout-btn.secondary:hover { background: #e6e9ef; }
 

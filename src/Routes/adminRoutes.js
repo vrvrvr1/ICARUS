@@ -150,6 +150,10 @@ router.get("/adminproducts", async (req, res) => {
   }
 });
 
+// Backwards-compat redirect: sometimes templates or bookmarks use /admin/adminproducts
+// Redirect to the canonical /adminproducts route to avoid 404s.
+router.get('/admin/adminproducts', (req, res) => res.redirect('/adminproducts'));
+
 // ================== ADD PRODUCT ==================
 router.get("/addproduct", (req, res) => res.render("admin/addProduct"));
 
@@ -252,6 +256,53 @@ router.get("/customers", requireAdmin, async (req, res) => {
   } catch (err) {
     console.error("Error fetching customers:", err);
     res.status(500).send("Server Error");
+  }
+});
+
+// Add new customer (admin)
+router.post('/customers/add', requireAdmin, async (req, res) => {
+  try {
+    const { email, first_name, last_name, password, role } = req.body;
+    
+    // Validate required fields
+    if (!email || !first_name || !last_name || !password) {
+      return res.status(400).send('All fields are required');
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).send('Password must be at least 6 characters');
+    }
+
+    // Check if email already exists
+    const existing = await db.query('SELECT id FROM customers WHERE email = $1', [email]);
+    if (existing.rows && existing.rows.length > 0) {
+      return res.status(400).send('Email already exists');
+    }
+
+    // Hash password using bcrypt
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert new customer
+    await db.query(
+      `INSERT INTO customers (email, first_name, last_name, password, role) 
+       VALUES ($1, $2, $3, $4, $5)`,
+      [email, first_name, last_name, hashedPassword, role || 'customer']
+    );
+
+    // Audit log
+    try {
+      await ensureAuditLogsTable();
+      const uid = req.session && req.session.user ? req.session.user.id : null;
+      await db.query('INSERT INTO audit_logs (user_id, action, meta) VALUES ($1,$2,$3)', 
+        [uid, 'customer.create', JSON.stringify({ email, first_name, last_name, role: role || 'customer' })]);
+    } catch(_) {}
+
+    res.redirect('/customers');
+  } catch (err) {
+    console.error('Error adding customer:', err);
+    res.status(500).send('Server Error');
   }
 });
 
@@ -358,23 +409,29 @@ router.post('/customers/:id/ban', requireAdmin, async (req, res) => {
 // Suspend customer for N days (or clear suspension)
 router.post('/customers/:id/suspend', requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
+  console.log('Suspend request received for customer:', id, 'body:', req.body);
   if (isNaN(id)) return res.status(400).json({ success: false, error: 'Invalid customer id' });
   try {
     // ensure column exists
     try { await db.query("ALTER TABLE customers ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMPTZ NULL"); } catch(_) {}
     const days = Number(req.body.days || req.query.days || 0);
+    console.log('Processing suspension for', days, 'days');
     if (!Number.isFinite(days) || days < 0) return res.status(400).json({ success: false, error: 'Invalid days' });
     if (days === 0) {
+      console.log('Clearing suspension for customer', id);
       await db.query('UPDATE customers SET suspended_until = NULL WHERE id = $1', [id]);
       return res.json({ success: true, suspended_until: null });
     }
     // set suspended_until to now + days
-    await db.query('UPDATE customers SET suspended_until = (NOW() + ($1 * INTERVAL \"1 day\")) WHERE id = $2', [days, id]);
+    console.log('Setting suspension:', days, 'days for customer', id);
+    await db.query('UPDATE customers SET suspended_until = (NOW() + ($1 * INTERVAL \'1 day\')) WHERE id = $2', [days, id]);
     const r = await db.query('SELECT suspended_until FROM customers WHERE id = $1', [id]);
+    console.log('Suspension set successfully:', r.rows[0]);
     return res.json({ success: true, suspended_until: r.rows[0] ? r.rows[0].suspended_until : null });
   } catch (e) {
-    console.error('Error setting suspension:', e);
-    return res.status(500).json({ success: false });
+    console.error('❌ Error setting suspension:', e.message);
+    console.error('Stack:', e.stack);
+    return res.status(500).json({ success: false, error: e.message });
   }
 });
 
@@ -967,14 +1024,18 @@ router.get('/admin/settings', requireAdmin, async (req, res) => {
 router.post('/admin/settings/currency', requireAdmin, async (req, res) => {
   try {
     const code = String(req.body.currency || req.body.currency_code || '').trim().toUpperCase();
+    console.log('Currency change requested:', code);
     if (!code || !/^[A-Z]{2,4}$/.test(code)) {
       // simple validation: 2-4 uppercase letters
+      console.error('Invalid currency code:', code);
       return res.status(400).send('Invalid currency code');
     }
     // determine previous currency (fallback to env store config)
     const prev = (await settingsStore.getSetting('currency_code')) || (storeConfig && storeConfig.currency) || 'USD';
+    console.log('Previous currency:', prev);
     // persist new code first
     const ok = await settingsStore.setSetting('currency_code', code);
+    console.log('Setting saved:', ok);
     if (!ok) return res.status(500).send('Failed to save setting');
 
     // If currency actually changed, attempt best-effort conversion of product prices and fixed discounts.
@@ -989,6 +1050,7 @@ router.post('/admin/settings/currency', requireAdmin, async (req, res) => {
         JPY: 0.0068,
         CNY: 0.14,
         INR: 0.012,
+        PHP: 0.018,
         CHF: 1.11,
         SGD: 0.73,
         MXN: 0.054,
@@ -1053,7 +1115,8 @@ router.post('/admin/settings/currency', requireAdmin, async (req, res) => {
     res.redirect('/admin/settings');
   } catch (e) {
     console.error('Error saving currency setting:', e);
-    res.status(500).send('Server Error');
+    console.error('Stack trace:', e.stack);
+    res.status(500).send('Server Error: ' + e.message);
   }
 });
 
@@ -1080,6 +1143,86 @@ router.post('/admin/settings', requireAdmin, async (req, res) => {
     res.redirect('/admin/settings');
   } catch (e) {
     console.error('Error saving settings:', e);
+    res.status(500).send('Server Error');
+  }
+});
+
+// ================== ADMIN SHIPPING ==================
+router.get('/admin/shipping', requireAdmin, async (req, res) => {
+  try {
+    const settings = await settingsStore.getAllSettings();
+    res.render('admin/shipping', { user: req.session.user, settings: settings || {} });
+  } catch (err) {
+    console.error('Error rendering shipping page:', err);
+    res.status(500).send('Server Error');
+  }
+});
+
+router.post('/admin/shipping', requireAdmin, async (req, res) => {
+  try {
+    const { 
+      standard_shipping_enabled,
+      express_shipping_enabled,
+      standard_rate, 
+      express_rate 
+    } = req.body;
+    
+    await settingsStore.setSetting('standard_shipping_enabled', standard_shipping_enabled === 'on' || standard_shipping_enabled === 'true');
+    await settingsStore.setSetting('express_shipping_enabled', express_shipping_enabled === 'on' || express_shipping_enabled === 'true');
+    await settingsStore.setSetting('standard_shipping_rate', parseFloat(standard_rate) || 5.00);
+    await settingsStore.setSetting('express_shipping_rate', parseFloat(express_rate) || 15.00);
+    
+    // Audit log
+    try {
+      await ensureAuditLogsTable();
+      const uid = req.session && req.session.user ? req.session.user.id : null;
+      await db.query('INSERT INTO audit_logs (user_id, action, meta) VALUES ($1,$2,$3)', [uid, 'shipping.update', JSON.stringify({ 
+        standard_shipping_enabled,
+        express_shipping_enabled,
+        standard_rate, 
+        express_rate 
+      })]);
+    } catch(_) {}
+    
+    res.redirect('/admin/shipping');
+  } catch (err) {
+    console.error('Error saving shipping settings:', err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// ================== ADMIN PAYMENTS ==================
+router.get('/admin/payments', requireAdmin, async (req, res) => {
+  try {
+    const settings = await settingsStore.getAllSettings();
+    res.render('admin/payments', { user: req.session.user, settings: settings || {} });
+  } catch (err) {
+    console.error('Error rendering payments page:', err);
+    res.status(500).send('Server Error');
+  }
+});
+
+router.post('/admin/payments', requireAdmin, async (req, res) => {
+  try {
+    const { paypal_enabled, cod_enabled, card_enabled, paypal_client_id, paypal_secret } = req.body;
+    
+    await settingsStore.setSetting('paypal_enabled', paypal_enabled === 'on' || paypal_enabled === 'true');
+    await settingsStore.setSetting('cod_enabled', cod_enabled === 'on' || cod_enabled === 'true');
+    await settingsStore.setSetting('card_enabled', card_enabled === 'on' || card_enabled === 'true');
+    
+    if (paypal_client_id) await settingsStore.setSetting('paypal_client_id', paypal_client_id);
+    if (paypal_secret) await settingsStore.setSetting('paypal_secret', paypal_secret);
+    
+    // Audit log
+    try {
+      await ensureAuditLogsTable();
+      const uid = req.session && req.session.user ? req.session.user.id : null;
+      await db.query('INSERT INTO audit_logs (user_id, action, meta) VALUES ($1,$2,$3)', [uid, 'payments.update', JSON.stringify({ paypal_enabled, cod_enabled, card_enabled })]);
+    } catch(_) {}
+    
+    res.redirect('/admin/payments');
+  } catch (err) {
+    console.error('Error saving payment settings:', err);
     res.status(500).send('Server Error');
   }
 });
@@ -1111,7 +1254,6 @@ router.post('/admin/discounts', requireAdmin, async (req, res) => {
     const end = end_date ? new Date(end_date) : null;
 
     if (!code || !/^[A-Za-z0-9_-]{3,30}$/.test(code)) {
-    await ensureAuditLogsTable();
       return res.status(400).send('Invalid code. Use 3-30 alphanumeric characters, dash or underscore.');
     }
     if (!['percent','fixed'].includes(type)) {
@@ -1129,10 +1271,54 @@ router.post('/admin/discounts', requireAdmin, async (req, res) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [code.toUpperCase(), type, value, start, end, active, min_order, max_uses]
     );
+
+    // Notify all users about the new discount
     try {
+      // Ensure notifications table exists
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS user_notifications (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          body TEXT,
+          link TEXT,
+          is_read BOOLEAN NOT NULL DEFAULT false,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      // Build notification message
+      const discountText = type === 'percent' 
+        ? `${value}% off` 
+        : `$${value.toFixed(2)} off`;
+      const minOrderText = min_order > 0 
+        ? ` on orders over $${min_order.toFixed(2)}` 
+        : '';
+      
+      const title = `New Discount Code: ${code.toUpperCase()}`;
+      const body = `Save ${discountText}${minOrderText}! Use code ${code.toUpperCase()} at checkout.`;
+      
+      // Get all active users
+      const usersResult = await db.query('SELECT id FROM customers');
+      
+      // Insert notification for each user
+      for (const user of usersResult.rows) {
+        await db.query(
+          `INSERT INTO user_notifications (user_id, title, body, link) VALUES ($1,$2,$3,$4)`,
+          [user.id, title, body, '/products']
+        );
+      }
+    } catch(notifErr) {
+      console.warn('Failed to send discount notifications:', notifErr.message);
+    }
+
+    // Audit log
+    try {
+      await ensureAuditLogsTable();
       const uid = req.session && req.session.user ? req.session.user.id : null;
-      await db.query('INSERT INTO audit_logs (user_id, action, meta) VALUES ($1,$2,$3)', [uid, 'announcement.create', JSON.stringify({ title, placement, active: isActive })]);
+      await db.query('INSERT INTO audit_logs (user_id, action, meta) VALUES ($1,$2,$3)', [uid, 'discount.create', JSON.stringify({ code: code.toUpperCase(), type, value, active })]);
     } catch(_) {}
+    
     res.redirect('/admin/discounts');
   } catch (err) {
     console.error('Error creating discount:', err);
@@ -1462,12 +1648,16 @@ router.get('/orders', requireAdmin, async (req, res) => {
              c.profile_image AS customer_image,
              o.order_date,
              o.status,
+             o.refund_status,
+             o.refund_amount,
+             o.cancelled_at,
+             o.cancellation_reason,
              COALESCE(SUM(oi.quantity * oi.price), 0) AS total_amount
       FROM orders o
       JOIN customers c ON o.customer_id = c.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       ${dateCondition}
-      GROUP BY o.id, c.first_name, c.last_name, c.email, c.profile_image, o.order_date, o.status
+      GROUP BY o.id, c.first_name, c.last_name, c.email, c.profile_image, o.order_date, o.status, o.refund_status, o.refund_amount, o.cancelled_at, o.cancellation_reason
       ORDER BY o.order_date DESC`;
 
     const result = await db.query(sql);
@@ -1544,6 +1734,17 @@ router.get('/admin/orders/:id', requireAdmin, async (req, res) => {
              COALESCE(o.subtotal, 0) AS saved_subtotal,
              COALESCE(o.tax, 0) AS saved_tax,
              COALESCE(o.total, 0) AS saved_total,
+             -- refund information
+             o.refund_status,
+             o.refund_amount,
+             o.refund_reason,
+             o.refund_requested_at,
+             o.refund_approved_at,
+             o.refund_processed_at,
+             -- cancellation information
+             o.cancelled_at,
+             o.cancellation_reason,
+             o.cancelled_by,
              -- computed rollup from items as fallback
              COALESCE(SUM(oi.quantity * oi.price), 0) AS total_amount
       FROM orders o
@@ -1722,6 +1923,200 @@ router.post('/admin/orders/:id/edit', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('Error updating order:', err);
     res.status(500).send('Server Error');
+  }
+});
+
+// ================== REFUND MANAGEMENT ==================
+// POST /admin/orders/:id/refund - Process refund request
+router.post('/admin/orders/:id/refund', requireAdmin, async (req, res) => {
+  const orderId = Number(req.params.id);
+  let { refund_amount, refund_reason, refund_type = 'full', admin_notes = '' } = req.body;
+  
+  if (isNaN(orderId)) return res.status(400).json({ success: false, error: 'Invalid order id' });
+  
+  try {
+    console.log('🔄 Processing refund for order:', orderId);
+    
+    // Get order details including PayPal information
+    const orderRes = await db.query(
+      'SELECT id, customer_id, total, refund_status, payment_method, paypal_order_id, paypal_capture_id FROM orders WHERE id = $1', 
+      [orderId]
+    );
+    if (!orderRes.rows.length) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+    
+    const order = orderRes.rows[0];
+    
+    // Check if already refunded
+    if (order.refund_status === 'processed') {
+      return res.status(400).json({ success: false, error: 'Order already refunded' });
+    }
+    
+    // Validate refund amount
+    const refundAmt = Number(refund_amount) || Number(order.total);
+    if (refundAmt <= 0 || refundAmt > Number(order.total)) {
+      return res.status(400).json({ success: false, error: 'Invalid refund amount' });
+    }
+    
+    const now = new Date();
+    const adminId = req.session && req.session.user ? req.session.user.id : null;
+    
+    // Handle COD refunds differently
+    if (order.payment_method === 'COD') {
+      console.log('💵 Processing COD refund - manual cash return required');
+      admin_notes = admin_notes 
+        ? `${admin_notes}\n\n⚠️ COD Refund: Customer paid in cash. Refund must be processed manually via:\n- Bank transfer to customer\n- Cash pickup arrangement\n- Check/Money order\n\nPlease coordinate with customer for refund method.` 
+        : `⚠️ COD Refund: Customer paid in cash on delivery. Refund must be processed manually via:\n- Bank transfer to customer's account\n- Cash pickup arrangement\n- Check/Money order\n\nPlease coordinate with customer for preferred refund method.`;
+    }
+    
+    // Process PayPal refund if payment was through PayPal
+    let paypalRefundId = null;
+    if (order.payment_method === 'PayPal' && (order.paypal_capture_id || order.paypal_order_id)) {
+      try {
+        // Import PayPal refund functions
+        const { refundPayPalPayment, getPayPalCaptureId } = await import('./paypalRoutes.js');
+        
+        // Get capture ID (either from database or fetch from PayPal)
+        let captureId = order.paypal_capture_id;
+        if (!captureId && order.paypal_order_id) {
+          console.log('⚠️ No capture ID stored, fetching from PayPal...');
+          captureId = await getPayPalCaptureId(order.paypal_order_id);
+        }
+        
+        if (captureId) {
+          console.log('💳 Processing PayPal refund for capture:', captureId);
+          const paypalRefund = await refundPayPalPayment(captureId, refundAmt, refund_reason);
+          
+          if (!paypalRefund.success) {
+            return res.status(500).json({ 
+              success: false, 
+              error: `PayPal refund failed: ${paypalRefund.error}. Please try again or contact PayPal support.` 
+            });
+          }
+          
+          paypalRefundId = paypalRefund.refundId;
+          admin_notes = admin_notes 
+            ? `${admin_notes}\n\nPayPal Refund ID: ${paypalRefundId}\nPayPal Status: ${paypalRefund.status}` 
+            : `PayPal Refund ID: ${paypalRefundId}\nPayPal Status: ${paypalRefund.status}`;
+          
+          console.log('✅ PayPal refund successful:', paypalRefundId);
+        } else {
+          console.warn('⚠️ No PayPal capture ID found for order, processing database refund only');
+          admin_notes = admin_notes 
+            ? `${admin_notes}\n\nNote: PayPal capture ID not found. Manual PayPal refund may be required.` 
+            : 'Note: PayPal capture ID not found. Manual PayPal refund may be required.';
+        }
+      } catch (paypalErr) {
+        console.error('❌ PayPal refund error:', paypalErr);
+        return res.status(500).json({ 
+          success: false, 
+          error: `PayPal refund failed: ${paypalErr.message}` 
+        });
+      }
+    }
+    
+    // Start transaction
+    await db.query('BEGIN');
+    
+    try {
+      // Update orders table
+      await db.query(
+        `UPDATE orders SET 
+          refund_status = $1, 
+          refund_amount = $2, 
+          refund_reason = $3, 
+          refund_requested_at = COALESCE(refund_requested_at, $4),
+          refund_approved_at = $4,
+          refund_processed_at = $4,
+          status = CASE WHEN status NOT LIKE '%Refund%' THEN 'Refunded' ELSE status END
+        WHERE id = $5`,
+        ['processed', refundAmt, refund_reason, now, orderId]
+      );
+      
+      // Insert into refunds table for history
+      await db.query(
+        `INSERT INTO refunds (
+          order_id, customer_id, refund_amount, refund_reason, 
+          refund_type, status, requested_at, approved_at, 
+          processed_at, approved_by, admin_notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          orderId, order.customer_id, refundAmt, refund_reason,
+          refund_type, 'processed', now, now, now, adminId, admin_notes
+        ]
+      );
+      
+      // Create notification for customer
+      try {
+        await db.query(
+          `INSERT INTO user_notifications (user_id, title, body, link) 
+           VALUES ($1, $2, $3, $4)`,
+          [
+            order.customer_id,
+            'Refund Processed',
+            `Your refund of $${refundAmt.toFixed(2)} for order #${orderId} has been processed.`,
+            `/orders/${orderId}/track`
+          ]
+        );
+      } catch (e) {
+        console.warn('Could not create refund notification:', e.message);
+      }
+      
+      // Audit log
+      try {
+        await ensureAuditLogsTable();
+        await db.query(
+          'INSERT INTO audit_logs (user_id, action, meta) VALUES ($1, $2, $3)',
+          [adminId, 'order.refund', JSON.stringify({ orderId, refund_amount: refundAmt, refund_type, refund_reason })]
+        );
+      } catch (e) {
+        console.warn('Could not create audit log:', e.message);
+      }
+      
+      await db.query('COMMIT');
+      
+      console.log('✅ Refund processed successfully for order:', orderId);
+      
+      res.json({ 
+        success: true, 
+        message: 'Refund processed successfully',
+        refund_amount: refundAmt,
+        refund_status: 'processed'
+      });
+      
+    } catch (err) {
+      await db.query('ROLLBACK');
+      throw err;
+    }
+    
+  } catch (err) {
+    console.error('❌ Error processing refund:', err);
+    res.status(500).json({ success: false, error: 'Failed to process refund: ' + err.message });
+  }
+});
+
+// GET /admin/orders/:id/refund-history - Get refund history for an order
+router.get('/admin/orders/:id/refund-history', requireAdmin, async (req, res) => {
+  const orderId = Number(req.params.id);
+  if (isNaN(orderId)) return res.status(400).json({ success: false, error: 'Invalid order id' });
+  
+  try {
+    const result = await db.query(
+      `SELECT r.*, c.first_name, c.last_name, c.email,
+              a.first_name as admin_first_name, a.last_name as admin_last_name
+       FROM refunds r
+       LEFT JOIN customers c ON r.customer_id = c.id
+       LEFT JOIN customers a ON r.approved_by = a.id
+       WHERE r.order_id = $1
+       ORDER BY r.created_at DESC`,
+      [orderId]
+    );
+    
+    res.json({ success: true, refunds: result.rows });
+  } catch (err) {
+    console.error('Error fetching refund history:', err);
+    res.status(500).json({ success: false, error: 'Failed to fetch refund history' });
   }
 });
 
@@ -1994,6 +2389,37 @@ router.post('/admin/cms/:slug/edit', requireAdmin, upload.any(), async (req, res
     res.redirect('/admin/cms');
   } catch (err) {
     console.error('Error saving CMS edit:', err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// ================== ADMIN NOTIFICATIONS ==================
+router.get('/admin/notifications', requireAdmin, async (req, res) => {
+  try {
+    // Get admin user ID
+    const adminResult = await db.query('SELECT id FROM customers WHERE role = $1 LIMIT 1', ['admin']);
+    
+    if (!adminResult.rows[0]) {
+      return res.render('admin/notifications', { notifications: [] });
+    }
+
+    const adminId = adminResult.rows[0].id;
+
+    // Fetch all notifications for admin
+    const notificationsResult = await db.query(
+      `SELECT id, title, body, link, is_read, created_at 
+       FROM user_notifications 
+       WHERE user_id = $1 
+       ORDER BY created_at DESC 
+       LIMIT 100`,
+      [adminId]
+    );
+
+    res.render('admin/notifications', { 
+      notifications: notificationsResult.rows 
+    });
+  } catch (err) {
+    console.error('Error fetching admin notifications:', err);
     res.status(500).send('Server Error');
   }
 });

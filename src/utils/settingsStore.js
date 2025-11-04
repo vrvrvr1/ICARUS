@@ -19,6 +19,7 @@ async function getSetting(key, fallback = null) {
     await ensureSettingsTable();
     const res = await db.query('SELECT value FROM settings WHERE key = $1', [key]);
     if (!res.rows[0]) return fallback;
+    // Value is stored as JSONB, so it's already parsed by pg
     return res.rows[0].value;
   } catch (e) {
     console.warn('getSetting failed:', e.message);
@@ -29,10 +30,12 @@ async function getSetting(key, fallback = null) {
 async function setSetting(key, value) {
   try {
     await ensureSettingsTable();
+    // Ensure value is JSON-serializable for JSONB column
+    const jsonValue = JSON.stringify(value);
     await db.query(
-      `INSERT INTO settings (key, value, updated_at) VALUES ($1,$2,NOW())
+      `INSERT INTO settings (key, value, updated_at) VALUES ($1,$2::jsonb,NOW())
        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
-      [key, value]
+      [key, jsonValue]
     );
     return true;
   } catch (e) {

@@ -25,6 +25,8 @@ import addressRoutes from "./src/Routes/addressRoutes.js";
 import orderRoutes from "./src/Routes/orderRoutes.js";
 import trackingRoutes from "./src/Routes/trackingRoutes.js";
 import notificationsRoutes from "./src/Routes/notificationsRoutes.js";
+import chatRoutes from "./src/Routes/chatRoutes.js";
+import currencyHelper from './src/utils/currencyHelper.js';
 
 
 dotenv.config();
@@ -173,6 +175,20 @@ app.use((req, res, next) => {
   next();
 });
 
+// Load currency data for all views
+app.use(async (req, res, next) => {
+  try {
+    const currencyData = await currencyHelper.getCurrencyData();
+    res.locals.currency = currencyData.symbol;
+    res.locals.currencyCode = currencyData.code;
+  } catch (e) {
+    console.error('Currency middleware error:', e);
+    res.locals.currency = '$';
+    res.locals.currencyCode = 'USD';
+  }
+  next();
+});
+
 // Load CMS footer data into res.locals for templates (best-effort per-request)
 app.use(async (req, res, next) => {
   try {
@@ -205,6 +221,7 @@ app.use("/api", addressRoutes);
 app.use("/", orderRoutes);
 app.use("/api", trackingRoutes);
 app.use("/", notificationsRoutes);
+app.use("/", chatRoutes);
 
 // --------------------
 // Page routes

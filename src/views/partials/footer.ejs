@@ -20,7 +20,7 @@
         </div>
         <div class="footer-section">
             <h3>Contact Us</h3>
-            <p>Email: <%= (typeof cmsFooter !== 'undefined' && cmsFooter && cmsFooter.contact_email) ? cmsFooter.contact_email : 'support@icaruswear.com' %></p>
+            <p>Email: <%= (typeof cmsFooter !== 'undefined' && cmsFooter && cmsFooter.contact_email) ? cmsFooter.contact_email : 'icaruswearshop@gmail.com' %></p>
             <p>Phone: <%= (typeof cmsFooter !== 'undefined' && cmsFooter && cmsFooter.phone) ? cmsFooter.phone : '(555) 123-4567' %></p>
             <p>Address: <%= (typeof cmsFooter !== 'undefined' && cmsFooter && cmsFooter.address) ? cmsFooter.address : '123 Fitness Lane, Fit City, FC 12345' %></p>
         </div>
@@ -37,3 +37,55 @@
         <p>&copy; <%= (typeof cmsFooter !== 'undefined' && cmsFooter && cmsFooter.copyright_text) ? cmsFooter.copyright_text : (new Date().getFullYear() + ' Icarus Wear. All rights reserved.') %></p>
     </div>
 </footer>
+
+<!-- Floating Chat Button (only for logged-in customers) -->
+<% if (typeof user !== 'undefined' && user && user.role === 'customer') { %>
+<style>
+  .chat-float-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    cursor: pointer;
+    transition: all 0.3s;
+    z-index: 1000;
+    text-decoration: none;
+  }
+  
+  .chat-float-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+  }
+  
+  .chat-float-btn .chat-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ef4444;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+  }
+</style>
+
+<a href="/chat" class="chat-float-btn" title="Chat with Support">
+  <i class="bi bi-chat-dots-fill"></i>
+  <!-- <span class="chat-badge">1</span> --> <!-- Uncomment to show unread count -->
+</a>
+<% } %>

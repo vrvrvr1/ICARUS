@@ -43,114 +43,79 @@
       </div>
     </div>
 
-    <section class="card" style="margin-bottom:16px;">
-      <h4 style="margin-top:0;">Create Announcement</h4>
-  <form action="/admin/announcements" method="POST" enctype="multipart/form-data" class="info-row" style="display:flex; flex-direction:column; gap:8px;">
+    <div class="dashboard-card" style="background:transparent;border:1px solid var(--muted-border);border-radius:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="margin:0"><i class="bi bi-megaphone me-2"></i>Create Announcement</h3>
+      </div>
+      
+      <form action="/admin/announcements" method="POST" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:16px;">
         <div>
-          <label for="title">Title</label>
-          <input type="text" id="title" name="title" placeholder="Title" required />
+          <label for="title" style="display:block;margin-bottom:6px;font-weight:500;">Title <span style="color:#ef4444;">*</span></label>
+          <input type="text" id="title" name="title" placeholder="Enter announcement title" required style="width:100%;" />
+          <input type="hidden" name="placement" value="modal" />
         </div>
+
         <div>
-          <label for="body">Message</label>
-          <textarea id="body" name="body" rows="3" placeholder="Write a short message..."></textarea>
+          <label for="body" style="display:block;margin-bottom:6px;font-weight:500;">Message</label>
+          <textarea id="body" name="body" rows="3" placeholder="Write your announcement message..." style="width:100%;"></textarea>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div>
-            <label for="link_url">Link URL (optional)</label>
-            <input type="url" id="link_url" name="link_url" placeholder="https://example.com/products" />
-          </div>
-          <div>
-            <label for="button_text">Button text (optional)</label>
-            <input type="text" id="button_text" name="button_text" placeholder="Shop now" />
-          </div>
-          <div>
-            <label for="image_url">Image URL (optional)</label>
-            <input type="url" id="image_url" name="image_url" placeholder="/uploads/hero.jpg" />
-          </div>
-          <div>
-            <label for="image">Or upload image</label>
-            <input type="file" id="image" name="image" accept="image/*" />
-          </div>
-          <div>
-            <label for="placement">Placement</label>
-            <select id="placement" name="placement">
-              <option value="modal" selected>Modal</option>
-              <option value="banner">Banner</option>
-              <option value="both">Both</option>
-            </select>
-          </div>
-          <div>
-            <label for="coupon_code">Coupon code (optional)</label>
-            <input type="text" id="coupon_code" name="coupon_code" placeholder="WELCOME10" />
-          </div>
+
+        <div style="display:flex; align-items:center; gap:10px; padding:12px; background:rgba(99,102,241,0.05); border-radius:8px;">
+          <input type="checkbox" id="active" name="active" checked style="width:18px;height:18px;cursor:pointer;" />
+          <label for="active" style="cursor:pointer;margin:0;font-weight:500;">Publish immediately (Active)</label>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <input type="checkbox" id="active" name="active" checked />
-          <label for="active" class="toggle-label">Active</label>
-        </div>
-        <div>
-          <button type="submit" class="btn-outline">Publish</button>
+
+        <div style="display:flex;gap:12px;">
+          <button type="submit" class="btn" style="padding:10px 24px;"><i class="bi bi-check-circle me-2"></i>Create Announcement</button>
+          <button type="reset" class="btn btn-ghost" style="padding:10px 24px;">Clear Form</button>
         </div>
       </form>
-    </section>
+    </div>
 
-    <section class="card">
-      <h4 style="margin-top:0;">Recent Announcements</h4>
-      <table class="orders-table">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Message</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if (Array.isArray(items) && items.length) { %>
-            <% items.forEach(a => { %>
-              <tr>
-                <td><strong><%= a.title %></strong></td>
-                <td>
-                  <div><%= a.body || '' %></div>
-                  <% if (a.link_url) { %>
-                    <div><small>Link: <a href="<%= a.link_url %>" target="_blank"><%= a.link_url %></a></small></div>
-                  <% } %>
-                  <% if (a.button_text) { %>
-                    <div><small>Button: <%= a.button_text %></small></div>
-                  <% } %>
-                  <div><small>Placement: <code><%= a.placement || 'modal' %></code></small></div>
-                  <% if (a.coupon_code) { %>
-                    <div><small>Coupon: <code><%= a.coupon_code %></code></small></div>
-                  <% } %>
-                  <% if (a.image_url) { %>
-                    <div class="d-flex align-items-center gap-2">
-                      <img src="<%= a.image_url %>" alt="thumb" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb" onerror="this.style.display='none'" />
-                      <small><%= a.image_url %></small>
-                    </div>
-                  <% } %>
-                </td>
-                <td>
-                  <span class="order-status <%= a.active ? 'completed' : 'pending' %>"><%= a.active ? 'Active' : 'Inactive' %></span>
-                </td>
-                <td><%= a.created_at ? new Date(a.created_at).toLocaleString() : '' %></td>
-                <td style="display:flex; gap:8px;">
-                  <a href="/admin/announcements/<%= a.id %>/edit" class="btn-outline" title="Edit">Edit</a>
-                  <form action="/admin/announcements/<%= a.id %>/toggle" method="POST">
-                    <button type="submit" class="btn-outline"><%= a.active ? 'Deactivate' : 'Activate' %></button>
-                  </form>
-                  <form action="/admin/announcements/<%= a.id %>/delete" method="POST" onsubmit="return confirm('Delete this announcement?');">
-                    <button type="submit" class="btn-outline danger">Delete</button>
-                  </form>
-                </td>
-              </tr>
-            <% }) %>
-          <% } else { %>
-            <tr><td colspan="5" style="text-align:center;">No announcements yet.</td></tr>
-          <% } %>
-        </tbody>
-      </table>
-    </section>
+    <div class="dashboard-card" style="margin-top:20px;background:transparent;border:1px solid var(--muted-border);border-radius:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="margin:0"><i class="bi bi-list-ul me-2"></i>All Announcements</h3>
+        <span style="color:#6b7280;font-size:14px;"><%= Array.isArray(items) ? items.length : 0 %> total</span>
+      </div>
+
+      <% if (Array.isArray(items) && items.length) { %>
+        <div style="display:grid;gap:16px;">
+          <% items.forEach(a => { %>
+            <div style="border:1px solid var(--muted-border);border-radius:12px;padding:16px;background:transparent;transition:all 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+                <div>
+                  <h4 style="margin:0 0 4px 0;font-size:18px;"><%= a.title %></h4>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <span class="order-status <%= a.active ? 'completed' : 'pending' %>" style="font-size:12px;"><%= a.active ? 'Active' : 'Inactive' %></span>
+                    <span style="color:#6b7280;font-size:13px;">•</span>
+                    <span style="color:#6b7280;font-size:13px;"><%= a.created_at ? new Date(a.created_at).toLocaleDateString() : '' %></span>
+                  </div>
+                </div>
+              </div>
+
+              <% if (a.body) { %>
+                <p style="margin:0 0 12px 0;color:#6b7280;line-height:1.5;"><%= a.body %></p>
+              <% } %>
+
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="/admin/announcements/<%= a.id %>/edit" class="btn-action" title="Edit" style="padding:6px 12px;font-size:13px;"><i class="bi bi-pencil-fill"></i> Edit</a>
+                <form action="/admin/announcements/<%= a.id %>/toggle" method="POST" style="display:inline;">
+                  <button type="submit" class="btn-action" style="padding:6px 12px;font-size:13px;"><i class="bi bi-<%= a.active ? 'eye-slash' : 'eye' %>"></i> <%= a.active ? 'Deactivate' : 'Activate' %></button>
+                </form>
+                <form action="/admin/announcements/<%= a.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
+                  <button type="submit" class="btn-action" style="padding:6px 12px;font-size:13px;color:#ef4444;" title="Delete"><i class="bi bi-trash3-fill"></i> Delete</button>
+                </form>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div style="text-align:center;padding:60px 20px;color:#9ca3af;">
+          <i class="bi bi-megaphone" style="font-size:48px;display:block;margin-bottom:16px;opacity:0.3;"></i>
+          <p style="font-size:16px;margin:0;">No announcements yet. Create your first announcement above!</p>
+        </div>
+      <% } %>
+    </div>
   </main>
 </body>
 </html>

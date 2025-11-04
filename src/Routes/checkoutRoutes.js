@@ -1,6 +1,7 @@
 // src/Routes/checkoutRoutes.js
 import express from "express";
 import db from "../database/db.js";
+import settingsStore from "../utils/settingsStore.js";
 
 const router = express.Router();
 
@@ -161,6 +162,41 @@ router.get("/", isAuthenticated, async (req, res) => {
 
     const user = userResult.rows[0]; // This will have first_name, last_name, etc.
 
+    // Fetch default address if exists
+    let defaultAddress = null;
+    try {
+      const addressResult = await db.query(
+        `SELECT first_name, last_name, phone, email, address_line, city, province, zipcode
+         FROM addresses 
+         WHERE customer_id=$1 AND is_default=true 
+         LIMIT 1`,
+        [customer_id]
+      );
+      if (addressResult.rows.length > 0) {
+        defaultAddress = addressResult.rows[0];
+      }
+    } catch (err) {
+      console.error('Error fetching default address:', err);
+      // Continue without default address
+    }
+
+    // Fetch payment and shipping settings
+    const settings = await settingsStore.getAllSettings();
+    const paymentSettings = {
+      paypal_enabled: settings.paypal_enabled !== false, // default true if not set
+      cod_enabled: settings.cod_enabled !== false, // default true if not set
+      card_enabled: settings.card_enabled !== false // default true if not set
+    };
+    const shippingSettings = {
+      shipping_enabled: settings.shipping_enabled !== false,
+      free_shipping_enabled: settings.free_shipping_enabled !== false,
+      flat_rate_enabled: settings.flat_rate_enabled !== false,
+      express_shipping_enabled: settings.express_shipping_enabled !== false,
+      free_shipping_threshold: parseFloat(settings.free_shipping_threshold) || 0,
+      flat_rate_shipping: parseFloat(settings.flat_rate_shipping) || 0,
+      express_shipping: parseFloat(settings.express_shipping) || 0
+    };
+
     res.render("customer/checkout", {
       user,      // user info from DB
       cartItems,
@@ -168,7 +204,10 @@ router.get("/", isAuthenticated, async (req, res) => {
       tax,
       shipping,
       total,
-      selectedItems: itemsParam || null
+      selectedItems: itemsParam || null,
+      defaultAddress,
+      paymentSettings,
+      shippingSettings
     });
   } catch (err) {
     console.error("Checkout GET error:", err);
@@ -289,12 +328,15 @@ router.post("/place-order", isAuthenticated, async (req, res) => {
     try {
       await client.query('BEGIN');
       if (payment_method === 'PayPal' && paypal_order_id) {
+        // Get the PayPal capture ID from session if available
+        const paypalCaptureId = (req.session._paypalCaptureIds && req.session._paypalCaptureIds[paypal_order_id]) || null;
+        
         const insertRes = await client.query(
           `INSERT INTO orders
-            (customer_id, paypal_order_id, first_name, last_name, address, city, province, zipcode, phone, email, payment_method, subtotal, tax, total, status, payment_completed)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'Processing',true)
+            (customer_id, paypal_order_id, paypal_capture_id, first_name, last_name, address, city, province, zipcode, phone, email, payment_method, subtotal, tax, total, status, payment_completed)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'Processing',true)
            RETURNING id`,
-          [customer_id, paypal_order_id, firstName, lastName, address, city, province, zip, phone, email, payment_method, subtotal, tax, total]
+          [customer_id, paypal_order_id, paypalCaptureId, firstName, lastName, address, city, province, zip, phone, email, payment_method, subtotal, tax, total]
         );
         orderId = insertRes.rows[0].id;
       } else {
@@ -496,6 +538,18 @@ router.post("/place-order", isAuthenticated, async (req, res) => {
         `INSERT INTO user_notifications (user_id, title, body, link)
          VALUES ($1, $2, $3, $4)`,
         [customer_id, notifTitle, notifBody, notifLink]
+      );
+
+      // Create admin notification about new order
+      const adminNotifTitle = 'New Order Received';
+      const adminNotifBody = `Order #${orderId} has been placed by ${firstName} ${lastName}. Payment: ${payment_method}`;
+      const adminNotifLink = `/admin/orders/${orderId}`;
+      await db.query(
+        `INSERT INTO user_notifications (user_id, title, body, link)
+         SELECT id, $1, $2, $3
+         FROM customers 
+         WHERE role = 'admin'`,
+        [adminNotifTitle, adminNotifBody, adminNotifLink]
       );
     } catch (e) {
       // Non-fatal: if notifications table doesn't exist and cannot be created or insert fails, just log

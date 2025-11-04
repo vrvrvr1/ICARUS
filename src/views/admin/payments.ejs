@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Settings</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/chat"><i class="bi bi-chat-dots-fill"></i> Live Chat</a>
+        <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
+        <a href="/admin/announcements"><i class="bi bi-megaphone"></i> Announcements</a>
+        <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/cms"><i class="bi bi-journal-text"></i> CMS</a>
+        <a href="/admin/settings"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
+      </nav>
+    </div>
+
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Payment Settings</div>
+        <div class="dashboard-title-sub">Configure payment gateways and methods</div>
+      </div>
+      <a href="/admin/settings" class="btn btn-ghost"><i class="bi bi-arrow-left"></i> Back to Settings</a>
+    </div>
+
+    <section class="card">
+      <form method="POST" action="/admin/payments">
+        <div style="display:grid;gap:20px;">
+          
+          <div class="dashboard-card">
+            <div class="card-label"><i class="bi bi-toggle-on card-icon"></i> Payment Methods</div>
+            <div class="small text-secondary mb-3">Enable or disable payment options</div>
+            
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" name="paypal_enabled" <%= (settings && settings.paypal_enabled) ? 'checked' : '' %> />
+                <span><i class="bi bi-paypal"></i> PayPal</span>
+              </label>
+              
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" name="cod_enabled" <%= (settings && settings.cod_enabled) ? 'checked' : '' %> />
+                <span><i class="bi bi-cash"></i> Cash on Delivery (COD)</span>
+              </label>
+              
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" name="card_enabled" <%= (settings && settings.card_enabled) ? 'checked' : '' %> />
+                <span><i class="bi bi-credit-card"></i> Credit/Debit Card</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-label"><i class="bi bi-paypal card-icon"></i> PayPal Configuration</div>
+            <div class="small text-secondary mb-3">Configure PayPal API credentials</div>
+            
+            <div style="display:grid;gap:12px;">
+              <div>
+                <label class="small text-secondary">PayPal Client ID</label>
+                <input 
+                  type="text" 
+                  name="paypal_client_id" 
+                  class="search-input" 
+                  value="<%= (settings && settings.paypal_client_id) ? settings.paypal_client_id : '' %>" 
+                  placeholder="Enter PayPal Client ID"
+                />
+              </div>
+              
+              <div>
+                <label class="small text-secondary">PayPal Secret Key</label>
+                <input 
+                  type="password" 
+                  name="paypal_secret" 
+                  class="search-input" 
+                  value="<%= (settings && settings.paypal_secret) ? settings.paypal_secret : '' %>" 
+                  placeholder="Enter PayPal Secret Key"
+                />
+                <div class="small text-secondary mt-1">⚠️ Keep this secret secure</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-label"><i class="bi bi-info-circle card-icon"></i> Payment Information</div>
+            <div class="small text-secondary">
+              <ul style="margin:0;padding-left:20px;">
+                <li>PayPal: Requires valid API credentials from PayPal Developer Dashboard</li>
+                <li>COD: Payment collected upon delivery</li>
+                <li>Card: Additional gateway configuration required</li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;">
+            <button type="submit" class="btn">Save Payment Settings</button>
+            <a href="/admin/settings" class="btn btn-ghost">Cancel</a>
+          </div>
+        </div>
+      </form>
+    </section>
+  </main>
+
+</body>
+</html>

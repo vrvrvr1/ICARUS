@@ -1,3 +1,8 @@
+<%
+  // Fallback for currency if not set
+  if (typeof currency === 'undefined') currency = '$';
+  if (typeof currencyCode === 'undefined') currencyCode = 'USD';
+%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,12 +15,46 @@
   <style>
     /* product badge styles for listing grid */
     .product-card{ position:relative; }
+    .product-card a { text-decoration: none !important; color: inherit; }
     .product-badges{ position:absolute; top:8px; left:8px; display:flex; flex-direction:column; gap:6px; z-index:10; }
   .product-badges .badge-new, .discount-badge { font-size:12px; padding:6px 8px; border-radius:6px; color:#fff; font-weight:700; text-transform:uppercase; display:inline-flex; align-items:center; gap:6px; }
   .product-badges .badge-new{ background:#ff6b6b; }
     .discount-badge{ background:#111827; }
     .product-badges i { font-size:14px; line-height:1; }
     .visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
+    
+    /* Out of stock overlay */
+    .out-of-stock-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 15;
+      pointer-events: none;
+    }
+    .out-of-stock-badge {
+      background: #ef4444;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .product-card.out-of-stock img {
+      opacity: 0.5;
+      filter: grayscale(100%);
+    }
   </style>
 </head>
 <body>
@@ -90,9 +129,9 @@
 <div class="rating-slider">
   <label>Rating</label>
   <div class="slider-track" id="ratingTrack"></div>
-  <input type="range" id="minRating" min="1" max="5" step="0.1" value="1">
-  <input type="range" id="maxRating" min="1" max="5" step="0.1" value="5">
-  <span class="slider-value" id="minRatingVal">1</span>
+  <input type="range" id="minRating" min="0" max="5" step="0.1" value="0">
+  <input type="range" id="maxRating" min="0" max="5" step="0.1" value="5">
+  <span class="slider-value" id="minRatingVal">0</span>
   <span class="slider-value" id="maxRatingVal">5</span>
 </div>
 
@@ -134,11 +173,95 @@
       <!-- Products -->
       <main class="content">
         
-<!-- Dynamic product sections for each category tab -->
-<%
-  const CATEGORY_LIST = ['Mens','Womens','Unisex','Accessories','Bags','Outdoor','Everyday','Seasonal'];
-%>
-<% CATEGORY_LIST.forEach((cat, idx) => { %>
+<% if (typeof searchQuery !== 'undefined' && searchQuery) { %>
+  <!-- Search Results Header -->
+  <div style="margin-bottom: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #111827;">
+    <h2 style="margin: 0 0 8px 0; font-size: 20px; color: #111827;">
+      Search Results for "<%= searchQuery %>"
+    </h2>
+    <p style="margin: 0; color: #6b7280; font-size: 14px;">
+      Found <%= products.length %> product<%= products.length === 1 ? '' : 's' %> matching your search
+    </p>
+  </div>
+  
+  <!-- Display all search results -->
+  <div class="product-grid">
+    <% if (products.length > 0) { %>
+      <% products.forEach(p => { %>
+        <% const isOutOfStock = !p.stock || Number(p.stock) <= 0; %>
+        <div class="product-card <%= isOutOfStock ? 'out-of-stock' : '' %>">
+          <a href="/products/<%= p.id %>">
+            <!-- Out of Stock Overlay -->
+            <% if (isOutOfStock) { %>
+              <div class="out-of-stock-overlay">
+                <div class="out-of-stock-badge">
+                  <i class="bi bi-x-circle-fill"></i>
+                  Out of Stock
+                </div>
+              </div>
+            <% } %>
+            <!-- Product badges -->
+            <div class="product-badges">
+              <% if (p.created_at && ((Date.now() - new Date(p.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000)) { %>
+                <span class="badge-new"><i class="bi bi-star-fill"></i> New</span>
+              <% } %>
+              <% if (p.discount_percentage && Number(p.discount_percentage) > 0) { %>
+                <span class="discount-badge"><i class="bi bi-tag-fill"></i> <%= Number(p.discount_percentage) %>% OFF</span>
+              <% } %>
+            </div>
+            <img src="<%= p.image_url || '/image/placeholder.png' %>" alt="<%= p.name %>" onerror="this.src='/image/placeholder.png'">
+            <div class="product-price">
+              <% const __p = Number(p.price || 0); const __pp = Number(p.promo_percent || 0); const __on = !!p.promo_active && __pp > 0; const __pd = __on ? (__p * (1 - (__pp/100))) : __p; %>
+              <% if (__on) { %>
+                <span class="price-new"><%= currency %><%= __pd.toFixed(2) %></span>
+                <span class="price-old"><%= currency %><%= __p.toFixed(2) %></span>
+              <% } else { %>
+                <span class="price-new"><%= currency %><%= __p.toFixed(2) %></span>
+              <% } %>
+            </div>
+            <div class="product-name"><%= p.name %></div>
+            <div class="sold-count">Sold <%= Number(p.sold || 0).toLocaleString() %></div>
+            <div class="colors">
+              <% 
+                const colorArray = Array.isArray(p.variant_colors) && p.variant_colors.length
+                  ? p.variant_colors
+                  : (p.colors ? p.colors.split(',').map(c => c.trim().toLowerCase()).filter(Boolean) : []);
+                let colorSpans = '';
+                colorArray.forEach(color => { colorSpans += '<span style="background-color:' + color + ';"></span>'; });
+              %>
+              <%- colorSpans %>
+            </div>
+            <div class="bottom-row">
+              <div class="rating">
+                <i class="bi bi-star-fill" style="color: black;"></i>
+                <span class="rating-value"><%= p.rating || 0 %></span>
+                <span class="review-count">(<%= p.reviews || 0 %>)</span>
+              </div>
+          </a>
+          <button class="wishlist-btn" data-id="<%= p.id %>">
+            <% if (p.wishlisted) { %>
+              <i class="bi bi-heart-fill"></i>
+            <% } else { %>
+              <i class="bi bi-heart"></i>
+            <% } %>
+          </button>
+          </div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+        <i class="bi bi-search" style="font-size: 48px; color: #9ca3af; margin-bottom: 16px;"></i>
+        <h3 style="color: #6b7280; margin: 0;">No products found</h3>
+        <p style="color: #9ca3af; margin: 8px 0 0 0;">Try adjusting your search terms</p>
+      </div>
+    <% } %>
+  </div>
+<% } else { %>
+  <!-- Dynamic product sections for each category tab -->
+  <%
+    const CATEGORY_LIST = ['Mens','Womens','Unisex','Accessories','Bags','Outdoor','Everyday','Seasonal'];
+  %>
+  <% CATEGORY_LIST.forEach((cat, idx) => { %>
   <% const sectionId = (cat || '').toLowerCase(); %>
   <section id="<%= sectionId %>" class="tab-content <%= idx === 0 ? 'active' : '' %>">
     <h2><%= cat %> Apparel</h2>
@@ -146,8 +269,18 @@
       <% const catProducts = (products || []).filter(p => (p.category || '').toLowerCase() === (cat || '').toLowerCase()); %>
       <% if (catProducts.length > 0) { %>
         <% catProducts.forEach(p => { %>
-          <div class="product-card">
+          <% const _isOutOfStock = !p.stock || Number(p.stock) <= 0; %>
+          <div class="product-card <%= _isOutOfStock ? 'out-of-stock' : '' %>">
             <a href="/products/<%= p.id %>" class="card-link">
+              <!-- Out of Stock Overlay -->
+              <% if (_isOutOfStock) { %>
+                <div class="out-of-stock-overlay">
+                  <div class="out-of-stock-badge">
+                    <i class="bi bi-x-circle-fill"></i>
+                    Out of Stock
+                  </div>
+                </div>
+              <% } %>
               <% const _isNew = !!p.is_new; %>
               <% if (p.promo_active && Number(p.promo_percent || 0) > 0) { %>
                 <div class="discount-badge">-<%= Number(p.promo_percent) %>%</div>
@@ -165,10 +298,10 @@
               <div class="product-price">
                 <% const __p = Number(p.price || 0); const __pp = Number(p.promo_percent || 0); const __on = !!p.promo_active && __pp > 0; const __pd = __on ? (__p * (1 - (__pp/100))) : __p; %>
                 <% if (__on) { %>
-                  <span class="price-new">$<%= __pd.toFixed(2) %></span>
-                  <span class="price-old">$<%= __p.toFixed(2) %></span>
+                  <span class="price-new"><%= currency %><%= __pd.toFixed(2) %></span>
+                  <span class="price-old"><%= currency %><%= __p.toFixed(2) %></span>
                 <% } else { %>
-                  <span class="price-new">$<%= __p.toFixed(2) %></span>
+                  <span class="price-new"><%= currency %><%= __p.toFixed(2) %></span>
                 <% } %>
               </div>
               <div class="product-name"><%= p.name %></div>
@@ -206,6 +339,7 @@
     </div>
   </section>
 <% }) %>
+<% } %>
 
     <script src="js/filter.js"></script>
     <script src="js/wishlist.js"></script>

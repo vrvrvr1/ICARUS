@@ -43,68 +43,41 @@
     <div class="dashboard-header">
       <div>
         <div class="dashboard-title-main">Edit Announcement</div>
-        <div class="dashboard-title-sub">Update content, placement, and image</div>
+        <div class="dashboard-title-sub">Update announcement details</div>
       </div>
       <div>
-        <a href="/admin/announcements" class="btn btn-ghost">← Back</a>
+        <a href="/admin/announcements" class="btn btn-ghost">← Back to Announcements</a>
       </div>
     </div>
 
-    <section class="card" style="margin-bottom:16px;">
-      <form action="/admin/announcements/<%= item.id %>/edit" method="POST" enctype="multipart/form-data" class="info-row" style="display:flex; flex-direction:column; gap:8px;">
+    <div class="dashboard-card" style="background:transparent;border:1px solid var(--muted-border);border-radius:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="margin:0"><i class="bi bi-pencil-square me-2"></i>Edit Announcement</h3>
+      </div>
+
+      <form action="/admin/announcements/<%= item.id %>/edit" method="POST" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:16px;">
         <div>
-          <label for="title">Title</label>
-          <input type="text" id="title" name="title" value="<%= item.title %>" required />
+          <label for="title" style="display:block;margin-bottom:6px;font-weight:500;">Title <span style="color:#ef4444;">*</span></label>
+          <input type="text" id="title" name="title" value="<%= item.title %>" placeholder="Enter announcement title" required style="width:100%;" />
+          <input type="hidden" name="placement" value="modal" />
         </div>
+
         <div>
-          <label for="body">Message</label>
-          <textarea id="body" name="body" rows="3"><%= item.body || '' %></textarea>
+          <label for="body" style="display:block;margin-bottom:6px;font-weight:500;">Message</label>
+          <textarea id="body" name="body" rows="3" placeholder="Write your announcement message..." style="width:100%;"><%= item.body || '' %></textarea>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div>
-            <label for="link_url">Link URL (optional)</label>
-            <input type="url" id="link_url" name="link_url" value="<%= item.link_url || '' %>" />
-          </div>
-          <div>
-            <label for="button_text">Button text (optional)</label>
-            <input type="text" id="button_text" name="button_text" value="<%= item.button_text || '' %>" />
-          </div>
-          <div>
-            <label for="image_url">Image URL (optional)</label>
-            <input type="url" id="image_url" name="image_url" value="<%= item.image_url || '' %>" />
-          </div>
-          <div>
-            <label for="image">Or upload new image</label>
-            <input type="file" id="image" name="image" accept="image/*" />
-            <% if (item.image_url) { %>
-              <div style="margin-top:6px;display:flex;align-items:center;gap:10px;">
-                <img src="<%= item.image_url %>" class="thumb" onerror="this.style.display='none'" alt="current image" />
-                <small>Current image</small>
-              </div>
-            <% } %>
-          </div>
-          <div>
-            <label for="placement">Placement</label>
-            <select id="placement" name="placement">
-              <option value="modal" <%= (item.placement||'modal')==='modal' ? 'selected' : '' %>>Modal</option>
-              <option value="banner" <%= (item.placement||'modal')==='banner' ? 'selected' : '' %>>Banner</option>
-              <option value="both" <%= (item.placement||'modal')==='both' ? 'selected' : '' %>>Both</option>
-            </select>
-          </div>
-          <div>
-            <label for="coupon_code">Coupon code (optional)</label>
-            <input type="text" id="coupon_code" name="coupon_code" value="<%= item.coupon_code || '' %>" />
-          </div>
+
+        <div style="display:flex; align-items:center; gap:10px; padding:12px; background:rgba(99,102,241,0.05); border-radius:8px;">
+          <input type="checkbox" id="active" name="active" <%= item.active ? 'checked' : '' %> style="width:18px;height:18px;cursor:pointer;" />
+          <label for="active" style="cursor:pointer;margin:0;font-weight:500;">Active (Published)</label>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <input type="checkbox" id="active" name="active" <%= item.active ? 'checked' : '' %> />
-          <label for="active" class="toggle-label">Active</label>
-        </div>
-        <div>
-          <button type="submit" class="btn-outline">Save Changes</button>
+
+        <div style="display:flex;gap:12px;">
+          <button type="submit" class="btn" style="padding:10px 24px;"><i class="bi bi-check-circle me-2"></i>Save Changes</button>
+          <a href="/admin/announcements" class="btn btn-ghost" style="padding:10px 24px;">Cancel</a>
         </div>
       </form>
-    </section>
+    </div>
   </main>
 </body>
 </html>

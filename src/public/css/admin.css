@@ -58,6 +58,12 @@ body::-webkit-scrollbar {
   overflow-y: auto; /* allow sidebar to scroll independently */
   z-index: 1000;
   box-shadow: 2px 0 12px rgba(2,6,23,0.6);
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.dashboard-sidebar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .sidebar-profile {
@@ -334,6 +340,10 @@ body::-webkit-scrollbar {
 .order-status.cancelled {
   background: #fee2e2; /* light red */
   color: #991b1b;      /* dark red */
+}
+.order-status.refunded {
+  background: #10b981; /* emerald green */
+  color: #ffffff;      /* white text */
 }
 
 .order-status i { margin-right: 6px; opacity: 0.9; }

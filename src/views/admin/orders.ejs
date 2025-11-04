@@ -21,15 +21,16 @@
         </div>
 
         <nav class="sidebar-nav">
-          <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
-          <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
-          <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
-          <a href="/customers"><i class="bi bi-people"></i> Customers</a>
-          <a href="/orders" class="active"><i class="bi bi-bag-check"></i> Orders</a>
-          <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
-          <a href="/admin/cms"><i class="bi bi-journal-text"></i> CMS</a>
-        
-  <a href="/admin/settings"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders" class="active"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
+        <a href="/admin/announcements"><i class="bi bi-megaphone"></i> Announcements</a>
+        <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/cms"><i class="bi bi-journal-text"></i> CMS</a>
+        <a href="/admin/settings"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
   </nav>
       </div>
 
@@ -45,9 +46,15 @@
           <div class="dashboard-title-main">Orders</div>
           <div class="dashboard-title-sub">Manage and review customer orders</div>
         </div>
-        <div class="dashboard-search">
-          <input type="text" placeholder="Search orders or customer" />
-          <i class="bi bi-search"></i>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <a href="/admin/notifications" style="position:relative;font-size:24px;color:#3b82f6;text-decoration:none;">
+            <i class="bi bi-bell-fill"></i>
+            <span id="notif-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ef4444;color:white;border-radius:10px;padding:2px 6px;font-size:11px;font-weight:600;min-width:18px;text-align:center;"></span>
+          </a>
+          <div class="dashboard-search">
+            <input type="text" placeholder="Search orders or customer" />
+            <i class="bi bi-search"></i>
+          </div>
         </div>
       </div>
 
@@ -96,30 +103,44 @@
                     </div>
                   </td>
                   <td><%= order.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A' %></td>
-                  <td>$<%= Number(order.total_amount || 0).toLocaleString() %></td>
+                  <td>
+                    $<%= Number(order.total_amount || 0).toLocaleString() %>
+                    <% if (order.refund_status === 'processed' && order.refund_amount) { %>
+                      <div style="font-size:11px;color:#10b981;margin-top:2px;">
+                        <i class="bi bi-arrow-counterclockwise"></i> Refunded: $<%= Number(order.refund_amount).toFixed(2) %>
+                      </div>
+                    <% } %>
+                  </td>
                   <td>
               <% const s = (order.status || '').toLowerCase();
+                       const isRefunded = order.refund_status === 'processed';
+                       const isCancelledByUser = !!order.cancelled_at || /cancel/.test(s);
                        const isDelivered = /deliver|complete/.test(s);
                        const isPending = /pend/.test(s);
                        const isInTransit = /en route|courier|out/.test(s);
                        const isShipped = /ship/.test(s);
                 const isProcessing = /process/.test(s);
-                       const isCancelled = /cancel/.test(s);
-                       const cls = isDelivered ? 'completed' : (
+                       const cls = isRefunded ? 'completed' : (isCancelledByUser ? 'cancelled' : (isDelivered ? 'completed' : (
                          isPending ? 'pending' : (
                          isInTransit ? 'intransit' : (
                          isShipped ? 'shipped' : (
-                         isProcessing ? 'processing' : (
-                         isCancelled ? 'cancelled' : '' )))));
-                       const icon = isDelivered ? 'bi-bag-check' : (
+                         isProcessing ? 'processing' : '' ))))));
+                       const icon = isRefunded ? 'bi-arrow-counterclockwise' : (isCancelledByUser ? 'bi-x-circle' : (isDelivered ? 'bi-bag-check' : (
                          isInTransit || isShipped ? 'bi-truck' : (
                          isProcessing ? 'bi-gear' : (
-                         isPending ? 'bi-hourglass-split' : (
-                         isCancelled ? 'bi-x-circle' : 'bi-dot'))));
+                         isPending ? 'bi-hourglass-split' : 'bi-dot')))));
+                       const refundClass = isRefunded ? 'refunded' : '';
                     %>
-                    <span class="order-status <%= cls %> <%= isDelivered ? 'delivered' : '' %>">
+                    <span class="order-status <%= cls %> <%= isDelivered ? 'delivered' : '' %> <%= refundClass %>">
                       <i class="bi <%= icon %>"></i>
-                      <% if (isInTransit) { %>
+                      <% if (isRefunded) { %>
+                        Refunded
+                      <% } else if (isCancelledByUser) { %>
+                        Cancelled
+                        <% if (order.cancellation_reason) { %>
+                          <span class="hint" title="<%= order.cancellation_reason %>">by customer</span>
+                        <% } %>
+                      <% } else if (isInTransit) { %>
                         <strong>Shipped</strong>
                         <span class="hint">On delivery</span>
                       <% } else { %>
@@ -142,5 +163,22 @@
       </div>
     </main>
 
+    <script>
+      // Fetch notification count
+      (async function fetchNotificationCount() {
+        try {
+          const response = await fetch('/notifications/count');
+          const data = await response.json();
+          const badge = document.getElementById('notif-badge');
+          
+          if (data.count > 0) {
+            badge.textContent = data.count > 99 ? '99+' : data.count;
+            badge.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('Error fetching notification count:', error);
+        }
+      })();
+    </script>
   </body>
 </html>

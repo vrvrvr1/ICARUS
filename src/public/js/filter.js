@@ -130,15 +130,25 @@ document.addEventListener('DOMContentLoaded', () => {
 if (!applyBtn) return; // nothing to do
 
 applyBtn.addEventListener('click', async () => {
+  // Check if we're on a search results page
+  const urlParams = new URLSearchParams(window.location.search);
+  const searchQuery = urlParams.get('search');
+  
   const query = new URLSearchParams({
     minPrice: minRange.value || 1,
     maxPrice: maxRange.value || 50,
-    minRating: minRating.value || 1,
+    minRating: minRating.value || 0,
     maxRating: maxRating.value || 5,
-    category: tabToCategory[activeTabId()] || '',
     colors: selectedColors.join(','),
     sizes: selectedSizes.join(',')
   });
+  
+  // Only add category if we're NOT on a search results page
+  if (searchQuery) {
+    query.set('search', searchQuery);
+  } else {
+    query.set('category', tabToCategory[activeTabId()] || '');
+  }
 
   try {
     const res = await fetch(`/products/filter?${query.toString()}`, {

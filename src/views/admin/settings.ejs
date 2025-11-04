@@ -63,6 +63,7 @@
                 <option value="JPY" <%= curCode === 'JPY' ? 'selected' : '' %>>JPY — Japanese Yen</option>
                 <option value="CNY" <%= curCode === 'CNY' ? 'selected' : '' %>>CNY — Chinese Yuan</option>
                 <option value="INR" <%= curCode === 'INR' ? 'selected' : '' %>>INR — Indian Rupee</option>
+                <option value="PHP" <%= curCode === 'PHP' ? 'selected' : '' %>>PHP — Philippine Peso</option>
                 <option value="CHF" <%= curCode === 'CHF' ? 'selected' : '' %>>CHF — Swiss Franc</option>
                 <option value="SGD" <%= curCode === 'SGD' ? 'selected' : '' %>>SGD — Singapore Dollar</option>
                 <option value="MXN" <%= curCode === 'MXN' ? 'selected' : '' %>>MXN — Mexican Peso</option>
@@ -155,14 +156,10 @@
         if (ev && ev.preventDefault) ev.preventDefault();
         var form = ev && ev.target ? ev.target : document.querySelector('form[action="/admin/settings/currency"]');
         if (!form) return;
-        var input = form.querySelector('input[name="currency_code"], input[name="currency"]');
+        var input = form.querySelector('select[name="currency_code"], input[name="currency_code"], input[name="currency"]');
         if (!input) return form.submit();
         var code = String(input.value || '').trim().toUpperCase();
-        if (!code) { showToast('Please enter a currency code.', 'error'); return; }
-        if (!/^[A-Z]{2,4}$/.test(code)) {
-          showToast('Currency code must be 2-4 letters (e.g., USD, EUR).', 'error');
-          return;
-        }
+        if (!code) { showToast('Please select a currency code.', 'error'); return; }
         var btn = form.querySelector('button[type="submit"], button');
         if (btn) btn.disabled = true;
         var payload = new URLSearchParams(); payload.append('currency_code', code);
@@ -174,11 +171,13 @@
               setTimeout(function(){ window.location.reload(); }, 700);
             } else if (r.status === 400) {
               showToast(r.text || 'Invalid currency code.', 'error');
+              console.error('Currency save error (400):', r.text);
             } else {
-              showToast('Failed to save. Try again.', 'error');
+              showToast('Failed to save (Status: ' + r.status + '). Check console.', 'error');
+              console.error('Currency save error:', r.status, r.text);
             }
           })
-          .catch(function(err){ if (btn) btn.disabled = false; showToast('Network error saving setting.', 'error'); });
+          .catch(function(err){ if (btn) btn.disabled = false; showToast('Network error: ' + err.message, 'error'); console.error('Network error:', err); });
       }
 
       // Generic settings save - will POST form fields to /admin/settings

@@ -110,5 +110,92 @@
     })()
   </script>
 
+  <!-- Banned Account Modal -->
+  <div id="bannedModal" role="dialog" aria-modal="true" aria-labelledby="bannedModalTitle" style="display:none; position:fixed; inset:0; z-index:11000; background:rgba(0,0,0,0.5);">
+    <div style="max-width:500px; margin:100px auto; background:#fff; border-radius:16px; padding:32px; position:relative; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:24px;">
+        <div style="width:80px;height:80px;background:#fef2f2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+          <i class="bi bi-shield-x" style="color:#dc2626;font-size:40px;"></i>
+        </div>
+        <h2 id="bannedModalTitle" style="margin:0 0 8px 0; font-size:24px;color:#1f2937;font-weight:700;">Account Banned</h2>
+        <p style="color:#6b7280;font-size:15px;line-height:1.6;margin:0;">
+          Your account has been permanently banned and you can no longer access this platform.
+        </p>
+      </div>
+      
+      <div style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
+        <div style="display:flex;gap:12px;">
+          <i class="bi bi-info-circle-fill" style="color:#dc2626;font-size:20px;flex-shrink:0;"></i>
+          <div style="color:#991b1b;font-size:14px;line-height:1.6;">
+            <strong style="display:block;margin-bottom:4px;">Why am I seeing this?</strong>
+            Your account has been flagged for violating our terms of service. If you believe this is an error, please contact our support team.
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;">
+        <button onclick="window.location.href='/'" type="button" style="flex:1;background:#f3f4f6;color:#374151;padding:12px 20px;border-radius:10px;border:1px solid #d1d5db;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+          Go to Homepage
+        </button>
+        <button onclick="window.location.href='mailto:support@icaruswears.com?subject=Account%20Ban%20Appeal'" type="button" style="flex:1;background:#dc2626;color:#fff;padding:12px 20px;border-radius:10px;border:none;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">
+          <i class="bi bi-envelope"></i> Contact Support
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suspended Account Modal -->
+  <div id="suspendedModal" role="dialog" aria-modal="true" aria-labelledby="suspendedModalTitle" style="display:none; position:fixed; inset:0; z-index:11000; background:rgba(0,0,0,0.5);">
+    <div style="max-width:500px; margin:100px auto; background:#fff; border-radius:16px; padding:32px; position:relative; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:24px;">
+        <div style="width:80px;height:80px;background:#fff7ed;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+          <i class="bi bi-clock-history" style="color:#f59e0b;font-size:40px;"></i>
+        </div>
+        <h2 id="suspendedModalTitle" style="margin:0 0 8px 0; font-size:24px;color:#1f2937;font-weight:700;">Account Suspended</h2>
+        <p style="color:#6b7280;font-size:15px;line-height:1.6;margin:0;">
+          Your account has been temporarily suspended.
+        </p>
+      </div>
+      
+      <div style="background:#fff7ed;border-left:4px solid #f59e0b;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
+        <div style="display:flex;gap:12px;">
+          <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;font-size:20px;flex-shrink:0;"></i>
+          <div style="color:#92400e;font-size:14px;line-height:1.6;">
+            <strong style="display:block;margin-bottom:8px;">Suspension Details:</strong>
+            <div style="background:#fff;padding:10px 12px;border-radius:6px;margin-bottom:8px;">
+              <div style="font-size:13px;color:#6b7280;margin-bottom:2px;">Suspended Until:</div>
+              <div style="font-size:16px;font-weight:600;color:#1f2937;" id="suspendedUntilText"></div>
+            </div>
+            <div style="font-size:13px;">
+              Your account access will be automatically restored after this time. If you believe this is an error, please contact support.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;">
+        <button onclick="window.location.href='/'" type="button" style="flex:1;background:#f3f4f6;color:#374151;padding:12px 20px;border-radius:10px;border:1px solid #d1d5db;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+          Go to Homepage
+        </button>
+        <button onclick="window.location.href='mailto:support@icaruswears.com?subject=Account%20Suspension%20Appeal'" type="button" style="flex:1;background:#f59e0b;color:#fff;padding:12px 20px;border-radius:10px;border:none;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">
+          <i class="bi bi-envelope"></i> Contact Support
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <% if (typeof banned !== 'undefined' && banned) { %>
+  <script>
+    document.getElementById('bannedModal').style.display = 'block';
+  </script>
+  <% } %>
+
+  <% if (typeof suspended !== 'undefined' && suspended && typeof suspendedUntil !== 'undefined') { %>
+  <script>
+    document.getElementById('suspendedUntilText').textContent = '<%= suspendedUntil %>';
+    document.getElementById('suspendedModal').style.display = 'block';
+  </script>
+  <% } %>
+
 </body>
 </html>

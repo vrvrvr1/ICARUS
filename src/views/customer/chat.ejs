@@ -1,0 +1,389 @@
+<%- include('../partials/header', { user }) %>
+
+<link rel="stylesheet" href="/css/global.css">
+
+<style>
+  .chat-container {
+    max-width: 1000px;
+    margin: 80px auto 40px;
+    height: calc(100vh - 160px);
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  
+  .chat-header {
+    padding: 20px 30px;
+    background: #4c7ae6;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .chat-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  
+  .chat-header i {
+    display: none;
+  }
+  
+  .chat-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.25);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+  }
+  
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  .chat-messages {
+    flex: 1;
+    padding: 40px 50px;
+    overflow-y: auto;
+    background: #f5f5f5;
+  }
+  
+  .message {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .message.customer {
+    flex-direction: row-reverse;
+  }
+  
+  .message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+  
+  .message.admin .message-avatar {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+  }
+  
+  .message.customer .message-avatar {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+  }
+  
+  .message-content {
+    max-width: 70%;
+  }
+  
+  .message-bubble {
+    padding: 14px 20px;
+    border-radius: 18px;
+    word-wrap: break-word;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  
+  .message.admin .message-bubble {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-bottom-left-radius: 4px;
+  }
+  
+  .message.customer .message-bubble {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+  
+  .message-time {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+  }
+  
+  .message.customer .message-time {
+    text-align: right;
+    color: #d1d5db;
+  }
+  
+  .chat-input {
+    padding: 25px 50px 30px;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .input-group {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  
+  .input-group textarea {
+    flex: 1;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    resize: none;
+    max-height: 100px;
+    font-family: inherit;
+  }
+  
+  .input-group textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+  
+  .send-btn {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    align-self: flex-end;
+  }
+  
+  .send-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  }
+  
+  .send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #6b7280;
+  }
+  
+  .empty-state i {
+    font-size: 48px;
+    color: #d1d5db;
+    margin-bottom: 16px;
+  }
+  
+  .typing-indicator {
+    display: none;
+    padding: 12px;
+    background: white;
+    border-radius: 16px;
+    width: fit-content;
+  }
+  
+  .typing-indicator.active {
+    display: flex;
+    gap: 4px;
+  }
+  
+  .typing-dot {
+    width: 8px;
+    height: 8px;
+    background: #9ca3af;
+    border-radius: 50%;
+    animation: typing 1.4s ease-in-out infinite;
+  }
+  
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  
+  @keyframes typing {
+    0%, 60%, 100% {
+      transform: translateY(0);
+    }
+    30% {
+      transform: translateY(-10px);
+    }
+  }
+</style>
+
+<div class="chat-container">
+  <div class="chat-header">
+    <i class="bi bi-chat-dots-fill" style="font-size: 24px;"></i>
+    <h2>Live Chat Support</h2>
+    <div class="chat-status ms-auto">
+      <span class="status-dot"></span>
+      <span>Online</span>
+    </div>
+  </div>
+  
+  <div class="chat-messages" id="chatMessages">
+    <div class="empty-state">
+      <i class="bi bi-chat-text"></i>
+      <p>Start a conversation with our support team!</p>
+    </div>
+  </div>
+  
+  <div class="chat-input">
+    <div class="input-group">
+      <textarea 
+        id="messageInput" 
+        placeholder="Type your message..."
+        rows="1"
+        onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
+      ></textarea>
+      <button class="send-btn" onclick="sendMessage()">
+        <i class="bi bi-send-fill"></i> Send
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let lastMessageId = 0;
+  
+  // Load messages on page load
+  loadMessages();
+  
+  // Poll for new messages every 3 seconds
+  setInterval(loadMessages, 3000);
+  
+  async function loadMessages() {
+    try {
+      const response = await fetch('/api/chat/messages');
+      const data = await response.json();
+      
+      if (data.success && data.messages.length > 0) {
+        const chatMessages = document.getElementById('chatMessages');
+        const emptyState = chatMessages.querySelector('.empty-state');
+        
+        if (emptyState) {
+          emptyState.remove();
+        }
+        
+        // Clear and rebuild messages
+        chatMessages.innerHTML = '';
+        
+        data.messages.forEach(msg => {
+          const messageDiv = createMessageElement(msg);
+          chatMessages.appendChild(messageDiv);
+        });
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  }
+  
+  function createMessageElement(msg) {
+    const div = document.createElement('div');
+    div.className = `message ${msg.sender_type}`;
+    
+    const initial = msg.first_name ? msg.first_name.charAt(0).toUpperCase() : 'A';
+    const name = msg.sender_type === 'admin' ? 'Support' : 'You';
+    const time = new Date(msg.created_at).toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit' 
+    });
+    
+    div.innerHTML = `
+      <div class="message-avatar">${initial}</div>
+      <div class="message-content">
+        <div class="message-bubble">${escapeHtml(msg.message)}</div>
+        <div class="message-time">${time}</div>
+      </div>
+    `;
+    
+    return div;
+  }
+  
+  async function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    const sendBtn = document.querySelector('.send-btn');
+    sendBtn.disabled = true;
+    
+    try {
+      const response = await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        input.value = '';
+        input.style.height = 'auto';
+        loadMessages();
+      } else {
+        alert(data.error || 'Failed to send message');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Failed to send message. Please try again.');
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+  
+  // Auto-resize textarea
+  document.getElementById('messageInput').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+  });
+  
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+</script>
+
+<%- include('../partials/footer') %>

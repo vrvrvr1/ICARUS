@@ -1,3 +1,8 @@
+<%
+  // Fallback for currency if not set
+  if (typeof currency === 'undefined') currency = '$';
+  if (typeof currencyCode === 'undefined') currencyCode = 'USD';
+%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +11,7 @@
   <title>Checkout</title>
   <link rel="stylesheet" href="/css/checkout.css">
  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 </head>
 <body>
   <div class="checkout-container">
@@ -24,21 +30,34 @@
 
       <!-- Step 1: Shipping -->
       <div class="checkout-section active" id="step-1">
-        <h2>Shipping Information</h2>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <h2 style="margin:0;">Shipping Information</h2>
+          <% if (defaultAddress) { %>
+            <span class="badge bg-primary" style="font-size:12px;padding:4px 10px;">
+              <i class="bi bi-check-circle-fill"></i> Using Default Address
+            </span>
+          <% } %>
+        </div>
+        <% if (defaultAddress) { %>
+          <div class="alert alert-info" style="display:flex;align-items:center;gap:8px;padding:12px 16px;margin-bottom:16px;border-radius:8px;background:#e7f3ff;border:1px solid #b3d9ff;color:#004085;">
+            <i class="bi bi-info-circle-fill" style="font-size:18px;"></i>
+            <span>Your default shipping address has been pre-filled. You can modify any field or <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#addressBookModal" style="text-decoration:underline;font-size:inherit;vertical-align:baseline;">choose a different address</button>.</span>
+          </div>
+        <% } %>
         <form id="checkoutForm" method="POST" action="/checkout/place-order">
           <div class="form-grid">
             <div class="form-group">
               <label for="firstName">First Name</label>
-              <input type="text" id="firstName" name="firstName" value="<%= user.first_name %>" required>
+              <input type="text" id="firstName" name="firstName" value="<%= defaultAddress && defaultAddress.first_name ? defaultAddress.first_name : user.first_name %>" required>
             </div>
             <div class="form-group">
               <label for="lastName">Last Name</label>
-              <input type="text" id="lastName" name="lastName" value="<%= user.last_name %>" required>
+              <input type="text" id="lastName" name="lastName" value="<%= defaultAddress && defaultAddress.last_name ? defaultAddress.last_name : user.last_name %>" required>
             </div>
 
             <div class="form-group full">
               <label for="email">Email</label>
-              <input type="email" id="email" name="email" value="<%= user.email %>" required>
+              <input type="email" id="email" name="email" value="<%= defaultAddress && defaultAddress.email ? defaultAddress.email : user.email %>" required>
             </div>
             <div class="form-group">
               <label for="phone">Phone</label>
@@ -60,7 +79,7 @@
                     </select>
                   </div>
                   <div class="phone-divider" aria-hidden="true"></div>
-                  <input type="text" id="phone" name="phone" placeholder="+63 ___ ___ ____" required class="phone-input" inputmode="tel" autocomplete="tel">
+                  <input type="text" id="phone" name="phone" placeholder="+63 ___ ___ ____" required class="phone-input" inputmode="tel" autocomplete="tel" data-default-phone="<%= defaultAddress && defaultAddress.phone ? defaultAddress.phone : '' %>">
                 </div>
                 <div class="phone-valid" id="phoneValid" aria-hidden="true" title="Valid number">
                   <!-- small green check -->
@@ -73,7 +92,7 @@
 
             <div class="form-group full">
               <label for="address">Address</label>
-              <input type="text" id="address" name="address" placeholder="Address" required>
+              <input type="text" id="address" name="address" placeholder="Address" value="<%= defaultAddress && defaultAddress.address_line ? defaultAddress.address_line : '' %>" required>
             </div>
 
             <div class="form-group full">
@@ -98,23 +117,27 @@
                 </div>
 
                 <!-- Hidden native selects kept in sync for form submission and existing logic -->
-                <select id="province" name="province" required class="pair-input native-select" aria-hidden="true" tabindex="-1"></select>
-                <select id="city" name="city" required class="pair-input native-select" aria-hidden="true" tabindex="-1"></select>
+                <select id="province" name="province" required class="pair-input native-select" aria-hidden="true" tabindex="-1" data-initial="<%= defaultAddress && defaultAddress.province ? defaultAddress.province : '' %>"></select>
+                <select id="city" name="city" required class="pair-input native-select" aria-hidden="true" tabindex="-1" data-initial="<%= defaultAddress && defaultAddress.city ? defaultAddress.city : '' %>"></select>
               </div>
             </div>
             <div class="form-group">
               <label for="zip">ZIP Code</label>
-              <input type="text" id="zip" name="zip" placeholder="ZIP Code" required>
+              <input type="text" id="zip" name="zip" placeholder="ZIP Code" value="<%= defaultAddress && defaultAddress.zipcode ? defaultAddress.zipcode : '' %>" required>
             </div>
             <!-- Saved addresses trigger moved under ZIP Code -->
             <div class="form-group full" id="savedAddressesRow" style="display:none;">
               <button type="button" class="btn btn-light" id="openAddressBook" data-bs-toggle="modal" data-bs-target="#addressBookModal" style="border:1px solid rgba(11,18,32,0.08); border-radius:10px;">Choose from saved addresses</button>
             </div>
             <!-- Save this address (shown only in 'new address' mode) -->
-            <div class="form-group full" id="saveAddressRow" style="display:none; align-items:center;">
+            <div class="form-group full" id="saveAddressRow" style="display:none; flex-direction:column; gap:8px;">
               <label class="form-check-label" for="saveAddressCheckbox" style="display:flex; align-items:center; gap:8px; font-weight:400;">
                 <input type="checkbox" id="saveAddressCheckbox" class="form-check-input">
                 Save this address to my account
+              </label>
+              <label class="form-check-label" for="setDefaultCheckbox" id="setDefaultLabel" style="display:none; align-items:center; gap:8px; font-weight:400; margin-left:24px;">
+                <input type="checkbox" id="setDefaultCheckbox" class="form-check-input">
+                Set as my default address
               </label>
             </div>
           </div>
@@ -205,8 +228,9 @@
         <h2 class="mb-3">Payment Information</h2>
 
         <div class="row g-3" role="group" aria-label="Payment method">
+          <% if (paymentSettings && paymentSettings.cod_enabled) { %>
           <div class="col-md-4">
-            <input type="radio" class="btn-check" name="payment" id="payCOD" value="COD" autocomplete="off" required>
+            <input type="radio" class="btn-check" name="payment" id="payCOD" value="COD" autocomplete="off" required checked>
             <label class="btn btn-outline-secondary w-100 text-start p-3 h-100 d-flex align-items-start gap-3" for="payCOD">
               <span aria-hidden="true">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -220,7 +244,9 @@
               </span>
             </label>
           </div>
+          <% } %>
 
+          <% if (paymentSettings && paymentSettings.card_enabled) { %>
           <div class="col-md-4">
             <input type="radio" class="btn-check" name="payment" id="payCard" value="Card" autocomplete="off">
             <label class="btn btn-outline-secondary w-100 text-start p-3 h-100 d-flex align-items-start gap-3" for="payCard">
@@ -237,7 +263,9 @@
               </span>
             </label>
           </div>
+          <% } %>
 
+          <% if (paymentSettings && paymentSettings.paypal_enabled) { %>
           <div class="col-md-4">
             <input type="radio" class="btn-check" name="payment" id="payPayPal" value="PayPal" autocomplete="off">
             <label class="btn btn-outline-secondary w-100 text-start p-3 h-100 d-flex align-items-start gap-3" for="payPayPal">
@@ -252,7 +280,14 @@
               </span>
             </label>
           </div>
+          <% } %>
         </div>
+
+        <% if (!paymentSettings || (!paymentSettings.cod_enabled && !paymentSettings.paypal_enabled && !paymentSettings.card_enabled)) { %>
+        <div class="alert alert-warning mt-3">
+          <i class="bi bi-exclamation-triangle"></i> No payment methods are currently available. Please contact support.
+        </div>
+        <% } %>
 
         <div id="cardDetails" class="mt-3" style="display:none;">
           <div class="row g-2">
@@ -415,12 +450,12 @@
       </div>
 
     <div class="summary-lines">
-      <div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>$<%= Number(subtotal || 0).toFixed(2) %></span></div>
-  <div style="display:flex;justify-content:space-between"><span>Tax</span><span id="summary-tax">$<%= Number(tax || 0).toFixed(2) %></span></div>
-  <div style="display:flex;justify-content:space-between; color:#16a34a; display:none;" id="summary-discount-row"><span>Discount (<span id="summary-discount-code"></span>)</span><span id="summary-discount">-$0.00</span></div>
-      <div style="display:flex;justify-content:space-between"><span>Shipping</span><span id="summary-shipping">$<%= Number(shipping || 0).toFixed(2) %></span></div>
+      <div style="display:flex;justify-content:space-between"><span>Subtotal</span><span><%= currency %><%= Number(subtotal || 0).toFixed(2) %></span></div>
+  <div style="display:flex;justify-content:space-between"><span>Tax</span><span id="summary-tax"><%= currency %><%= Number(tax || 0).toFixed(2) %></span></div>
+  <div style="display:flex;justify-content:space-between; color:#16a34a; display:none;" id="summary-discount-row"><span>Discount (<span id="summary-discount-code"></span>)</span><span id="summary-discount">-<%= currency %>0.00</span></div>
+      <div style="display:flex;justify-content:space-between"><span>Shipping</span><span id="summary-shipping"><%= currency %><%= Number(shipping || 0).toFixed(2) %></span></div>
       <hr>
-      <div style="display:flex;justify-content:space-between;font-weight:700"><span>Total</span><span id="summary-total">$<%= Number(total || 0).toFixed(2) %></span></div>
+      <div style="display:flex;justify-content:space-between;font-weight:700"><span>Total</span><span id="summary-total"><%= currency %><%= Number(total || 0).toFixed(2) %></span></div>
     </div>
         <% } else { %>
           <p>Your cart is empty.</p>
@@ -584,11 +619,12 @@
     const taxSpan = document.getElementById('summary-tax');
     const shipSpan = document.getElementById('summary-shipping');
     const totalSpan = document.getElementById('summary-total');
+    const CURRENCY = '<%= currency %>';
 
     function parseMoney(text){
-      return parseFloat(String(text||'').replace(/[$,]/g,'')) || 0;
+      return parseFloat(String(text||'').replace(/[₱$€£¥₹,]/g,'')) || 0;
     }
-    function fmt(n){ return '$' + Number(n||0).toFixed(2); }
+    function fmt(n){ return CURRENCY + Number(n||0).toFixed(2); }
 
     async function apply(){
       const code = (input.value||'').trim();
@@ -857,7 +893,7 @@
       provCS.querySelector('.cs-value').textContent = selected || 'Select province';
     }
 
-    function fillCities(province, selected){
+    function fillCities(province, selected, keepZip){
       cityEl.innerHTML = '<option value="" selected disabled>Select city</option>';
       const map = DATA[province] || {};
       const cities = Object.keys(map).sort();
@@ -876,8 +912,8 @@
       });
       renderMenu(cityMenu, cities, selected);
       cityCS.querySelector('.cs-value').textContent = selected || 'Select city';
-      // reset linked ZIP when province changes
-      if (zipEl) zipEl.value = '';
+      // reset linked ZIP when province changes (unless keepZip is true for initialization)
+      if (zipEl && !keepZip) zipEl.value = '';
     }
 
     // wire custom select interactions
@@ -987,9 +1023,17 @@
     // Attempt to preselect from any existing values
     const initialProvince = provinceEl.getAttribute('data-initial') || '';
     const initialCity = cityEl.getAttribute('data-initial') || '';
+    const initialZip = zipEl ? zipEl.value : '';
     fillProvinces(initialProvince || undefined);
     if (initialProvince && DATA[initialProvince]) {
-      fillCities(initialProvince, initialCity || undefined);
+      // Pass true to keepZip parameter to preserve the initial ZIP code
+      fillCities(initialProvince, initialCity || undefined, true);
+      // Ensure continue button state is updated after initialization
+      if (initialCity && initialZip) {
+        setTimeout(() => {
+          updateContinueState();
+        }, 50);
+      }
     } else {
       // default disabled city until province picked
       cityEl.disabled = true;
@@ -1198,6 +1242,20 @@
     }
     if (enterNewBtn) enterNewBtn.addEventListener('click', enterNewAddress);
 
+    // Show/hide "Set as default" checkbox based on "Save address" checkbox
+    const setDefaultLabel = document.getElementById('setDefaultLabel');
+    const setDefaultCb = document.getElementById('setDefaultCheckbox');
+    if (saveCb && setDefaultLabel) {
+      saveCb.addEventListener('change', function() {
+        if (this.checked) {
+          setDefaultLabel.style.display = 'flex';
+        } else {
+          setDefaultLabel.style.display = 'none';
+          if (setDefaultCb) setDefaultCb.checked = false;
+        }
+      });
+    }
+
     // Intercept Continue to Payment to optionally save new address
     const continueBtn = document.getElementById('continueToPayment');
     if (continueBtn) {
@@ -1215,7 +1273,7 @@
           province: document.getElementById('province')?.value || '',
           city: document.getElementById('city')?.value || '',
           zipcode: document.getElementById('zip')?.value?.trim() || '',
-          is_default: false
+          is_default: setDefaultCb ? setDefaultCb.checked : false
         };
         // Normalize phone to +CC######## format
         const select = document.getElementById('countrySelect');
@@ -1545,6 +1603,22 @@
         const localDigits = rawDigits.startsWith(codeDigits) ? rawDigits.slice(codeDigits.length) : rawDigits;
         if (hidden) hidden.value = `${cc}${localDigits}`;
       });
+    }
+
+    // Initialize phone with default address phone if available
+    const defaultPhone = phoneInput.getAttribute('data-default-phone');
+    if (defaultPhone && phoneInput && select) {
+      // Find matching country code
+      const matchedOption = Array.from(select.options).find(opt => defaultPhone.startsWith(opt.value));
+      if (matchedOption) {
+        select.value = matchedOption.value;
+        select.dispatchEvent(new Event('change'));
+      }
+      // Set phone value after a short delay to ensure country code is set
+      setTimeout(() => {
+        phoneInput.value = defaultPhone;
+        phoneInput.dispatchEvent(new Event('input'));
+      }, 100);
     }
   })();
 </script>

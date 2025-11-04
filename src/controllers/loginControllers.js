@@ -52,6 +52,31 @@ export const login = async (req, res) => {
       return res.status(400).render("customer/login", { notice: null, error: "❌ Invalid password." });
     }
 
+    // 3.5 Check if user is banned
+    if (authedUser.is_banned) {
+      return res.status(403).render("customer/login", { 
+        notice: null, 
+        error: null,
+        banned: true,
+        suspended: false
+      });
+    }
+
+    // 3.6 Check if user is suspended
+    if (authedUser.suspended_until) {
+      const suspendedUntil = new Date(authedUser.suspended_until);
+      const now = new Date();
+      if (suspendedUntil > now) {
+        return res.status(403).render("customer/login", { 
+          notice: null, 
+          error: null,
+          banned: false,
+          suspended: true,
+          suspendedUntil: suspendedUntil.toLocaleString()
+        });
+      }
+    }
+
     // 4. Save session
     req.session.user = {
       id: authedUser.id,

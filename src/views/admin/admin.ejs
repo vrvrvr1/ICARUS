@@ -23,16 +23,17 @@
 
       <nav class="sidebar-nav">
         <a href="#" class="active"><i class="bi bi-house-door"></i> Dashboard</a>
-  <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
         <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
         <a href="/customers"><i class="bi bi-people"></i> Customers</a>
         <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/chat"><i class="bi bi-chat-dots-fill"></i> Live Chat</a>
         <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
         <a href="/admin/announcements"><i class="bi bi-megaphone"></i> Announcements</a>
         <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
         <a href="/admin/cms"><i class="bi bi-journal-text"></i> CMS</a>
-        
         <a href="/admin/settings"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
+        <a href="/logout" style="color:#ef4444;margin-top:12px;"><i class="bi bi-box-arrow-right"></i> Logout</a>
       </nav>
     </div>
 
@@ -49,7 +50,10 @@
         <div class="dashboard-title-main">Dashboard Overview</div>
         <div class="dashboard-title-sub">Analytics and activity summary</div>
       </div>
-      
+      <a href="/admin/notifications" style="position:relative;font-size:24px;color:#3b82f6;text-decoration:none;">
+        <i class="bi bi-bell-fill"></i>
+        <span id="notif-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#ef4444;color:white;border-radius:10px;padding:2px 6px;font-size:11px;font-weight:600;min-width:18px;text-align:center;"></span>
+      </a>
     </div>
 
     <!-- Cards -->
@@ -315,6 +319,22 @@
         div.innerHTML = `<span class="legend-dot" style="background:${color}"></span> ${c.category} (${c.total_sold}) • ${pct}%`;
         legendRow.appendChild(div);
       });
+    })();
+
+    // Fetch notification count
+    (async function fetchNotificationCount() {
+      try {
+        const response = await fetch('/notifications/count');
+        const data = await response.json();
+        const badge = document.getElementById('notif-badge');
+        
+        if (data.count > 0) {
+          badge.textContent = data.count > 99 ? '99+' : data.count;
+          badge.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error fetching notification count:', error);
+      }
     })();
   </script>
 </body>

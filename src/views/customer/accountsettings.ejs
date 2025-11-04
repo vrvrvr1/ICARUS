@@ -182,6 +182,17 @@
                 </div>
               </div>
 
+              <!-- 7) Saved Addresses -->
+              <div class="info-card">
+                <div class="ic-head d-flex">
+                  <h5 class="m-0">Saved Addresses</h5>
+                  <a href="#" class="view-link" onclick="event.preventDefault(); document.querySelector('[data-section=\'account\']').click();">Manage</a>
+                </div>
+                <div class="ic-body" id="overview-addresses">
+                  <p class="empty">Loading addresses...</p>
+                </div>
+              </div>
+
               <!-- Announcements removed from account settings view -->
             </div>
           </section>
@@ -229,6 +240,17 @@
               <button type="submit" class="save-btn" style="display:none;">Save</button>
               <i class="fa-solid fa-pen edit-icon" aria-hidden="true" title="Edit"></i>
             </form>
+          </div>
+
+          <!-- Shipping Address -->
+          <div class="info-section">
+            <h4>Shipping Address</h4>
+            <div id="addresses-list" class="addresses-container">
+              <!-- Addresses will be loaded here -->
+            </div>
+            <button type="button" class="btn-primary" id="add-address-btn" style="margin-top: 12px;">
+              <i class="fa-solid fa-plus"></i> Add New Address
+            </button>
           </div>
 
           <!-- Security -->
@@ -298,8 +320,10 @@
               <% myOrders.forEach(o => { %>
                 <% 
                   const _s = (o.status || '').toLowerCase();
-                  const _group = (_s.includes('deliver') || _s.includes('complete')) ? 'review'
-                                : ((_s.includes('ship') || _s.includes('en route') || _s.includes('courier') || _s.includes('out')) ? 'receive' : 'ship');
+                  const isCancelled = !!o.cancelled_at || _s.includes('cancel');
+                  const _group = isCancelled ? 'cancelled'
+                                : ((_s.includes('deliver') || _s.includes('complete')) ? 'review'
+                                : ((_s.includes('ship') || _s.includes('en route') || _s.includes('courier') || _s.includes('out')) ? 'receive' : 'ship'));
                   const d = o.order_date ? new Date(o.order_date) : new Date();
                   const start = new Date(d.getTime() + 2*24*60*60*1000);
                   const end = new Date(d.getTime() + 5*24*60*60*1000);
@@ -324,7 +348,6 @@
                 <article class="order-card" data-group="<%= _group %>" data-id="<%= o.id %>" tabindex="0" role="button" aria-label="Open tracking for order #<%= o.id %>">
                   <header class="oc-head">
                     <div class="left">
-                      <span class="mall-badge">Mall</span>
                       <span class="shop-name">Order #<%= o.id %></span>
                     </div>
                     <div class="right">
@@ -354,11 +377,22 @@
                   <% } %>
                   <footer class="oc-foot">
                     <div class="total">Total: <strong>$<%= Number(o.total_amount || 0).toLocaleString() %></strong></div>
-                    <div class="actions">
-                      <% if (_group !== 'review') { %>
-                        <button type="button" class="btn-outline danger small btn-cancel" data-id="<%= o.id %>">Cancel order</button>
+                    <% 
+                      const statusLower = (o.status || '').toLowerCase();
+                      const isDelivered = statusLower.includes('deliver') || statusLower.includes('complete');
+                      const firstProductId = o.items && o.items.length > 0 && o.items[0].product_id ? o.items[0].product_id : null;
+                    %>
+                    <% if (isDelivered) { %>
+                      <% if (firstProductId) { %>
+                        <button class="review-btn" onclick="event.stopPropagation(); window.location.href='/products/<%= firstProductId %>#reviews'">
+                          <i class="fa-solid fa-star"></i> Write a Review
+                        </button>
+                      <% } else { %>
+                        <button class="review-btn" onclick="event.stopPropagation(); alert('Product not found. Please contact support.')">
+                          <i class="fa-solid fa-star"></i> Write a Review
+                        </button>
                       <% } %>
-                    </div>
+                    <% } %>
                   </footer>
                 </article>
               <% }) %>
@@ -374,13 +408,20 @@
           <div class="info-section">
             <% if (wishlistItems && wishlistItems.length > 0) { %>
               <% wishlistItems.forEach(item => { %>
-                <div class="info-row wishlist-item" data-id="<%= item.wishlist_id %>">
+                <div class="info-row wishlist-item" data-id="<%= item.wishlist_id %>" data-product-id="<%= item.product_id %>">
                   <img src="<%= item.image_url %>" alt="<%= item.product_name %>" class="wishlist-img" />
                   <div class="wishlist-details">
                     <h4><%= item.product_name %></h4>
                     <p>$<%= item.price %></p>
                   </div>
-                  <button type="button" class="remove-btn" data-id="<%= item.wishlist_id %>">Remove</button>
+                  <div class="wishlist-actions">
+                    <button type="button" class="btn-primary small add-to-cart-btn" data-product-id="<%= item.product_id %>">
+                      <i class="fa-solid fa-cart-plus"></i> Add to Cart
+                    </button>
+                    <button type="button" class="remove-btn" data-id="<%= item.wishlist_id %>">
+                      <i class="fa-solid fa-trash"></i> Remove
+                    </button>
+                  </div>
                 </div>
               <% }) %>
             <% } else { %>
@@ -584,25 +625,78 @@
       const wishlistSection = document.getElementById('wishlist');
       if (wishlistSection) {
         wishlistSection.addEventListener('click', async (e) => {
-          const btn = e.target.closest('.remove-btn');
-          if (!btn) return;
-          const wishlistId = btn.getAttribute('data-id');
-          try {
-            const res = await fetch(`/accountsettings/wishlist/remove/${wishlistId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
-            if (res.ok) {
-              const itemRow = btn.closest('.wishlist-item');
-              if (itemRow) itemRow.remove();
-              const remaining = document.querySelectorAll('.wishlist-item');
-              if (remaining.length === 0) {
-                const container = document.querySelector('#wishlist .info-section');
-                if (container) container.innerHTML = '<p class="empty">Your wishlist is empty.</p>';
+          // Handle remove button
+          const removeBtn = e.target.closest('.remove-btn');
+          if (removeBtn) {
+            const wishlistId = removeBtn.getAttribute('data-id');
+            try {
+              const res = await fetch(`/accountsettings/wishlist/remove/${wishlistId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+              if (res.ok) {
+                const itemRow = removeBtn.closest('.wishlist-item');
+                if (itemRow) itemRow.remove();
+                const remaining = document.querySelectorAll('.wishlist-item');
+                if (remaining.length === 0) {
+                  const container = document.querySelector('#wishlist .info-section');
+                  if (container) container.innerHTML = '<p class="empty">Your wishlist is empty.</p>';
+                }
+              } else {
+                alert('Failed to remove item.');
               }
-            } else {
-              alert('Failed to remove item.');
+            } catch (err) {
+              console.error('Error:', err);
+              alert('Error removing item.');
             }
-          } catch (err) {
-            console.error('Error:', err);
-            alert('Error removing item.');
+            return;
+          }
+
+          // Handle add to cart button
+          const addToCartBtn = e.target.closest('.add-to-cart-btn');
+          if (addToCartBtn) {
+            const productId = addToCartBtn.getAttribute('data-product-id');
+            const originalText = addToCartBtn.innerHTML;
+            
+            try {
+              addToCartBtn.disabled = true;
+              addToCartBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
+              
+              const res = await fetch('/cart/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  product_id: parseInt(productId), 
+                  quantity: 1 
+                })
+              });
+              
+              const data = await res.json().catch(() => ({}));
+              
+              if (!res.ok) {
+                // Handle specific error cases
+                if (data.error === 'Size is required for this color' || data.error === 'Color is required for this size') {
+                  throw new Error('This product requires size and color selection. Please visit the product page to add it to cart.');
+                }
+                if (data.error === 'Not enough stock for selected size') {
+                  throw new Error(`Only ${data.available || 0} item(s) available in stock.`);
+                }
+                throw new Error(data.message || data.error || 'Failed to add to cart');
+              }
+              
+              if (data.ok || data.success) {
+                addToCartBtn.innerHTML = '<i class="fa-solid fa-check"></i> Added!';
+                setTimeout(() => {
+                  addToCartBtn.innerHTML = originalText;
+                  addToCartBtn.disabled = false;
+                }, 2000);
+              } else {
+                throw new Error(data.message || data.error || 'Failed to add item to cart');
+              }
+            } catch (err) {
+              console.error('Error adding to cart:', err);
+              alert(err.message || 'Error adding item to cart.');
+              addToCartBtn.innerHTML = originalText;
+              addToCartBtn.disabled = false;
+            }
+            return;
           }
         });
       }
@@ -665,6 +759,232 @@
           }
         });
       }
+
+      // ==============================
+      // SHIPPING ADDRESSES MANAGEMENT
+      // ==============================
+      async function loadAddresses() {
+        try {
+          const res = await fetch('/api/addresses');
+          const data = await res.json();
+          if (data.success) {
+            displayAddresses(data.addresses);
+          }
+        } catch (err) {
+          console.error('Error loading addresses:', err);
+        }
+      }
+
+      function displayAddresses(addresses) {
+        const container = document.getElementById('addresses-list');
+        if (!container) {
+          console.warn('addresses-list container not found');
+          return;
+        }
+        if (!addresses || addresses.length === 0) {
+          container.innerHTML = '<p class="empty">No saved addresses yet.</p>';
+          return;
+        }
+
+        container.innerHTML = addresses.map(addr => `
+          <div class="address-card" data-id="${addr.id}">
+            <div class="address-content">
+              <div class="address-header">
+                <h5 class="address-label">${addr.label || 'Address'}</h5>
+                ${addr.is_default ? '<span class="default-badge">Default</span>' : ''}
+              </div>
+              <div class="address-body">
+                <p class="address-name">${addr.first_name || ''} ${addr.last_name || ''}</p>
+                <p class="address-line">${addr.address_line || ''}</p>
+                <p class="address-city">${addr.city || ''}, ${addr.province || ''} ${addr.zipcode || ''}</p>
+                <p class="address-contact">${addr.phone || ''} ${addr.email ? '• ' + addr.email : ''}</p>
+              </div>
+            </div>
+            <div class="address-actions">
+              ${!addr.is_default ? '<button type="button" class="btn-outline small set-default-btn" data-id="' + addr.id + '">Set as Default</button>' : ''}
+              <button type="button" class="btn-outline small danger delete-address-btn" data-id="${addr.id}">
+                <i class="fa-solid fa-trash"></i> Delete
+              </button>
+            </div>
+          </div>
+        `).join('');
+
+        // Attach event listeners
+        container.querySelectorAll('.set-default-btn').forEach(btn => {
+          btn.addEventListener('click', () => setDefaultAddress(btn.getAttribute('data-id')));
+        });
+        container.querySelectorAll('.delete-address-btn').forEach(btn => {
+          btn.addEventListener('click', () => deleteAddress(btn.getAttribute('data-id')));
+        });
+      }
+
+      async function setDefaultAddress(id) {
+        try {
+          const res = await fetch(`/api/addresses/${id}/default`, { method: 'PUT' });
+          const data = await res.json();
+          if (data.success) {
+            loadAddresses();
+          }
+        } catch (err) {
+          console.error('Error setting default address:', err);
+          alert('Failed to set default address');
+        }
+      }
+
+      async function deleteAddress(id) {
+        if (!confirm('Are you sure you want to delete this address?')) return;
+        try {
+          const res = await fetch(`/api/addresses/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (data.success) {
+            loadAddresses();
+          }
+        } catch (err) {
+          console.error('Error deleting address:', err);
+          alert('Failed to delete address');
+        }
+      }
+
+      function showAddAddressForm() {
+        const form = document.createElement('div');
+        form.className = 'address-form-overlay';
+        form.innerHTML = `
+          <div class="address-form-modal">
+            <div class="address-form-header">
+              <h4>Add New Address</h4>
+              <button type="button" class="close-btn" id="close-address-form">&times;</button>
+            </div>
+            <form id="new-address-form">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Label (e.g., Home, Office)</label>
+                  <input type="text" name="label" placeholder="Home" />
+                </div>
+                <div class="form-group">
+                  <label>First Name *</label>
+                  <input type="text" name="first_name" required />
+                </div>
+                <div class="form-group">
+                  <label>Last Name *</label>
+                  <input type="text" name="last_name" required />
+                </div>
+                <div class="form-group">
+                  <label>Phone *</label>
+                  <input type="tel" name="phone" required />
+                </div>
+                <div class="form-group full-width">
+                  <label>Email</label>
+                  <input type="email" name="email" />
+                </div>
+                <div class="form-group full-width">
+                  <label>Address Line *</label>
+                  <input type="text" name="address_line" placeholder="Street address" required />
+                </div>
+                <div class="form-group">
+                  <label>City *</label>
+                  <input type="text" name="city" required />
+                </div>
+                <div class="form-group">
+                  <label>Province/State *</label>
+                  <input type="text" name="province" required />
+                </div>
+                <div class="form-group">
+                  <label>Zip Code *</label>
+                  <input type="text" name="zipcode" required />
+                </div>
+                <div class="form-group full-width">
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="is_default" />
+                    Set as default address
+                  </label>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-outline" id="cancel-address-form">Cancel</button>
+                <button type="submit" class="btn-primary">Save Address</button>
+              </div>
+            </form>
+          </div>
+        `;
+        document.body.appendChild(form);
+
+        document.getElementById('close-address-form').addEventListener('click', () => form.remove());
+        document.getElementById('cancel-address-form').addEventListener('click', () => form.remove());
+        
+        document.getElementById('new-address-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.target);
+          const data = Object.fromEntries(formData);
+          data.is_default = formData.has('is_default');
+
+          try {
+            const res = await fetch('/api/addresses', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.success) {
+              form.remove();
+              loadAddresses();
+            } else {
+              alert('Failed to save address');
+            }
+          } catch (err) {
+            console.error('Error saving address:', err);
+            alert('Failed to save address');
+          }
+        });
+      }
+
+      const addAddressBtn = document.getElementById('add-address-btn');
+      if (addAddressBtn) {
+        addAddressBtn.addEventListener('click', showAddAddressForm);
+      }
+
+      // Load addresses on page load
+      loadAddresses();
+
+      // ==============================
+      // OVERVIEW: Display saved addresses
+      // ==============================
+      async function loadOverviewAddresses() {
+        const overviewContainer = document.getElementById('overview-addresses');
+        if (!overviewContainer) return;
+
+        try {
+          const res = await fetch('/api/addresses');
+          const data = await res.json();
+          
+          if (data.success && data.addresses && data.addresses.length > 0) {
+            const addresses = data.addresses.slice(0, 3); // Show only top 3
+            overviewContainer.innerHTML = `
+              <ul class="list-clean">
+                ${addresses.map(addr => `
+                  <li class="addr-item">
+                    <div class="addr-main">
+                      <div class="addr-label">
+                        ${addr.label || 'Address'}
+                        ${addr.is_default ? '<span class="default-mini">Default</span>' : ''}
+                      </div>
+                      <div class="addr-details">${addr.address_line || ''}, ${addr.city || ''}</div>
+                    </div>
+                  </li>
+                `).join('')}
+              </ul>
+              ${data.addresses.length > 3 ? `<p class="addr-more">+${data.addresses.length - 3} more address${data.addresses.length - 3 > 1 ? 'es' : ''}</p>` : ''}
+            `;
+          } else {
+            overviewContainer.innerHTML = '<p class="empty">No saved addresses yet.</p>';
+          }
+        } catch (err) {
+          console.error('Error loading overview addresses:', err);
+          overviewContainer.innerHTML = '<p class="empty">Failed to load addresses.</p>';
+        }
+      }
+
+      // Load overview addresses on page load
+      loadOverviewAddresses();
     });
   </script>
 
@@ -715,6 +1035,45 @@
     .orders-tab.active{background:#2563eb;color:#fff;border-color:#2563eb}
     .orders-tab.active .badge{background:rgba(255,255,255,0.25);color:#fff}
 
+  /* Shipping Addresses */
+  .addresses-container{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+  .address-card{border:1px solid #e5e7eb;background:#fff;border-radius:12px;padding:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .address-content{flex:1}
+  .address-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .address-label{margin:0;font-size:16px;font-weight:700;color:#0f172a}
+  .default-badge{background:#dcfce7;color:#166534;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600}
+  .address-body{color:#475569}
+  .address-body p{margin:4px 0}
+  .address-name{font-weight:600;color:#0f172a}
+  .address-line,.address-city,.address-contact{font-size:14px}
+  .address-actions{display:flex;flex-direction:column;gap:8px}
+
+  /* Address Form Modal */
+  .address-form-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999}
+  .address-form-modal{background:#fff;border-radius:16px;width:90%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1)}
+  .address-form-header{display:flex;justify-content:space-between;align-items:center;padding:20px;border-bottom:1px solid #e5e7eb}
+  .address-form-header h4{margin:0;font-size:20px;font-weight:700}
+  .close-btn{background:none;border:none;font-size:28px;cursor:pointer;color:#6b7280;line-height:1;padding:0}
+  .close-btn:hover{color:#0f172a}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px}
+  .form-group{display:flex;flex-direction:column}
+  .form-group.full-width{grid-column:1 / -1}
+  .form-group label{font-weight:600;margin-bottom:6px;color:#334155;font-size:14px}
+  .form-group input{padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px}
+  .form-group input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
+  .checkbox-label{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .checkbox-label input[type="checkbox"]{width:auto;margin:0}
+  .form-actions{display:flex;justify-content:flex-end;gap:12px;padding:16px 20px;border-top:1px solid #e5e7eb}
+
+  /* Overview Addresses */
+  .addr-item{display:flex;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f8fafc}
+  .addr-item:last-child{border-bottom:none}
+  .addr-main{flex:1}
+  .addr-label{font-weight:700;font-size:14px;color:#0f172a;display:flex;align-items:center;gap:6px;margin-bottom:4px}
+  .default-mini{background:#dcfce7;color:#166534;padding:1px 6px;border-radius:8px;font-size:11px;font-weight:600}
+  .addr-details{font-size:13px;color:#64748b}
+  .addr-more{margin-top:8px;font-size:13px;color:#64748b;font-style:italic}
+
   /* Dashboard summary (removed) */
 
     /* Overview widgets */
@@ -745,5 +1104,240 @@
     .notif.ok{background:#ecfdf5;color:#065f46}
     .notif.error{background:#fef2f2;color:#991b1b}
   </style>
+
+  <!-- Review Modal -->
+  <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+          <h5 class="modal-title" id="reviewModalLabel">
+            <i class="fa-solid fa-star"></i> Write a Review
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Order #<span id="reviewOrderId"></span></label>
+            <div id="reviewOrderItems" class="mb-3"></div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Your Rating <span class="text-danger">*</span></label>
+            <div class="star-rating">
+              <i class="fa-star fa-regular star-input" data-rating="1"></i>
+              <i class="fa-star fa-regular star-input" data-rating="2"></i>
+              <i class="fa-star fa-regular star-input" data-rating="3"></i>
+              <i class="fa-star fa-regular star-input" data-rating="4"></i>
+              <i class="fa-star fa-regular star-input" data-rating="5"></i>
+            </div>
+            <input type="hidden" id="reviewRating" value="0">
+          </div>
+
+          <div class="mb-3">
+            <label for="reviewComment" class="form-label fw-bold">Your Review <span class="text-danger">*</span></label>
+            <textarea class="form-control" id="reviewComment" rows="4" placeholder="Share your experience with this product..."></textarea>
+          </div>
+
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle-fill"></i> Your review helps other customers make informed decisions!
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-warning" onclick="submitReview()" style="background: #f59e0b; border-color: #f59e0b;">
+            <i class="fa-solid fa-paper-plane"></i> Submit Review
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .star-rating {
+      display: flex;
+      gap: 10px;
+      font-size: 32px;
+      cursor: pointer;
+    }
+    .star-input {
+      color: #d1d5db;
+      transition: all 0.2s;
+    }
+    .star-input:hover,
+    .star-input.active {
+      color: #f59e0b;
+    }
+    .star-input.fa-solid {
+      color: #f59e0b;
+    }
+  </style>
+
+  <script>
+    let reviewModal = null;
+    let currentOrderId = null;
+
+    // Write a Review Modal Function
+    function openReviewModal(button) {
+      currentOrderId = button.getAttribute('data-order-id');
+      document.getElementById('reviewOrderId').textContent = currentOrderId;
+      
+      // Reset form
+      document.getElementById('reviewRating').value = '0';
+      document.getElementById('reviewComment').value = '';
+      resetStars();
+      
+      // Load order items
+      loadOrderItems(currentOrderId);
+      
+      // Show modal
+      if (!reviewModal) {
+        reviewModal = new bootstrap.Modal(document.getElementById('reviewModal'));
+      }
+      reviewModal.show();
+    }
+
+    async function loadOrderItems(orderId) {
+      try {
+        const response = await fetch(`/orders/${orderId}/items`);
+        const data = await response.json();
+        
+        if (data.success && data.items) {
+          const itemsHtml = data.items.map(item => `
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <img src="${item.image_url || '/image/placeholder.png'}" 
+                   alt="${item.product_name}" 
+                   style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+              <div>
+                <div class="fw-bold">${item.product_name}</div>
+                <small class="text-muted">Qty: ${item.quantity}</small>
+              </div>
+            </div>
+          `).join('');
+          document.getElementById('reviewOrderItems').innerHTML = itemsHtml;
+        }
+      } catch (error) {
+        console.error('Error loading order items:', error);
+        document.getElementById('reviewOrderItems').innerHTML = '<p class="text-muted">Order items</p>';
+      }
+    }
+
+    // Star rating functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const stars = document.querySelectorAll('.star-input');
+      
+      stars.forEach(star => {
+        star.addEventListener('click', function() {
+          const rating = parseInt(this.getAttribute('data-rating'));
+          document.getElementById('reviewRating').value = rating;
+          
+          // Update star display
+          stars.forEach(s => {
+            const starRating = parseInt(s.getAttribute('data-rating'));
+            if (starRating <= rating) {
+              s.classList.remove('fa-regular');
+              s.classList.add('fa-solid', 'active');
+            } else {
+              s.classList.remove('fa-solid', 'active');
+              s.classList.add('fa-regular');
+            }
+          });
+        });
+
+        star.addEventListener('mouseenter', function() {
+          const rating = parseInt(this.getAttribute('data-rating'));
+          stars.forEach(s => {
+            const starRating = parseInt(s.getAttribute('data-rating'));
+            if (starRating <= rating) {
+              s.classList.add('active');
+            }
+          });
+        });
+      });
+
+      const starContainer = document.querySelector('.star-rating');
+      if (starContainer) {
+        starContainer.addEventListener('mouseleave', function() {
+          const currentRating = parseInt(document.getElementById('reviewRating').value);
+          stars.forEach(s => {
+            const starRating = parseInt(s.getAttribute('data-rating'));
+            if (starRating > currentRating) {
+              s.classList.remove('active');
+            }
+          });
+        });
+      }
+    });
+
+    function resetStars() {
+      const stars = document.querySelectorAll('.star-input');
+      stars.forEach(s => {
+        s.classList.remove('fa-solid', 'active');
+        s.classList.add('fa-regular');
+      });
+    }
+
+    async function submitReview() {
+      const rating = parseInt(document.getElementById('reviewRating').value);
+      const comment = document.getElementById('reviewComment').value.trim();
+
+      // Validation
+      if (rating === 0) {
+        alert('Please select a rating');
+        return;
+      }
+
+      if (!comment) {
+        alert('Please write a review');
+        return;
+      }
+
+      if (comment.length < 10) {
+        alert('Review must be at least 10 characters long');
+        return;
+      }
+
+      const submitBtn = event.target;
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Submitting...';
+
+      try {
+        const response = await fetch(`/orders/${currentOrderId}/review`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            rating: rating,
+            comment: comment
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Close modal
+          if (reviewModal) reviewModal.hide();
+          
+          // Show success message
+          alert('✅ Thank you for your review!');
+          
+          // Reload page to update order status
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          alert(data.error || 'Failed to submit review');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
+      } catch (error) {
+        console.error('Error submitting review:', error);
+        alert('Failed to submit review. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    }
+  </script>
 </body>
 </html>

@@ -181,6 +181,14 @@ router.get("/capture-order", async (req, res) => {
     if (paid) {
       req.session._paypalPaid = req.session._paypalPaid || {};
       req.session._paypalPaid[token] = true;
+      
+      // Store capture ID for later refunds
+      const captureId = captureRes.data.purchase_units?.[0]?.payments?.captures?.[0]?.id;
+      if (captureId) {
+        req.session._paypalCaptureIds = req.session._paypalCaptureIds || {};
+        req.session._paypalCaptureIds[token] = captureId;
+        console.log(`💳 PayPal payment captured: Order ${token}, Capture ${captureId}`);
+      }
     }
 
     res.send("<script>window.close();</script>");
@@ -203,4 +211,84 @@ router.get("/check-status", async (req, res) => {
   }
 });
 
+// ================== REFUND FUNCTIONS ==================
+
+/**
+ * Get PayPal Capture ID from a PayPal Order ID
+ * @param {string} paypalOrderId - The PayPal order ID
+ * @returns {Promise<string|null>} The capture ID or null if not found
+ */
+async function getPayPalCaptureId(paypalOrderId) {
+  try {
+    const accessToken = await generateAccessToken();
+    
+    const orderRes = await axios.get(
+      `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${paypalOrderId}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    
+    const captures = orderRes.data.purchase_units?.[0]?.payments?.captures || [];
+    const captureId = captures[0]?.id || null;
+    
+    if (!captureId) {
+      console.warn(`No capture ID found for PayPal order ${paypalOrderId}`);
+    }
+    
+    return captureId;
+  } catch (err) {
+    console.error("Error getting PayPal capture ID:", err.response?.data || err.message);
+    return null;
+  }
+}
+
+/**
+ * Process a refund through PayPal API
+ * @param {string} captureId - The PayPal capture ID to refund
+ * @param {number} amount - The amount to refund
+ * @param {string} reason - Reason for the refund (optional)
+ * @returns {Promise<{success: boolean, refundId?: string, status?: string, error?: string}>}
+ */
+async function refundPayPalPayment(captureId, amount, reason = '') {
+  try {
+    console.log(`🔄 Processing PayPal refund: Capture ID ${captureId}, Amount: $${amount}`);
+    
+    const accessToken = await generateAccessToken();
+    
+    const refundRes = await axios.post(
+      `${process.env.PAYPAL_BASE_URL}/v2/payments/captures/${captureId}/refund`,
+      {
+        amount: {
+          currency_code: "USD",
+          value: Number(amount).toFixed(2)
+        },
+        note_to_payer: reason || "Refund for your order"
+      },
+      { 
+        headers: { 
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        } 
+      }
+    );
+    
+    console.log(`✅ PayPal refund successful: ${refundRes.data.id} - Status: ${refundRes.data.status}`);
+    
+    return {
+      success: true,
+      refundId: refundRes.data.id,
+      status: refundRes.data.status
+    };
+  } catch (err) {
+    const errorMsg = err.response?.data?.message || err.response?.data?.details?.[0]?.description || err.message;
+    console.error("❌ PayPal refund error:", err.response?.data || errorMsg);
+    
+    return {
+      success: false,
+      error: errorMsg
+    };
+  }
+}
+
+// Export functions for use in other routes
+export { refundPayPalPayment, getPayPalCaptureId };
 export default router;

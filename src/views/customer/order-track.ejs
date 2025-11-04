@@ -20,9 +20,10 @@
 
       <% 
         const _s = String(order.status || '').toLowerCase();
-  const stepIndex = (_s.includes('delivered') || _s.includes('completed') || _s.includes('deliver') || _s.includes('complete')) ? 3
+        const _isCancelled = !!order.cancelled_at || _s.includes('cancel');
+  const stepIndex = _isCancelled ? -1 : ((_s.includes('delivered') || _s.includes('completed') || _s.includes('deliver') || _s.includes('complete')) ? 3
       : ((_s.includes('en route') || _s.includes('courier') || _s.includes('out')) ? 2
-      : ((_s.includes('shipped') || _s.includes('ship')) ? 1 : 0));
+      : ((_s.includes('shipped') || _s.includes('ship')) ? 1 : 0)));
   const _pct = (stepIndex/3) * 100;
       %>
 
@@ -30,6 +31,44 @@
         <section class="cardx">
           <div class="head"><h2 class="h6 m-0">Delivery progress</h2></div>
           <div class="body">
+            <% if (_isCancelled) { %>
+              <div class="alert alert-danger d-flex align-items-start" role="alert">
+                <i class="bi bi-x-circle-fill me-2" style="font-size:24px;"></i>
+                <div class="flex-grow-1">
+                  <strong>Order Cancelled</strong>
+                  <% if (order.cancelled_at) { %>
+                    <div class="small">Cancelled on <%= new Date(order.cancelled_at).toLocaleString() %></div>
+                  <% } %>
+                  <% if (order.cancellation_reason) { %>
+                    <div class="small text-muted">Reason: <%= order.cancellation_reason %></div>
+                  <% } %>
+                  
+                  <% if (order.refund_status && order.refund_amount) { %>
+                    <hr class="my-2">
+                    <div class="small">
+                      <strong>
+                        <i class="bi bi-arrow-counterclockwise"></i> Refund Status: 
+                        <% if (order.refund_status === 'processed') { %>
+                          <span class="text-success">Processed</span>
+                        <% } else if (order.refund_status === 'pending') { %>
+                          <span class="text-warning">Pending</span>
+                        <% } else { %>
+                          <span class="text-info"><%= order.refund_status %></span>
+                        <% } %>
+                      </strong>
+                    </div>
+                    <div class="small mt-1">
+                      Refund Amount: <strong>$<%= Number(order.refund_amount).toFixed(2) %></strong>
+                      <% if (order.refund_status === 'pending') { %>
+                        <br><span class="text-muted">Your refund will be processed within 5-7 business days.</span>
+                      <% } else if (order.refund_status === 'processed' && order.refund_processed_at) { %>
+                        <br><span class="text-muted">Processed on <%= new Date(order.refund_processed_at).toLocaleDateString() %></span>
+                      <% } %>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+            <% } else { %>
             <div class="dl-card" style="border:none; box-shadow:none; padding:0;">
               <div class="dl-title" style="display:none">Delivery timeline</div>
               <div class="dl-track-wrap">
@@ -87,6 +126,7 @@
                 <div class="text-muted small" style="margin-top:6px;">Estimated delivery: <strong><%= etaLabel %></strong></div>
               <% } %>
             </div>
+            <% } %>
           
             <div class="text-muted small mt-2">Placed: <%= new Date(order.created_on || Date.now()).toLocaleString() %></div>
             <hr>
@@ -124,7 +164,196 @@
           </div>
         </section>
     <div class="mt-3 d-flex gap-2">
+      <% 
+        const isCancelled = !!order.cancelled_at;
+        const orderStatus = (order.status || '').toLowerCase();
+        const isDelivered = /deliver|complete/.test(orderStatus);
+        const canCancel = !isCancelled && !isDelivered;
+      %>
+      
+      <% if (isCancelled) { %>
+        <span class="badge bg-danger" style="padding:8px 16px;font-size:14px;">
+          <i class="bi bi-x-circle-fill"></i> Order Cancelled
+        </span>
+      <% } else if (canCancel) { %>
+        <button class="btn btn-outline-danger" onclick="showCancelModal()">
+          <i class="bi bi-x-circle"></i> Cancel Order
+        </button>
+      <% } else if (isDelivered && !order.refund_status) { %>
+        <button class="btn btn-warning" onclick="showRefundModal()" style="font-weight:600;">
+          <i class="bi bi-arrow-counterclockwise"></i> Request Refund
+        </button>
+      <% } else if (order.refund_status === 'requested') { %>
+        <span class="badge bg-warning text-dark" style="padding:8px 16px;font-size:14px;">
+          <i class="bi bi-clock-fill"></i> Refund Requested - Pending Review
+        </span>
+      <% } else if (order.refund_status === 'processed') { %>
+        <span class="badge bg-success" style="padding:8px 16px;font-size:14px;">
+          <i class="bi bi-check-circle-fill"></i> Refund Processed
+        </span>
+      <% } %>
+      
       <a href="/help" class="btn btn-outline-secondary">Need help?</a>
+    </div>
+  </div>
+
+  <!-- Cancel Order Modal -->
+  <div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="cancelOrderModalLabel">
+            <i class="bi bi-exclamation-triangle text-warning"></i> Cancel Order #<%= order.id %>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning" role="alert">
+            <strong>Are you sure you want to cancel this order?</strong>
+            <p class="mb-0 mt-2">This action cannot be undone. If your order has already been shipped, you may need to contact customer support.</p>
+          </div>
+          
+          <% 
+            const isPaidOrder = order.payment_method === 'PayPal' || order.payment_completed;
+          %>
+          
+          <% if (isPaidOrder) { %>
+          <div class="alert alert-info d-flex align-items-start" role="alert">
+            <i class="bi bi-info-circle-fill me-2 mt-1" style="font-size:20px;"></i>
+            <div>
+              <strong>Automatic Refund</strong>
+              <p class="mb-0 small mt-1">
+                Since you've already paid for this order, a full refund will be automatically processed to your original payment method within <strong>5-7 business days</strong> after cancellation.
+              </p>
+            </div>
+          </div>
+          <% } %>
+          
+          <div class="mb-3">
+            <label for="cancellationReason" class="form-label fw-semibold">Reason for cancellation <span class="text-danger">*</span></label>
+            <select class="form-select" id="cancellationReason" required>
+              <option value="">Select a reason...</option>
+              <option value="Changed my mind">Changed my mind</option>
+              <option value="Found a better price elsewhere">Found a better price elsewhere</option>
+              <option value="Ordered by mistake">Ordered by mistake</option>
+              <option value="Delivery taking too long">Delivery taking too long</option>
+              <option value="Need to change shipping address">Need to change shipping address</option>
+              <option value="No longer need the item">No longer need the item</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          
+          <div class="mb-3" id="otherReasonDiv" style="display:none;">
+            <label for="otherReason" class="form-label">Please specify</label>
+            <textarea class="form-control" id="otherReason" rows="2" placeholder="Enter your reason..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Order</button>
+          <button type="button" class="btn btn-danger" onclick="confirmCancellation()">
+            <i class="bi bi-x-circle"></i> Yes, Cancel Order
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Refund Request Modal -->
+  <div class="modal fade" id="refundModal" tabindex="-1" aria-labelledby="refundModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title" id="refundModalLabel">
+            <i class="bi bi-arrow-counterclockwise"></i> Request Refund for Order #<%= order.id %>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info" role="alert">
+            <strong>Refund Request</strong>
+            <p class="mb-0 mt-2">Please tell us why you'd like a refund. Our team will review your request and process it within 1-2 business days.</p>
+          </div>
+          
+          <div class="mb-3">
+            <label for="refundReason" class="form-label fw-bold">Reason for Refund <span class="text-danger">*</span></label>
+            <select class="form-select" id="refundReason" required>
+              <option value="">Select a reason...</option>
+              <option value="Product damaged/defective">Product damaged or defective</option>
+              <option value="Wrong item received">Wrong item received</option>
+              <option value="Item not as described">Item not as described</option>
+              <option value="Changed my mind">Changed my mind</option>
+              <option value="Found better price elsewhere">Found better price elsewhere</option>
+              <option value="Quality not satisfactory">Quality not satisfactory</option>
+              <option value="Other">Other (please specify below)</option>
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label for="refundDetails" class="form-label fw-bold">Additional Details (Optional)</label>
+            <textarea class="form-control" id="refundDetails" rows="3" placeholder="Please provide any additional information about your refund request..."></textarea>
+          </div>
+          
+          <% if (order.payment_method === 'PayPal' || order.payment_completed) { %>
+          <div class="alert alert-success d-flex align-items-start" role="alert">
+            <i class="bi bi-info-circle-fill me-2 mt-1" style="font-size:20px;"></i>
+            <div>
+              <strong>Automatic Refund</strong>
+              <p class="mb-0 small mt-1">
+                Once approved, your refund of <strong>$<%= Number(order.total || 0).toFixed(2) %></strong> will be processed to your original payment method within <strong>5-7 business days</strong>.
+              </p>
+            </div>
+          </div>
+          <% } else { %>
+          <div class="alert alert-warning d-flex align-items-start" role="alert">
+            <i class="bi bi-cash-coin me-2 mt-1" style="font-size:20px;"></i>
+            <div>
+              <strong>COD Refund</strong>
+              <p class="mb-0 small mt-1">
+                Since you paid cash on delivery, our team will contact you to arrange the refund via bank transfer or e-wallet.
+              </p>
+            </div>
+          </div>
+          <% } %>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-warning" onclick="submitRefundRequest()" id="submitRefundBtn">
+            <i class="bi bi-send-fill"></i> Submit Refund Request
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Modal -->
+  <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="errorModalLabel">
+            <i class="bi bi-exclamation-triangle-fill"></i> Error
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="errorModalMessage" style="margin: 0;">An error occurred.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Toast -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index:11000">
+    <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-check-circle-fill"></i> <span id="toastMessage">Order cancelled successfully</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -135,6 +364,213 @@
     crossorigin=""
   ></script>
   <script>
+    // Modal Functions
+    const ORDER_ID = Number('<%= order.id %>');
+    let cancelModal = null;
+    let refundModal = null;
+    let errorModal = null;
+    
+    function showCancelModal() {
+      if (!cancelModal) {
+        cancelModal = new bootstrap.Modal(document.getElementById('cancelOrderModal'));
+      }
+      cancelModal.show();
+    }
+    
+    function showRefundModal() {
+      if (!refundModal) {
+        refundModal = new bootstrap.Modal(document.getElementById('refundModal'));
+      }
+      refundModal.show();
+    }
+    
+    function showErrorModal(message) {
+      document.getElementById('errorModalMessage').textContent = message;
+      if (!errorModal) {
+        errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+      }
+      errorModal.show();
+    }
+    
+    function showInfoModal(title, message) {
+      // Reuse error modal but change styling
+      const modalEl = document.getElementById('errorModal');
+      const modalTitle = document.getElementById('errorModalLabel');
+      const modalHeader = modalEl.querySelector('.modal-header');
+      
+      modalHeader.className = 'modal-header bg-info text-white';
+      modalTitle.innerHTML = '<i class="bi bi-info-circle-fill"></i> ' + title;
+      document.getElementById('errorModalMessage').textContent = message;
+      
+      if (!errorModal) {
+        errorModal = new bootstrap.Modal(modalEl);
+      }
+      errorModal.show();
+      
+      // Reset to error styling when closed
+      modalEl.addEventListener('hidden.bs.modal', function() {
+        modalHeader.className = 'modal-header bg-danger text-white';
+        modalTitle.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> Error';
+      }, { once: true });
+    }
+    
+    // Show "other reason" textarea when "Other" is selected
+    document.getElementById('cancellationReason').addEventListener('change', function() {
+      const otherDiv = document.getElementById('otherReasonDiv');
+      if (this.value === 'Other') {
+        otherDiv.style.display = 'block';
+      } else {
+        otherDiv.style.display = 'none';
+      }
+    });
+    
+    async function confirmCancellation() {
+      const reasonSelect = document.getElementById('cancellationReason');
+      const otherReason = document.getElementById('otherReason');
+      
+      let reason = reasonSelect.value;
+      
+      // Validation
+      if (!reason) {
+        showErrorModal('Please select a reason for cancellation');
+        return;
+      }
+      
+      // If "Other" selected, use the textarea value
+      if (reason === 'Other') {
+        const customReason = otherReason.value.trim();
+        if (!customReason) {
+          showErrorModal('Please specify your reason for cancellation');
+          return;
+        }
+        reason = customReason;
+      }
+      
+      // Disable the button to prevent double submission
+      const cancelBtn = event.target;
+      const originalText = cancelBtn.innerHTML;
+      cancelBtn.disabled = true;
+      cancelBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cancelling...';
+      
+      try {
+        const response = await fetch(`/orders/${ORDER_ID}/cancel`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            cancellation_reason: reason
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Hide modal
+          if (cancelModal) cancelModal.hide();
+          
+          // Show success message
+          showToast(data.message || 'Order cancelled successfully');
+          
+          // Show refund information if applicable
+          if (data.refund_initiated && data.refund_amount) {
+            setTimeout(() => {
+              const refundMsg = `A refund of $${Number(data.refund_amount).toFixed(2)} has been initiated and will be processed to your original payment method within 5-7 business days.`;
+              showInfoModal('Refund Initiated', refundMsg);
+            }, 800);
+          }
+          
+          // Show warning if any
+          if (data.warning) {
+            setTimeout(() => {
+              showErrorModal(data.warning);
+            }, data.refund_initiated ? 2000 : 1000);
+          }
+          
+          // Reload page after appropriate delay
+          const reloadDelay = data.refund_initiated ? 3000 : 1500;
+          setTimeout(() => {
+            window.location.reload();
+          }, reloadDelay);
+        } else {
+          showErrorModal(data.error || 'Failed to cancel order');
+          cancelBtn.disabled = false;
+          cancelBtn.innerHTML = originalText;
+        }
+      } catch (error) {
+        console.error('Error cancelling order:', error);
+        showErrorModal('Failed to cancel order. Please try again or contact support.');
+        cancelBtn.disabled = false;
+        cancelBtn.innerHTML = originalText;
+      }
+    }
+    
+    async function submitRefundRequest() {
+      const reasonSelect = document.getElementById('refundReason');
+      const detailsTextarea = document.getElementById('refundDetails');
+      
+      const reason = reasonSelect.value;
+      const details = detailsTextarea.value.trim();
+      
+      // Validation
+      if (!reason) {
+        showErrorModal('Please select a reason for your refund request');
+        return;
+      }
+      
+      // Disable the button to prevent double submission
+      const submitBtn = event.target;
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+      
+      try {
+        const response = await fetch(`/orders/${ORDER_ID}/request-refund`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            reason: reason,
+            details: details || null
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Hide modal
+          if (refundModal) refundModal.hide();
+          
+          // Show success message
+          showToast(data.message || 'Refund request submitted successfully');
+          
+          // Reload page after delay to show updated status
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showErrorModal(data.error || 'Failed to submit refund request');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
+      } catch (error) {
+        console.error('Error submitting refund request:', error);
+        showErrorModal('Failed to submit refund request. Please try again or contact support.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    }
+    
+    function showToast(message) {
+      const toastEl = document.getElementById('successToast');
+      const toastMsg = document.getElementById('toastMessage');
+      toastMsg.textContent = message;
+      const toast = new bootstrap.Toast(toastEl);
+      toast.show();
+    }
+    
+    // Original tracking code
     (function(){
   const orderId = "<%= order.id %>";
   const apiUrl = `/api/tracking/${orderId}`;

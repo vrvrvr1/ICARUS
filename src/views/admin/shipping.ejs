@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shipping Settings</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <aside class="dashboard-sidebar">
+    <div>
+      <div class="sidebar-profile">
+        <img src="/images/avatar.jpg" alt="Admin" class="sidebar-avatar" />
+        <div>
+          <div class="sidebar-welcome">Welcome back,</div>
+          <div class="sidebar-name">Admin</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/admin"><i class="bi bi-house-door"></i> Dashboard</a>
+        <a href="/admin/sales"><i class="bi bi-graph-up"></i> Sales</a>
+        <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
+        <a href="/customers"><i class="bi bi-people"></i> Customers</a>
+        <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/chat"><i class="bi bi-chat-dots-fill"></i> Live Chat</a>
+        <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
+        <a href="/admin/announcements"><i class="bi bi-megaphone"></i> Announcements</a>
+        <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/cms"><i class="bi bi-journal-text"></i> CMS</a>
+        <a href="/admin/settings"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
+      </nav>
+    </div>
+
+    <div>
+      <p class="text-center text-secondary small mb-0">© 2025 Icarus Wears</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <div>
+        <div class="dashboard-title-main">Shipping Settings</div>
+        <div class="dashboard-title-sub">Configure shipping methods and rates</div>
+      </div>
+      <a href="/admin/settings" class="btn btn-ghost"><i class="bi bi-arrow-left"></i> Back to Settings</a>
+    </div>
+
+    <section class="card">
+      <form method="POST" action="/admin/shipping">
+        <div style="display:grid;gap:20px;">
+          
+          <div class="dashboard-card">
+            <div class="card-label"><i class="bi bi-box-seam card-icon"></i> Standard Shipping</div>
+            <div class="small text-secondary mb-3">Regular delivery option</div>
+            
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;">
+              <input type="checkbox" name="standard_shipping_enabled" <%= (settings && settings.standard_shipping_enabled !== false) ? 'checked' : '' %> />
+              <span><i class="bi bi-truck"></i> Enable Standard Shipping</span>
+            </label>
+            
+            <label class="small text-secondary">Standard Shipping Rate ($)</label>
+            <input 
+              type="number" 
+              step="0.01" 
+              min="0" 
+              name="standard_rate" 
+              class="search-input" 
+              value="<%= (settings && settings.standard_shipping_rate) ? settings.standard_shipping_rate : '5.00' %>" 
+              placeholder="5.00"
+            />
+            <div class="small text-secondary mt-1">Cost for standard delivery</div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-label"><i class="bi bi-lightning card-icon"></i> Express Shipping</div>
+            <div class="small text-secondary mb-3">Fast delivery option</div>
+            
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;">
+              <input type="checkbox" name="express_shipping_enabled" <%= (settings && settings.express_shipping_enabled !== false) ? 'checked' : '' %> />
+              <span><i class="bi bi-lightning-fill"></i> Enable Express Shipping</span>
+            </label>
+            
+            <label class="small text-secondary">Express Shipping Rate ($)</label>
+            <input 
+              type="number" 
+              step="0.01" 
+              min="0" 
+              name="express_rate" 
+              class="search-input" 
+              value="<%= (settings && settings.express_shipping_rate) ? settings.express_shipping_rate : '15.00' %>" 
+              placeholder="15.00"
+            />
+            <div class="small text-secondary mt-1">Cost for express delivery</div>
+          </div>
+
+          <div style="display:flex;gap:12px;">
+            <button type="submit" class="btn">Save Shipping Settings</button>
+            <a href="/admin/settings" class="btn btn-ghost">Cancel</a>
+          </div>
+        </div>
+      </form>
+    </section>
+  </main>
+
+</body>
+</html>

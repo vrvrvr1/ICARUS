@@ -88,11 +88,11 @@ router.get("/", isAuthenticated, async (req, res) => {
              o.estimated_delivery,
              o.estimated_delivery_start,
              o.estimated_delivery_end,
-             COALESCE(SUM(oi.quantity * oi.price), 0) AS total_amount
+             o.cancelled_at,
+             o.cancellation_reason,
+             o.total AS total_amount
       FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi.order_id
       WHERE o.customer_id = $1
-      GROUP BY o.id, o.order_date, o.status, o.estimated_delivery, o.estimated_delivery_start, o.estimated_delivery_end
       ORDER BY o.order_date DESC
       LIMIT 20
     `, [userId]);
@@ -107,6 +107,7 @@ router.get("/", isAuthenticated, async (req, res) => {
     if (orderIds.length) {
       const itemsResult = await db.query(`
         SELECT oi.order_id,
+               oi.product_id,
                COALESCE(oi.product_name, p.name) AS product_name,
                COALESCE(oi.image_url, p.image_url) AS image_url,
                oi.quantity,
@@ -121,6 +122,7 @@ router.get("/", isAuthenticated, async (req, res) => {
         const id = row.order_id;
         if (!byOrder[id]) byOrder[id] = [];
         byOrder[id].push({
+          product_id: row.product_id,
           product_name: row.product_name,
           image_url: row.image_url,
           quantity: Number(row.quantity || 0),
@@ -443,6 +445,115 @@ router.post('/orders/:id/cancel', isAuthenticated, async (req, res) => {
   } catch (err) {
     console.error('Cancel order error:', err);
     return res.status(500).json({ success: false, error: 'Server Error' });
+  }
+});
+
+/* ==============================
+   REQUEST REFUND (customer-initiated)
+============================== */
+router.post('/orders/:id/request-refund', isAuthenticated, async (req, res) => {
+  const userId = req.session.user.id;
+  const orderId = Number(req.params.id);
+  const { reason } = req.body;
+  
+  if (!orderId || Number.isNaN(orderId)) {
+    return res.status(400).json({ success: false, error: 'Invalid order id' });
+  }
+  
+  if (!reason || reason.trim().length === 0) {
+    return res.status(400).json({ success: false, error: 'Refund reason is required' });
+  }
+  
+  try {
+    const { rows } = await db.query(
+      'SELECT id, status, payment_method, payment_completed, refund_status, total FROM orders WHERE id = $1 AND customer_id = $2',
+      [orderId, userId]
+    );
+    
+    const order = rows[0];
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+    
+    // Check if payment was completed
+    if (!order.payment_completed) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Cannot request refund for unpaid orders. You can cancel the order instead.' 
+      });
+    }
+    
+    const status = String(order.status || '').toLowerCase();
+    
+    // Only allow refund requests for delivered orders or specific statuses
+    if (!status.includes('deliver') && !status.includes('complete')) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Refunds can only be requested for delivered orders. You can cancel pending orders instead.' 
+      });
+    }
+    
+    // Check if refund already requested/processed
+    if (order.refund_status) {
+      const refundStatus = String(order.refund_status).toLowerCase();
+      if (refundStatus === 'processed') {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'This order has already been refunded.' 
+        });
+      }
+      if (refundStatus === 'requested' || refundStatus === 'pending') {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'A refund request for this order is already pending review.' 
+        });
+      }
+    }
+    
+    // Update order with refund request
+    await db.query(
+      `UPDATE orders SET 
+        refund_status = 'requested',
+        refund_requested_at = NOW(),
+        refund_reason = $1,
+        refund_amount = $2
+      WHERE id = $3`,
+      [reason.trim(), order.total, orderId]
+    );
+    
+    // Create notification for all admins
+    try {
+      const adminUsers = await db.query(
+        "SELECT id FROM users WHERE role = 'admin'"
+      );
+      
+      for (const admin of adminUsers.rows) {
+        await db.query(
+          `INSERT INTO user_notifications (user_id, title, body, link, type) 
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            admin.id,
+            'Refund Request',
+            `Customer requested refund for order #${orderId}. Amount: $${Number(order.total).toFixed(2)}`,
+            `/admin/orders/${orderId}`,
+            'refund'
+          ]
+        );
+      }
+    } catch (notifErr) {
+      console.warn('Could not create admin notification:', notifErr.message);
+    }
+    
+    console.log(`✅ Refund request created for order #${orderId} by user ${userId}`);
+    
+    return res.json({ 
+      success: true, 
+      message: 'Refund request submitted successfully. An admin will review it shortly.' 
+    });
+    
+  } catch (err) {
+    console.error('Request refund error:', err);
+    return res.status(500).json({ success: false, error: 'Server error. Please try again later.' });
   }
 });
 

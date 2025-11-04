@@ -24,7 +24,10 @@
         <a href="/adminproducts"><i class="bi bi-box-seam"></i> Products</a>
         <a href="/customers" class="active"><i class="bi bi-people"></i> Customers</a>
         <a href="/orders"><i class="bi bi-bag-check"></i> Orders</a>
+        <a href="/admin/discounts"><i class="bi bi-percent"></i> Discounts</a>
+        <a href="/admin/announcements"><i class="bi bi-megaphone"></i> Announcements</a>
         <a href="/admin/audit-logs"><i class="bi bi-clipboard-check"></i> Audit Logs</a>
+        <a href="/admin/cms"><i class="bi bi-journal-text"></i> CMS</a>
         <a href="/admin/settings"><i class="bi bi-gear"></i> Settings &amp; Configuration</a>
       </nav>
     </div>
@@ -40,7 +43,10 @@
         <div class="dashboard-title-main">Edit Customer</div>
         <div class="dashboard-title-sub">Modify customer information</div>
       </div>
-      <div class="dashboard-search">
+      <div class="dashboard-search" style="display:flex;align-items:center;gap:8px;">
+        <button onclick="document.getElementById('localhostModal').style.display='block'" type="button" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;" onmouseover="this.style.background='#bfdbfe'" onmouseout="this.style.background='#dbeafe'">
+          <i class="bi bi-laptop"></i> localhost
+        </button>
         <a href="/customers" class="btn btn-ghost">← Back to Customers</a>
       </div>
     </div>
@@ -92,33 +98,272 @@
               </div>
             </div>
 
-            <div style="flex:1;min-width:220px;">
-              <div style="margin-bottom:12px;font-weight:600">Admin actions</div>
-              <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
-                <button id="banBtn" type="button" class="btn" style="background:#e74c3c;color:#fff;padding:8px 12px;border-radius:8px;border:none">Ban</button>
-                <button id="unbanBtn" type="button" class="btn" style="background:#6c757d;color:#fff;padding:8px 12px;border-radius:8px;border:none;display:none">Unban</button>
-              </div>
-              <div style="display:flex;gap:12px;align-items:center;margin-top:6px;">
-                <button id="suspendBtn" type="button" class="btn" style="background:#f39c12;color:#fff;padding:8px 12px;border-radius:8px;border:none">Suspend</button>
-                <input id="suspendDays" type="number" min="0" placeholder="Days" style="width:90px;padding:8px;border-radius:6px;border:1px solid #ccc" />
-              </div>
-              <div style="margin-top:8px;">
-                <button id="clearSuspendBtn" type="button" class="btn btn-ghost" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd">Lift suspension</button>
-              </div>
-              <div id="suspendStatus" style="margin-top:10px;color:#666;font-size:13px">
-                <% if (customer.suspended_until) { %>
-                  Suspended until <%= new Date(customer.suspended_until).toLocaleString() %>
-                <% } %>
-              </div>
-                <div id="auditLog" style="margin-top:10px;color:#444;font-size:13px">
-                  <!-- Audit entries will be appended here (client-side). Server audit logging not configured in this template. -->
+            <div style="flex:1;min-width:280px;">
+              <div style="margin-bottom:16px;font-weight:700;font-size:16px;color:#333">Admin Actions</div>
+              
+              <!-- Account Status Card -->
+              <div style="background:#f8f9fa;border-radius:10px;padding:16px;margin-bottom:16px;border:1px solid #e5e7eb">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <div>
+                    <div style="font-weight:600;font-size:14px;color:#333;margin-bottom:4px">
+                      <i class="bi bi-shield-check" style="margin-right:6px"></i>Account Status
+                    </div>
+                    <div id="accountStatusText" style="font-size:13px;color:#666">
+                      <% if (customer.is_banned) { %>
+                        <span style="color:#e74c3c;font-weight:600">⛔ Banned</span>
+                      <% } else { %>
+                        <span style="color:#10b981;font-weight:600">✓ Active</span>
+                      <% } %>
+                    </div>
+                  </div>
+                  <div>
+                    <button id="banBtn" type="button" class="btn" style="background:#dc2626;color:#fff;padding:8px 16px;border-radius:8px;border:none;font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px">
+                      <i class="bi bi-slash-circle"></i> Ban Account
+                    </button>
+                    <button id="unbanBtn" type="button" class="btn" style="background:#10b981;color:#fff;padding:8px 16px;border-radius:8px;border:none;font-weight:600;font-size:13px;display:none;align-items:center;gap:6px">
+                      <i class="bi bi-check-circle"></i> Unban Account
+                    </button>
+                  </div>
                 </div>
+                <div style="font-size:12px;color:#6b7280;line-height:1.5">
+                  <% if (customer.is_banned) { %>
+                    Banned accounts cannot access the storefront or make purchases.
+                  <% } else { %>
+                    Account has full access to the storefront.
+                  <% } %>
+                </div>
+              </div>
+
+              <!-- Suspension Card -->
+              <div style="background:#fff7ed;border-radius:10px;padding:16px;border:1px solid #fed7aa">
+                <div style="display:flex;align-items:center;margin-bottom:12px">
+                  <i class="bi bi-clock-history" style="font-size:18px;color:#f59e0b;margin-right:8px"></i>
+                  <div style="font-weight:600;font-size:14px;color:#333">Temporary Suspension</div>
+                </div>
+                
+                <div id="suspendStatus" style="margin-bottom:12px;padding:10px;background:#fff;border-radius:6px;border:1px solid #fde68a;font-size:13px;color:#92400e">
+                  <% if (customer.suspended_until) { %>
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b"></i>
+                      <strong>Suspended until:</strong> <%= new Date(customer.suspended_until).toLocaleString() %>
+                    </div>
+                  <% } else { %>
+                    <div style="display:flex;align-items:center;gap:6px;color:#059669">
+                      <i class="bi bi-check-circle-fill"></i>
+                      No active suspension
+                    </div>
+                  <% } %>
+                </div>
+
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+                  <input id="suspendDays" type="number" min="1" max="365" placeholder="Days" style="width:80px;padding:8px 10px;border-radius:6px;border:1px solid #d1d5db;font-size:13px;text-align:center" />
+                  <button id="suspendBtn" type="button" class="btn" style="background:#f59e0b;color:#fff;padding:8px 16px;border-radius:8px;border:none;font-weight:600;font-size:13px;flex:1;display:flex;align-items:center;justify-content:center;gap:6px">
+                    <i class="bi bi-pause-circle"></i> Apply Suspension
+                  </button>
+                </div>
+                
+                <button id="clearSuspendBtn" type="button" class="btn btn-ghost" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #d1d5db;background:#fff;color:#6b7280;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">
+                  <i class="bi bi-x-circle"></i> Lift Suspension
+                </button>
+
+                <div style="font-size:12px;color:#92400e;margin-top:10px;line-height:1.4">
+                  <i class="bi bi-info-circle"></i> Suspended users can't access their account until the period ends.
+                </div>
+              </div>
+
+              <!-- Activity Log -->
+              <div id="auditLog" style="margin-top:16px;background:#f8f9fa;border-radius:10px;padding:12px;border:1px solid #e5e7eb">
+                <div style="font-weight:600;font-size:13px;color:#333;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+                  <i class="bi bi-clock-history"></i> Recent Actions
+                </div>
+                <div data-no-actions style="font-size:12px;color:#6b7280;font-style:italic">No recent admin actions</div>
+                <!-- Audit entries will be appended here (client-side). -->
+              </div>
             </div>
           </div>
         </div>
       </form>
     </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Localhost Info Modal -->
+        <div id="localhostModal" role="dialog" aria-modal="true" aria-labelledby="localhostModalTitle" style="display:none; position:fixed; inset:0; z-index:11000;">
+          <div style="position:absolute; inset:0; background:rgba(0,0,0,0.5);" onclick="document.getElementById('localhostModal').style.display='none'"></div>
+          <div style="max-width:580px; margin:80px auto; background:#fff; border-radius:12px; padding:24px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <h2 id="localhostModalTitle" style="margin:0; font-size:20px;display:flex;align-items:center;gap:8px;">
+                <i class="bi bi-laptop" style="color:#3b82f6"></i> Development Environment
+              </h2>
+              <button onclick="document.getElementById('localhostModal').style.display='none'" style="background:none;border:none;font-size:24px;color:#6b7280;cursor:pointer;padding:0;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">×</button>
+            </div>
+            
+            <div style="background:#f0f9ff;border-left:4px solid #3b82f6;padding:12px 16px;border-radius:6px;margin-bottom:16px;">
+              <div style="display:flex;align-items:start;gap:10px;">
+                <i class="bi bi-info-circle-fill" style="color:#3b82f6;font-size:18px;margin-top:2px;"></i>
+                <div>
+                  <p style="margin:0 0 8px 0;color:#1e40af;font-weight:600;">Running on Localhost</p>
+                  <p style="margin:0;color:#1e3a8a;font-size:14px;line-height:1.5;">
+                    You're currently accessing this application from your local development environment.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <h3 style="font-size:15px;font-weight:600;margin:0 0 10px 0;color:#333;">
+                <i class="bi bi-server" style="margin-right:6px;color:#8b5cf6"></i>Server Information
+              </h3>
+              <div style="background:#f9fafb;border-radius:8px;padding:12px;border:1px solid #e5e7eb;">
+                <div style="display:grid;gap:8px;font-size:13px;">
+                  <div style="display:flex;justify-content:space-between;">
+                    <span style="color:#6b7280;">Host:</span>
+                    <code style="background:#e5e7eb;padding:2px 8px;border-radius:4px;font-family:monospace;color:#1f2937;">localhost</code>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span style="color:#6b7280;">Environment:</span>
+                    <span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-weight:600;font-size:12px;">Development</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span style="color:#6b7280;">Access:</span>
+                    <span style="color:#1f2937;font-weight:500;">Local Only</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <h3 style="font-size:15px;font-weight:600;margin:0 0 10px 0;color:#333;">
+                <i class="bi bi-shield-check" style="margin-right:6px;color:#10b981"></i>Security Notes
+              </h3>
+              <ul style="margin:0;padding-left:20px;color:#4b5563;font-size:13px;line-height:1.7;">
+                <li>This is a development environment - not accessible from the internet</li>
+                <li>Database changes are for testing purposes only</li>
+                <li>Admin actions in this environment won't affect production</li>
+                <li>SSL/HTTPS is not required for localhost development</li>
+              </ul>
+            </div>
+
+            <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:16px;">
+              <div style="display:flex;align-items:start;gap:10px;">
+                <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;font-size:16px;margin-top:2px;"></i>
+                <div style="font-size:13px;color:#92400e;line-height:1.5;">
+                  <strong style="display:block;margin-bottom:4px;">Before deploying to production:</strong>
+                  Ensure all environment variables are properly configured and security measures are in place.
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px;">
+              <button onclick="document.getElementById('localhostModal').style.display='none'" type="button" style="background:#3b82f6;color:#fff;padding:8px 16px;border-radius:8px;border:none;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">Got it!</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ban Confirmation Modal -->
+        <div id="banConfirmModal" role="dialog" aria-modal="true" aria-labelledby="banConfirmTitle" style="display:none; position:fixed; inset:0; z-index:11000;">
+          <div style="position:absolute; inset:0; background:rgba(0,0,0,0.5);"></div>
+          <div style="max-width:520px; margin:80px auto; background:#fff; border-radius:12px; padding:24px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+              <div style="width:48px;height:48px;background:#fef2f2;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                <i class="bi bi-exclamation-triangle-fill" style="color:#dc2626;font-size:24px;"></i>
+              </div>
+              <h2 id="banConfirmTitle" style="margin:0; font-size:20px;color:#1f2937;font-weight:700;">Ban This Account?</h2>
+            </div>
+            
+            <div style="margin-bottom:20px;">
+              <p style="color:#4b5563;font-size:15px;line-height:1.6;margin:0 0 12px 0;">
+                Are you sure you want to ban this account? This action will have the following consequences:
+              </p>
+              
+              <div style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:6px;padding:12px 16px;margin-bottom:12px;">
+                <ul style="margin:0;padding-left:20px;color:#991b1b;font-size:14px;line-height:1.7;">
+                  <li>The user will <strong>lose all access</strong> to the storefront</li>
+                  <li>They won't be able to <strong>make purchases</strong> or view products</li>
+                  <li>Active sessions will be <strong>terminated immediately</strong></li>
+                  <li>The user will see a "banned account" message on login</li>
+                </ul>
+              </div>
+              
+              <p style="color:#6b7280;font-size:13px;line-height:1.5;margin:0;font-style:italic;">
+                <i class="bi bi-info-circle"></i> You can unban the account later to restore access.
+              </p>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+              <button id="banConfirmCancel" type="button" style="background:#fff;color:#374151;padding:10px 20px;border-radius:8px;border:1px solid #d1d5db;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'">
+                Cancel
+              </button>
+              <button id="banConfirmYes" type="button" style="background:#dc2626;color:#fff;padding:10px 20px;border-radius:8px;border:none;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">
+                <i class="bi bi-slash-circle"></i> Yes, Ban Account
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Suspension Validation Error Modal -->
+        <div id="suspendErrorModal" role="dialog" aria-modal="true" aria-labelledby="suspendErrorTitle" style="display:none; position:fixed; inset:0; z-index:11000;">
+          <div style="position:absolute; inset:0; background:rgba(0,0,0,0.5);" onclick="document.getElementById('suspendErrorModal').style.display='none'"></div>
+          <div style="max-width:440px; margin:100px auto; background:#fff; border-radius:12px; padding:24px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+              <div style="width:48px;height:48px;background:#fef3c7;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                <i class="bi bi-exclamation-circle-fill" style="color:#f59e0b;font-size:24px;"></i>
+              </div>
+              <h2 id="suspendErrorTitle" style="margin:0; font-size:18px;color:#1f2937;font-weight:700;">Invalid Input</h2>
+            </div>
+            
+            <div style="margin-bottom:20px;">
+              <p id="suspendErrorMessage" style="color:#4b5563;font-size:15px;line-height:1.6;margin:0;">
+                Please enter a valid number of days (1-365)
+              </p>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end;">
+              <button id="suspendErrorOk" type="button" style="background:#f59e0b;color:#fff;padding:10px 24px;border-radius:8px;border:none;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Suspension Confirmation Modal -->
+        <div id="suspendConfirmModal" role="dialog" aria-modal="true" aria-labelledby="suspendConfirmTitle" style="display:none; position:fixed; inset:0; z-index:11000;">
+          <div style="position:absolute; inset:0; background:rgba(0,0,0,0.5);" onclick="document.getElementById('suspendConfirmModal').style.display='none'"></div>
+          <div style="max-width:500px; margin:80px auto; background:#fff; border-radius:12px; padding:24px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+              <div style="width:48px;height:48px;background:#fff7ed;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                <i class="bi bi-clock-history" style="color:#f59e0b;font-size:24px;"></i>
+              </div>
+              <h2 id="suspendConfirmTitle" style="margin:0; font-size:20px;color:#1f2937;font-weight:700;">Suspend Account?</h2>
+            </div>
+            
+            <div style="margin-bottom:20px;">
+              <p style="color:#4b5563;font-size:15px;line-height:1.6;margin:0 0 12px 0;">
+                Are you sure you want to suspend this account for <strong id="suspendDaysDisplay" style="color:#f59e0b;">0</strong> day(s)?
+              </p>
+              
+              <div style="background:#fff7ed;border-left:4px solid #f59e0b;border-radius:6px;padding:12px 16px;margin-bottom:12px;">
+                <ul style="margin:0;padding-left:20px;color:#92400e;font-size:14px;line-height:1.7;">
+                  <li>User won't be able to <strong>access their account</strong> during this period</li>
+                  <li>Suspension will be <strong>automatically lifted</strong> after the specified time</li>
+                  <li>You can <strong>manually lift</strong> the suspension at any time</li>
+                </ul>
+              </div>
+              
+              <p style="color:#6b7280;font-size:13px;line-height:1.5;margin:0;font-style:italic;">
+                <i class="bi bi-info-circle"></i> Suspension end date: <span id="suspendEndDate" style="font-weight:600;color:#1f2937;"></span>
+              </p>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+              <button id="suspendConfirmCancel" type="button" style="background:#fff;color:#374151;padding:10px 20px;border-radius:8px;border:1px solid #d1d5db;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'">
+                Cancel
+              </button>
+              <button id="suspendConfirmYes" type="button" style="background:#f59e0b;color:#fff;padding:10px 20px;border-radius:8px;border:none;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;" onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">
+                <i class="bi bi-pause-circle"></i> Yes, Suspend Account
+              </button>
             </div>
           </div>
         </div>
@@ -155,24 +400,83 @@
         return res;
       }
 
-      if (banBtn) banBtn.addEventListener('click', async function(){
-        banBtn.disabled = true;
-        const r = await postJson(`/customers/${customerId}/ban`);
-        if (r.ok) {
-          const j = await r.json();
-          if (j.is_banned) { banBtn.style.display='none'; if (unbanBtn) unbanBtn.style.display='inline-block'; }
-          // show admin warning modal about banned user
-          try { showBannedModal(); } catch(_) {}
-        } else alert('Failed to ban user');
-        banBtn.disabled = false;
+      function updateAccountStatus(isBanned) {
+        const statusText = document.getElementById('accountStatusText');
+        if (statusText) {
+          if (isBanned) {
+            statusText.innerHTML = '<span style="color:#e74c3c;font-weight:600">⛔ Banned</span>';
+          } else {
+            statusText.innerHTML = '<span style="color:#10b981;font-weight:600">✓ Active</span>';
+          }
+        }
+      }
+
+      // Ban confirmation modal handlers
+      function showBanConfirmModal() {
+        const modal = document.getElementById('banConfirmModal');
+        if (modal) {
+          modal.style.display = 'block';
+          const yesBtn = document.getElementById('banConfirmYes');
+          if (yesBtn) yesBtn.focus();
+        }
+      }
+      
+      function hideBanConfirmModal() {
+        const modal = document.getElementById('banConfirmModal');
+        if (modal) modal.style.display = 'none';
+      }
+
+      const banConfirmCancel = document.getElementById('banConfirmCancel');
+      if (banConfirmCancel) {
+        banConfirmCancel.addEventListener('click', hideBanConfirmModal);
+      }
+
+      const banConfirmYes = document.getElementById('banConfirmYes');
+      if (banConfirmYes) {
+        banConfirmYes.addEventListener('click', async function(){
+          hideBanConfirmModal();
+          banBtn.disabled = true;
+          banConfirmYes.innerHTML = '<i class="bi bi-hourglass-split"></i> Banning...';
+          banConfirmYes.disabled = true;
+          
+          const r = await postJson(`/customers/${customerId}/ban`);
+          if (r.ok) {
+            const j = await r.json();
+            if (j.is_banned) { 
+              banBtn.style.display='none'; 
+              if (unbanBtn) unbanBtn.style.display='flex';
+              updateAccountStatus(true);
+              addAuditEntry('Account banned at ' + new Date().toLocaleString());
+              showToast('Account banned successfully');
+            }
+            // show admin warning modal about banned user
+            try { showBannedModal(); } catch(_) {}
+          } else {
+            alert('Failed to ban user');
+          }
+          banBtn.disabled = false;
+          banConfirmYes.innerHTML = '<i class="bi bi-slash-circle"></i> Yes, Ban Account';
+          banConfirmYes.disabled = false;
+        });
+      }
+
+      if (banBtn) banBtn.addEventListener('click', function(){
+        showBanConfirmModal();
       });
 
       if (unbanBtn) unbanBtn.addEventListener('click', async function(){
+        if (!confirm('Unban this account and restore full access?')) return;
         unbanBtn.disabled = true;
         const r = await postJson(`/customers/${customerId}/ban`);
         if (r.ok) {
           const j = await r.json();
-          if (!j.is_banned) { if (banBtn) banBtn.style.display='inline-block'; unbanBtn.style.display='none'; }
+          if (!j.is_banned) { 
+            if (banBtn) banBtn.style.display='flex'; 
+            unbanBtn.style.display='none';
+            updateAccountStatus(false);
+            addAuditEntry('Account unbanned at ' + new Date().toLocaleString());
+            showToast('Account unbanned successfully');
+          }
           // if the banned modal is open, hide it when user is unbanned
           try { hideBannedModal(); } catch(_) {}
         } else alert('Failed to unban user');
@@ -249,47 +553,181 @@
       function addAuditEntry(text) {
         const log = document.getElementById('auditLog');
         if (!log) return;
+        
+        // Remove "no actions" message if present
+        const noActions = log.querySelector('[data-no-actions]');
+        if (noActions) noActions.remove();
+        
         const el = document.createElement('div');
-        el.style.padding = '6px 0';
-        el.style.borderBottom = '1px dashed #eee';
-        el.textContent = text;
-        log.insertBefore(el, log.firstChild);
+        el.style.padding = '8px 10px';
+        el.style.borderBottom = '1px solid #e5e7eb';
+        el.style.fontSize = '12px';
+        el.style.color = '#374151';
+        el.style.background = '#fff';
+        el.style.borderRadius = '6px';
+        el.style.marginBottom = '6px';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.gap = '6px';
+        el.innerHTML = '<i class="bi bi-dot" style="color:#3b82f6;font-size:16px"></i>' + text;
+        
+        // Insert after the header
+        const header = log.querySelector('div:first-child');
+        if (header && header.nextSibling) {
+          log.insertBefore(el, header.nextSibling);
+        } else {
+          log.appendChild(el);
+        }
+        
+        // Limit to 5 entries
+        const entries = log.querySelectorAll('div[style*="borderBottom"]');
+        if (entries.length > 5) {
+          entries[entries.length - 1].remove();
+        }
       }
 
-      if (suspendBtn) suspendBtn.addEventListener('click', async function(){
-        const days = Number(daysInput.value || 0);
-        if (!Number.isFinite(days) || days < 0) return alert('Enter valid days');
-        suspendBtn.disabled = true;
-        const r = await postJson(`/customers/${customerId}/suspend`, { days });
-        if (r.ok) {
-          const j = await r.json();
-          const status = document.getElementById('suspendStatus');
-          if (j.suspended_until) {
-            const until = new Date(j.suspended_until).toLocaleString();
-            status.textContent = 'Suspended until ' + until;
-            showToast('Suspended until ' + until);
-            addAuditEntry('Suspended by you until ' + until);
-          } else {
-            status.textContent = '';
-            showToast('Suspension set');
-            addAuditEntry('Suspension set by you');
+      // Suspension error modal handlers
+      function showSuspendErrorModal(message) {
+        const modal = document.getElementById('suspendErrorModal');
+        const msgEl = document.getElementById('suspendErrorMessage');
+        if (modal && msgEl) {
+          msgEl.textContent = message;
+          modal.style.display = 'block';
+          const okBtn = document.getElementById('suspendErrorOk');
+          if (okBtn) okBtn.focus();
+        }
+      }
+
+      function hideSuspendErrorModal() {
+        const modal = document.getElementById('suspendErrorModal');
+        if (modal) modal.style.display = 'none';
+      }
+
+      const suspendErrorOk = document.getElementById('suspendErrorOk');
+      if (suspendErrorOk) {
+        suspendErrorOk.addEventListener('click', hideSuspendErrorModal);
+      }
+
+      // Suspension confirmation modal handlers
+      function showSuspendConfirmModal(days) {
+        const modal = document.getElementById('suspendConfirmModal');
+        const daysDisplay = document.getElementById('suspendDaysDisplay');
+        const endDateDisplay = document.getElementById('suspendEndDate');
+        
+        if (modal && daysDisplay && endDateDisplay) {
+          daysDisplay.textContent = days;
+          
+          // Calculate end date
+          const endDate = new Date();
+          endDate.setDate(endDate.getDate() + days);
+          endDateDisplay.textContent = endDate.toLocaleString();
+          
+          modal.style.display = 'block';
+          const yesBtn = document.getElementById('suspendConfirmYes');
+          if (yesBtn) yesBtn.focus();
+        }
+      }
+
+      function hideSuspendConfirmModal() {
+        const modal = document.getElementById('suspendConfirmModal');
+        if (modal) modal.style.display = 'none';
+      }
+
+      const suspendConfirmCancel = document.getElementById('suspendConfirmCancel');
+      if (suspendConfirmCancel) {
+        suspendConfirmCancel.addEventListener('click', hideSuspendConfirmModal);
+      }
+
+      let pendingSuspendDays = 0;
+
+      const suspendConfirmYes = document.getElementById('suspendConfirmYes');
+      if (suspendConfirmYes) {
+        suspendConfirmYes.addEventListener('click', async function(){
+          hideSuspendConfirmModal();
+          suspendBtn.disabled = true;
+          suspendConfirmYes.innerHTML = '<i class="bi bi-hourglass-split"></i> Suspending...';
+          suspendConfirmYes.disabled = true;
+          
+          try {
+            console.log('Suspending user for', pendingSuspendDays, 'days');
+            const r = await postJson(`/customers/${customerId}/suspend`, { days: pendingSuspendDays });
+            console.log('Suspend response:', r.status, r.ok);
+            
+            if (r.ok) {
+              const j = await r.json();
+              console.log('Suspend result:', j);
+              const status = document.getElementById('suspendStatus');
+              if (j.suspended_until) {
+                const until = new Date(j.suspended_until).toLocaleString();
+                status.innerHTML = `
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b"></i>
+                    <strong>Suspended until:</strong> ${until}
+                  </div>
+                `;
+                showToast('Account suspended until ' + until);
+                addAuditEntry('Suspended for ' + pendingSuspendDays + ' day(s) until ' + until);
+              } else {
+                status.innerHTML = `
+                  <div style="display:flex;align-items:center;gap:6px;color:#059669">
+                    <i class="bi bi-check-circle-fill"></i>
+                    No active suspension
+                  </div>
+                `;
+                showToast('Suspension applied');
+                addAuditEntry('Suspension applied for ' + pendingSuspendDays + ' day(s)');
+              }
+              daysInput.value = '';
+            } else {
+              const errText = await r.text();
+              console.error('Suspend failed:', r.status, errText);
+              showSuspendErrorModal('Failed to suspend user: ' + (r.status === 403 ? 'Access denied' : 'Server error'));
+            }
+          } catch (error) {
+            console.error('Suspend error:', error);
+            showSuspendErrorModal('Failed to suspend user. Please try again.');
           }
-        } else alert('Failed to suspend user');
-        suspendBtn.disabled = false;
+          
+          suspendBtn.disabled = false;
+          suspendConfirmYes.innerHTML = '<i class="bi bi-pause-circle"></i> Yes, Suspend Account';
+          suspendConfirmYes.disabled = false;
+        });
+      }
+
+      if (suspendBtn) suspendBtn.addEventListener('click', function(){
+        const days = Number(daysInput.value || 0);
+        if (!Number.isFinite(days) || days < 1) {
+          showSuspendErrorModal('Please enter a valid number of days (1-365)');
+          return;
+        }
+        if (days > 365) {
+          showSuspendErrorModal('Maximum suspension period is 365 days');
+          return;
+        }
+        
+        pendingSuspendDays = days;
+        showSuspendConfirmModal(days);
       });
 
       if (clearSuspendBtn) clearSuspendBtn.addEventListener('click', async function(){
-        if (!confirm('Lift suspension for this user now?')) return;
+        if (!confirm('Lift the suspension for this user immediately?')) return;
         clearSuspendBtn.disabled = true;
         const r = await postJson(`/customers/${customerId}/suspend`, { days: 0 });
         if (r.ok) {
           const j = await r.json();
           const status = document.getElementById('suspendStatus');
-          if (status) status.textContent = '';
+          if (status) {
+            status.innerHTML = `
+              <div style="display:flex;align-items:center;gap:6px;color:#059669">
+                <i class="bi bi-check-circle-fill"></i>
+                No active suspension
+              </div>
+            `;
+          }
           daysInput.value = '';
           const when = new Date().toLocaleString();
-          showToast('Suspension lifted');
-          addAuditEntry('Suspension lifted by you at ' + when);
+          showToast('Suspension lifted successfully');
+          addAuditEntry('Suspension lifted at ' + when);
         } else {
           alert('Failed to clear suspension');
         }

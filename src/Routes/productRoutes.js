@@ -20,11 +20,12 @@ router.get("/products/filter", async (req, res) => {
     const {
       minPrice = 0,
       maxPrice = 10000,
-      minRating = 1,
+      minRating = 0,
       maxRating = 5,
       category = "",
       colors = "",
-      sizes = ""
+      sizes = "",
+      search = ""
     } = req.query;
 
     // Base filters for price and rating
@@ -32,8 +33,14 @@ router.get("/products/filter", async (req, res) => {
     const params = [Number(minPrice), Number(maxPrice), Number(minRating), Number(maxRating)];
     let idx = params.length;
 
-    // Optional: filter by category if provided
-    if (category && String(category).trim() !== "") {
+    // Optional: filter by search query if provided
+    if (search && String(search).trim() !== "") {
+      const searchTerm = `%${String(search).trim()}%`;
+      query += ` AND (p.name ILIKE $${++idx} OR p.category ILIKE $${idx})`;
+      params.push(searchTerm);
+    }
+    // Optional: filter by category if provided (and no search query)
+    else if (category && String(category).trim() !== "") {
       query += ` AND p.category = $${++idx}`;
       params.push(String(category).trim());
     }
@@ -125,8 +132,39 @@ router.get("/products/filter", async (req, res) => {
 // Get all products route
 router.get("/products", async (req, res) => {
   try {
-  const result = await db.query("SELECT * FROM products");
+    const searchQuery = req.query.search;
+    const categoryQuery = req.query.category;
+    let result;
+    
+    console.log('📦 Products route - search:', searchQuery, 'category:', categoryQuery);
+    
+    // If there's a category query, filter by case-insensitive category match (partial match)
+    if (categoryQuery && categoryQuery.trim() !== '') {
+      console.log('Filtering by category:', categoryQuery.trim());
+      const categoryTerm = `%${categoryQuery.trim()}%`;
+      result = await db.query(
+        "SELECT * FROM products WHERE category ILIKE $1",
+        [categoryTerm]
+      );
+      console.log('Category filter found:', result.rows.length, 'products');
+    }
+    // If there's a search query, filter products by name or category
+    else if (searchQuery && searchQuery.trim() !== '') {
+      const searchTerm = `%${searchQuery.trim()}%`;
+      console.log('Searching for:', searchTerm);
+      result = await db.query(
+        "SELECT * FROM products WHERE name ILIKE $1 OR category ILIKE $1",
+        [searchTerm]
+      );
+      console.log('Search found:', result.rows.length, 'products');
+    } else {
+      console.log('Getting all products');
+      result = await db.query("SELECT * FROM products");
+      console.log('All products found:', result.rows.length);
+    }
+    
     let products = result.rows || [];
+    console.log('Final products count:', products.length);
 
     // Attach sold counts for all products in one pass
     const ids = products.map(p => p.id).filter(id => Number.isInteger(id));
@@ -186,7 +224,13 @@ router.get("/products", async (req, res) => {
     }
 
   const currentCategory = req.query.category || null;
-  res.render("customer/products", { products, user: req.session.user, currentCategory });
+  const searchTerm = req.query.search || null;
+  res.render("customer/products", { 
+    products, 
+    user: req.session.user, 
+    currentCategory, 
+    searchQuery: searchTerm 
+  });
   } catch (err) {
     console.error("❌ Error fetching products:", err);
     res.status(500).send("Server error");
